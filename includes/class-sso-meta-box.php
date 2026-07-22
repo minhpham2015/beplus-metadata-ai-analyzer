@@ -102,19 +102,23 @@ class SSO_Meta_Box {
 			array(
 				'context'  => 'meta-box',
 				'siteName' => get_bloginfo( 'name' ),
+				'titleSep' => SSO_Settings::get( 'general', 'title_separator', '–' ),
 				'siteUrl'  => home_url( '/' ),
 				'postSlug' => $slug,
 				'analyzer' => SSO_Analyzer::instance()->get_config(),
 				'i18n'     => array(
-					'chooseImage' => __( 'Choose Image', 'beplus-smart-seo-google-ai' ),
-					'useImage'    => __( 'Use this image', 'beplus-smart-seo-google-ai' ),
-					'removeImage' => __( 'Remove', 'beplus-smart-seo-google-ai' ),
-					'question'    => __( 'Question', 'beplus-smart-seo-google-ai' ),
-					'answer'      => __( 'Answer', 'beplus-smart-seo-google-ai' ),
-					'remove'      => __( 'Remove', 'beplus-smart-seo-google-ai' ),
-					'scoreGood'   => __( 'Good', 'beplus-smart-seo-google-ai' ),
-					'scoreOk'     => __( 'OK', 'beplus-smart-seo-google-ai' ),
-					'scorePoor'   => __( 'Poor', 'beplus-smart-seo-google-ai' ),
+					'chooseImage'       => __( 'Choose Image', 'beplus-smart-seo-google-ai' ),
+					'useImage'          => __( 'Use this image', 'beplus-smart-seo-google-ai' ),
+					'removeImage'       => __( 'Remove', 'beplus-smart-seo-google-ai' ),
+					'question'          => __( 'Question', 'beplus-smart-seo-google-ai' ),
+					'answer'            => __( 'Answer', 'beplus-smart-seo-google-ai' ),
+					'remove'            => __( 'Remove', 'beplus-smart-seo-google-ai' ),
+					'scoreGood'         => __( 'Good', 'beplus-smart-seo-google-ai' ),
+					'scoreOk'           => __( 'OK', 'beplus-smart-seo-google-ai' ),
+					'scorePoor'         => __( 'Poor', 'beplus-smart-seo-google-ai' ),
+					'suggestion'        => __( 'Suggestion', 'beplus-smart-seo-google-ai' ),
+					'apply'             => __( 'Apply', 'beplus-smart-seo-google-ai' ),
+					'contentAnalyzed'   => __( 'Content analyzed!', 'beplus-smart-seo-google-ai' ),
 				),
 			)
 		);
@@ -153,6 +157,34 @@ class SSO_Meta_Box {
 		$default_type     = isset( $type_settings[ $post->post_type ]['type'] ) ? $type_settings[ $post->post_type ]['type'] : '';
 		?>
 		<div class="sso-meta-box">
+			<?php
+			// SEO Score badge — hiển thị khi đã tính điểm ít nhất 1 lần.
+			$sso_score = (int) get_post_meta( $post->ID, '_sso_seo_score', true );
+			if ( $sso_score > 0 ) {
+				$sso_color = $sso_score >= 75 ? '#00a32a' : ( $sso_score >= 50 ? '#dba617' : '#d63638' );
+				$sso_label = $sso_score >= 75 ? __( 'Good', 'beplus-smart-seo-google-ai' ) : ( $sso_score >= 50 ? __( 'Average', 'beplus-smart-seo-google-ai' ) : __( 'Needs improvement', 'beplus-smart-seo-google-ai' ) );
+				echo '<div style="display:flex;align-items:center;gap:10px;padding:10px 0 14px;border-bottom:1px solid #e0e0e0;margin-bottom:12px;">';
+				printf(
+					'<svg viewBox="0 0 36 36" width="40" height="40">
+					  <circle cx="18" cy="18" r="15.9" fill="none" stroke="#e0e0e0" stroke-width="3.5"/>
+					  <circle cx="18" cy="18" r="15.9" fill="none" stroke="%s" stroke-width="3.5"
+					    stroke-dasharray="%d 100" stroke-dashoffset="25" stroke-linecap="round"/>
+					  <text x="18" y="22" text-anchor="middle" font-size="10" font-weight="700" fill="%s">%d</text>
+					</svg>',
+					esc_attr( $sso_color ),
+					$sso_score,
+					esc_attr( $sso_color ),
+					$sso_score
+				);
+				printf(
+					'<div><strong style="color:%s;">SEO Score: %d/100</strong><br><span style="font-size:11px;color:#646970;">%s</span></div>',
+					esc_attr( $sso_color ),
+					$sso_score,
+					esc_html( $sso_label )
+				);
+				echo '</div>';
+			}
+			?>
 			<h2 class="nav-tab-wrapper sso-tabs-nav">
 				<a href="#sso-tab-general" class="nav-tab nav-tab-active" data-tab="general"><?php esc_html_e( 'General', 'beplus-smart-seo-google-ai' ); ?></a>
 				<a href="#sso-tab-social" class="nav-tab" data-tab="social"><?php esc_html_e( 'Social', 'beplus-smart-seo-google-ai' ); ?></a>
@@ -166,6 +198,11 @@ class SSO_Meta_Box {
 					<p class="sso-snippet-title"></p>
 					<p class="sso-snippet-desc"></p>
 				</div>
+
+				<p class="sso-field">
+					<button type="button" id="sso-autofill-btn" class="button"><?php esc_html_e( '✨ Auto-fill SEO', 'beplus-smart-seo-google-ai' ); ?></button>
+					<span id="sso-autofill-status"></span>
+				</p>
 
 				<p class="sso-field">
 					<label for="sso_meta_title"><?php esc_html_e( 'Meta Title', 'beplus-smart-seo-google-ai' ); ?></label>
@@ -239,8 +276,17 @@ class SSO_Meta_Box {
 								$default_type ? $default_type : __( 'None', 'beplus-smart-seo-google-ai' )
 							),
 							'article'       => __( 'Article', 'beplus-smart-seo-google-ai' ),
+							'blogposting'   => __( 'BlogPosting', 'beplus-smart-seo-google-ai' ),
+							'webpage'       => __( 'WebPage', 'beplus-smart-seo-google-ai' ),
 							'product'       => __( 'Product', 'beplus-smart-seo-google-ai' ),
 							'faqpage'       => __( 'FAQPage', 'beplus-smart-seo-google-ai' ),
+							'howto'         => __( 'HowTo', 'beplus-smart-seo-google-ai' ),
+							'event'         => __( 'Event', 'beplus-smart-seo-google-ai' ),
+							'video'         => __( 'VideoObject', 'beplus-smart-seo-google-ai' ),
+							'recipe'        => __( 'Recipe', 'beplus-smart-seo-google-ai' ),
+							'jobposting'    => __( 'JobPosting', 'beplus-smart-seo-google-ai' ),
+							'course'        => __( 'Course', 'beplus-smart-seo-google-ai' ),
+							'review'        => __( 'Review', 'beplus-smart-seo-google-ai' ),
 							'localbusiness' => __( 'LocalBusiness', 'beplus-smart-seo-google-ai' ),
 							'none'          => __( 'None (disable schema)', 'beplus-smart-seo-google-ai' ),
 						);
@@ -301,6 +347,311 @@ class SSO_Meta_Box {
 
 				<div class="sso-schema-fields" data-schema-fields="product" style="display:none;">
 					<p class="description"><?php esc_html_e( 'Product data (price, SKU, stock, rating) is pulled automatically from WooCommerce when available.', 'beplus-smart-seo-google-ai' ); ?></p>
+				</div>
+
+				<?php
+				// ---- HowTo fields ----
+				$howto_meta  = get_post_meta( $post->ID, '_sso_schema_howto', true );
+				$howto_meta  = is_array( $howto_meta ) ? $howto_meta : array();
+				$howto_steps = isset( $howto_meta['steps'] ) && is_array( $howto_meta['steps'] ) ? $howto_meta['steps'] : array();
+				?>
+				<div class="sso-schema-fields" data-schema-fields="howto" style="display:none;">
+					<p class="sso-field sso-field-inline">
+						<span>
+							<label for="sso_howto_total_time"><?php esc_html_e( 'Total Time (ISO 8601, e.g. PT30M)', 'beplus-smart-seo-google-ai' ); ?></label>
+							<input type="text" id="sso_howto_total_time" name="sso_howto[total_time]" value="<?php echo esc_attr( $howto_meta['total_time'] ?? '' ); ?>" placeholder="PT30M" />
+						</span>
+						<span>
+							<label for="sso_howto_cost"><?php esc_html_e( 'Estimated Cost', 'beplus-smart-seo-google-ai' ); ?></label>
+							<input type="text" id="sso_howto_cost" name="sso_howto[estimated_cost]" value="<?php echo esc_attr( $howto_meta['estimated_cost'] ?? '' ); ?>" placeholder="0" />
+						</span>
+						<span>
+							<label for="sso_howto_currency"><?php esc_html_e( 'Currency', 'beplus-smart-seo-google-ai' ); ?></label>
+							<input type="text" id="sso_howto_currency" name="sso_howto[currency]" value="<?php echo esc_attr( $howto_meta['currency'] ?? 'VND' ); ?>" placeholder="VND" style="width:80px;" />
+						</span>
+					</p>
+					<label><?php esc_html_e( 'Steps', 'beplus-smart-seo-google-ai' ); ?></label>
+					<table class="widefat sso-howto-repeater">
+						<thead><tr>
+							<th><?php esc_html_e( 'Step Name', 'beplus-smart-seo-google-ai' ); ?></th>
+							<th><?php esc_html_e( 'Description', 'beplus-smart-seo-google-ai' ); ?></th>
+							<th></th>
+						</tr></thead>
+						<tbody>
+							<?php foreach ( $howto_steps as $step ) : ?>
+								<tr>
+									<td><input type="text" name="sso_howto_step_name[]" value="<?php echo esc_attr( $step['name'] ?? '' ); ?>" class="widefat" /></td>
+									<td><input type="text" name="sso_howto_step_text[]" value="<?php echo esc_attr( $step['text'] ?? '' ); ?>" class="widefat" /></td>
+									<td><button type="button" class="button sso-row-remove">&times;</button></td>
+								</tr>
+							<?php endforeach; ?>
+						</tbody>
+					</table>
+					<button type="button" class="button sso-howto-add"><?php esc_html_e( '+ Add Step', 'beplus-smart-seo-google-ai' ); ?></button>
+				</div>
+
+				<?php
+				// ---- Event fields ----
+				$event_meta = get_post_meta( $post->ID, '_sso_schema_event', true );
+				$event_meta = is_array( $event_meta ) ? $event_meta : array();
+				?>
+				<div class="sso-schema-fields" data-schema-fields="event" style="display:none;">
+					<p class="sso-field">
+						<label for="sso_event_name"><?php esc_html_e( 'Event Name', 'beplus-smart-seo-google-ai' ); ?></label>
+						<input type="text" id="sso_event_name" name="sso_event[name]" value="<?php echo esc_attr( $event_meta['name'] ?? '' ); ?>" class="widefat" />
+					</p>
+					<p class="sso-field sso-field-inline">
+						<span>
+							<label for="sso_event_start"><?php esc_html_e( 'Start Date/Time', 'beplus-smart-seo-google-ai' ); ?></label>
+							<input type="datetime-local" id="sso_event_start" name="sso_event[start_date]" value="<?php echo esc_attr( $event_meta['start_date'] ?? '' ); ?>" />
+						</span>
+						<span>
+							<label for="sso_event_end"><?php esc_html_e( 'End Date/Time', 'beplus-smart-seo-google-ai' ); ?></label>
+							<input type="datetime-local" id="sso_event_end" name="sso_event[end_date]" value="<?php echo esc_attr( $event_meta['end_date'] ?? '' ); ?>" />
+						</span>
+					</p>
+					<p class="sso-field sso-field-inline">
+						<span>
+							<label for="sso_event_status"><?php esc_html_e( 'Event Status', 'beplus-smart-seo-google-ai' ); ?></label>
+							<select id="sso_event_status" name="sso_event[status]">
+								<?php
+								$event_statuses = array(
+									'EventScheduled'   => __( 'Scheduled', 'beplus-smart-seo-google-ai' ),
+									'EventPostponed'   => __( 'Postponed', 'beplus-smart-seo-google-ai' ),
+									'EventCancelled'   => __( 'Cancelled', 'beplus-smart-seo-google-ai' ),
+									'EventRescheduled' => __( 'Rescheduled', 'beplus-smart-seo-google-ai' ),
+								);
+								foreach ( $event_statuses as $val => $lbl ) :
+									?>
+									<option value="<?php echo esc_attr( $val ); ?>" <?php selected( $event_meta['status'] ?? 'EventScheduled', $val ); ?>><?php echo esc_html( $lbl ); ?></option>
+								<?php endforeach; ?>
+							</select>
+						</span>
+						<span>
+							<label for="sso_event_mode"><?php esc_html_e( 'Attendance Mode', 'beplus-smart-seo-google-ai' ); ?></label>
+							<select id="sso_event_mode" name="sso_event[attendance_mode]">
+								<?php
+								$attendance_modes = array(
+									'OfflineEventAttendanceMode' => __( 'In-Person', 'beplus-smart-seo-google-ai' ),
+									'OnlineEventAttendanceMode'  => __( 'Online', 'beplus-smart-seo-google-ai' ),
+									'MixedEventAttendanceMode'   => __( 'Mixed', 'beplus-smart-seo-google-ai' ),
+								);
+								foreach ( $attendance_modes as $val => $lbl ) :
+									?>
+									<option value="<?php echo esc_attr( $val ); ?>" <?php selected( $event_meta['attendance_mode'] ?? 'OfflineEventAttendanceMode', $val ); ?>><?php echo esc_html( $lbl ); ?></option>
+								<?php endforeach; ?>
+							</select>
+						</span>
+					</p>
+					<p class="sso-field">
+						<label for="sso_event_location"><?php esc_html_e( 'Venue Name', 'beplus-smart-seo-google-ai' ); ?></label>
+						<input type="text" id="sso_event_location" name="sso_event[location_name]" value="<?php echo esc_attr( $event_meta['location_name'] ?? '' ); ?>" class="widefat" />
+					</p>
+					<p class="sso-field">
+						<label for="sso_event_address"><?php esc_html_e( 'Venue Address', 'beplus-smart-seo-google-ai' ); ?></label>
+						<input type="text" id="sso_event_address" name="sso_event[location_address]" value="<?php echo esc_attr( $event_meta['location_address'] ?? '' ); ?>" class="widefat" />
+					</p>
+					<p class="sso-field">
+						<label for="sso_event_organizer"><?php esc_html_e( 'Organizer', 'beplus-smart-seo-google-ai' ); ?></label>
+						<input type="text" id="sso_event_organizer" name="sso_event[organizer]" value="<?php echo esc_attr( $event_meta['organizer'] ?? '' ); ?>" class="widefat" />
+					</p>
+				</div>
+
+				<?php
+				// ---- VideoObject fields ----
+				$video_meta = get_post_meta( $post->ID, '_sso_schema_video', true );
+				$video_meta = is_array( $video_meta ) ? $video_meta : array();
+				?>
+				<div class="sso-schema-fields" data-schema-fields="video" style="display:none;">
+					<p class="sso-field">
+						<label for="sso_video_name"><?php esc_html_e( 'Video Title', 'beplus-smart-seo-google-ai' ); ?></label>
+						<input type="text" id="sso_video_name" name="sso_video[name]" value="<?php echo esc_attr( $video_meta['name'] ?? '' ); ?>" class="widefat" />
+					</p>
+					<p class="sso-field">
+						<label for="sso_video_description"><?php esc_html_e( 'Video Description', 'beplus-smart-seo-google-ai' ); ?></label>
+						<textarea id="sso_video_description" name="sso_video[description]" class="widefat" rows="2"><?php echo esc_textarea( $video_meta['description'] ?? '' ); ?></textarea>
+					</p>
+					<p class="sso-field">
+						<label for="sso_video_content_url"><?php esc_html_e( 'Content URL (direct video file)', 'beplus-smart-seo-google-ai' ); ?></label>
+						<input type="url" id="sso_video_content_url" name="sso_video[content_url]" value="<?php echo esc_attr( $video_meta['content_url'] ?? '' ); ?>" class="widefat" />
+					</p>
+					<p class="sso-field">
+						<label for="sso_video_embed_url"><?php esc_html_e( 'Embed URL (YouTube/Vimeo)', 'beplus-smart-seo-google-ai' ); ?></label>
+						<input type="url" id="sso_video_embed_url" name="sso_video[embed_url]" value="<?php echo esc_attr( $video_meta['embed_url'] ?? '' ); ?>" class="widefat" />
+					</p>
+					<p class="sso-field sso-field-inline">
+						<span>
+							<label for="sso_video_duration"><?php esc_html_e( 'Duration (ISO 8601, e.g. PT4M33S)', 'beplus-smart-seo-google-ai' ); ?></label>
+							<input type="text" id="sso_video_duration" name="sso_video[duration]" value="<?php echo esc_attr( $video_meta['duration'] ?? '' ); ?>" placeholder="PT4M33S" />
+						</span>
+						<span>
+							<label for="sso_video_upload_date"><?php esc_html_e( 'Upload Date', 'beplus-smart-seo-google-ai' ); ?></label>
+							<input type="date" id="sso_video_upload_date" name="sso_video[upload_date]" value="<?php echo esc_attr( $video_meta['upload_date'] ?? '' ); ?>" />
+						</span>
+					</p>
+					<p class="description"><?php esc_html_e( 'Thumbnail uses the featured image automatically. Set a direct URL only as fallback.', 'beplus-smart-seo-google-ai' ); ?></p>
+					<p class="sso-field">
+						<label for="sso_video_thumbnail_url"><?php esc_html_e( 'Thumbnail URL (fallback)', 'beplus-smart-seo-google-ai' ); ?></label>
+						<input type="url" id="sso_video_thumbnail_url" name="sso_video[thumbnail_url]" value="<?php echo esc_attr( $video_meta['thumbnail_url'] ?? '' ); ?>" class="widefat" />
+					</p>
+				</div>
+
+				<?php
+				// ---- Recipe fields ----
+				$recipe_meta = get_post_meta( $post->ID, '_sso_schema_recipe', true );
+				$recipe_meta = is_array( $recipe_meta ) ? $recipe_meta : array();
+				?>
+				<div class="sso-schema-fields" data-schema-fields="recipe" style="display:none;">
+					<p class="sso-field">
+						<label for="sso_recipe_name"><?php esc_html_e( 'Recipe Name', 'beplus-smart-seo-google-ai' ); ?></label>
+						<input type="text" id="sso_recipe_name" name="sso_recipe[name]" value="<?php echo esc_attr( $recipe_meta['name'] ?? '' ); ?>" class="widefat" />
+					</p>
+					<p class="sso-field sso-field-inline">
+						<span>
+							<label for="sso_recipe_prep_time"><?php esc_html_e( 'Prep Time (e.g. PT15M)', 'beplus-smart-seo-google-ai' ); ?></label>
+							<input type="text" id="sso_recipe_prep_time" name="sso_recipe[prep_time]" value="<?php echo esc_attr( $recipe_meta['prep_time'] ?? '' ); ?>" placeholder="PT15M" />
+						</span>
+						<span>
+							<label for="sso_recipe_cook_time"><?php esc_html_e( 'Cook Time (e.g. PT30M)', 'beplus-smart-seo-google-ai' ); ?></label>
+							<input type="text" id="sso_recipe_cook_time" name="sso_recipe[cook_time]" value="<?php echo esc_attr( $recipe_meta['cook_time'] ?? '' ); ?>" placeholder="PT30M" />
+						</span>
+						<span>
+							<label for="sso_recipe_total_time"><?php esc_html_e( 'Total Time (e.g. PT45M)', 'beplus-smart-seo-google-ai' ); ?></label>
+							<input type="text" id="sso_recipe_total_time" name="sso_recipe[total_time]" value="<?php echo esc_attr( $recipe_meta['total_time'] ?? '' ); ?>" placeholder="PT45M" />
+						</span>
+					</p>
+					<p class="sso-field sso-field-inline">
+						<span>
+							<label for="sso_recipe_yield"><?php esc_html_e( 'Yield (servings)', 'beplus-smart-seo-google-ai' ); ?></label>
+							<input type="text" id="sso_recipe_yield" name="sso_recipe[recipe_yield]" value="<?php echo esc_attr( $recipe_meta['recipe_yield'] ?? '' ); ?>" />
+						</span>
+						<span>
+							<label for="sso_recipe_category"><?php esc_html_e( 'Category', 'beplus-smart-seo-google-ai' ); ?></label>
+							<input type="text" id="sso_recipe_category" name="sso_recipe[recipe_category]" value="<?php echo esc_attr( $recipe_meta['recipe_category'] ?? '' ); ?>" />
+						</span>
+						<span>
+							<label for="sso_recipe_cuisine"><?php esc_html_e( 'Cuisine', 'beplus-smart-seo-google-ai' ); ?></label>
+							<input type="text" id="sso_recipe_cuisine" name="sso_recipe[recipe_cuisine]" value="<?php echo esc_attr( $recipe_meta['recipe_cuisine'] ?? '' ); ?>" />
+						</span>
+					</p>
+					<p class="sso-field">
+						<label for="sso_recipe_ingredients"><?php esc_html_e( 'Ingredients (one per line)', 'beplus-smart-seo-google-ai' ); ?></label>
+						<textarea id="sso_recipe_ingredients" name="sso_recipe[ingredients]" class="widefat" rows="5"><?php echo esc_textarea( $recipe_meta['ingredients'] ?? '' ); ?></textarea>
+					</p>
+					<p class="sso-field">
+						<label for="sso_recipe_instructions"><?php esc_html_e( 'Instructions (one step per line)', 'beplus-smart-seo-google-ai' ); ?></label>
+						<textarea id="sso_recipe_instructions" name="sso_recipe[instructions]" class="widefat" rows="5"><?php echo esc_textarea( $recipe_meta['instructions'] ?? '' ); ?></textarea>
+					</p>
+				</div>
+
+				<?php
+				// ---- JobPosting fields ----
+				$job_meta = get_post_meta( $post->ID, '_sso_schema_job', true );
+				$job_meta = is_array( $job_meta ) ? $job_meta : array();
+				?>
+				<div class="sso-schema-fields" data-schema-fields="jobposting" style="display:none;">
+					<p class="sso-field">
+						<label for="sso_job_title"><?php esc_html_e( 'Job Title', 'beplus-smart-seo-google-ai' ); ?></label>
+						<input type="text" id="sso_job_title" name="sso_job[title]" value="<?php echo esc_attr( $job_meta['title'] ?? '' ); ?>" class="widefat" />
+					</p>
+					<p class="sso-field">
+						<label for="sso_job_hiring_org"><?php esc_html_e( 'Hiring Organization', 'beplus-smart-seo-google-ai' ); ?></label>
+						<input type="text" id="sso_job_hiring_org" name="sso_job[hiring_org]" value="<?php echo esc_attr( $job_meta['hiring_org'] ?? '' ); ?>" class="widefat" />
+					</p>
+					<p class="sso-field sso-field-inline">
+						<span>
+							<label for="sso_job_location"><?php esc_html_e( 'Job Location (city)', 'beplus-smart-seo-google-ai' ); ?></label>
+							<input type="text" id="sso_job_location" name="sso_job[location]" value="<?php echo esc_attr( $job_meta['location'] ?? '' ); ?>" />
+						</span>
+						<span>
+							<label for="sso_job_type"><?php esc_html_e( 'Employment Type', 'beplus-smart-seo-google-ai' ); ?></label>
+							<select id="sso_job_type" name="sso_job[employment_type]">
+								<?php
+								$emp_types = array( 'FULL_TIME', 'PART_TIME', 'CONTRACTOR', 'TEMPORARY', 'INTERN', 'VOLUNTEER', 'PER_DIEM', 'OTHER' );
+								foreach ( $emp_types as $et ) :
+									?>
+									<option value="<?php echo esc_attr( $et ); ?>" <?php selected( $job_meta['employment_type'] ?? '', $et ); ?>><?php echo esc_html( str_replace( '_', ' ', $et ) ); ?></option>
+								<?php endforeach; ?>
+							</select>
+						</span>
+					</p>
+					<p class="sso-field sso-field-inline">
+						<span>
+							<label for="sso_job_salary"><?php esc_html_e( 'Base Salary', 'beplus-smart-seo-google-ai' ); ?></label>
+							<input type="text" id="sso_job_salary" name="sso_job[salary]" value="<?php echo esc_attr( $job_meta['salary'] ?? '' ); ?>" placeholder="10000000" />
+						</span>
+						<span>
+							<label for="sso_job_currency"><?php esc_html_e( 'Currency', 'beplus-smart-seo-google-ai' ); ?></label>
+							<input type="text" id="sso_job_currency" name="sso_job[salary_currency]" value="<?php echo esc_attr( $job_meta['salary_currency'] ?? 'VND' ); ?>" style="width:80px;" />
+						</span>
+						<span>
+							<label for="sso_job_period"><?php esc_html_e( 'Period', 'beplus-smart-seo-google-ai' ); ?></label>
+							<select id="sso_job_period" name="sso_job[salary_period]">
+								<?php foreach ( array( 'MONTH', 'YEAR', 'WEEK', 'DAY', 'HOUR' ) as $p ) : ?>
+									<option value="<?php echo esc_attr( $p ); ?>" <?php selected( $job_meta['salary_period'] ?? 'MONTH', $p ); ?>><?php echo esc_html( $p ); ?></option>
+								<?php endforeach; ?>
+							</select>
+						</span>
+					</p>
+					<p class="sso-field">
+						<label for="sso_job_valid_through"><?php esc_html_e( 'Valid Through', 'beplus-smart-seo-google-ai' ); ?></label>
+						<input type="date" id="sso_job_valid_through" name="sso_job[valid_through]" value="<?php echo esc_attr( $job_meta['valid_through'] ?? '' ); ?>" />
+					</p>
+				</div>
+
+				<?php
+				// ---- Course fields ----
+				$course_meta = get_post_meta( $post->ID, '_sso_schema_course', true );
+				$course_meta = is_array( $course_meta ) ? $course_meta : array();
+				?>
+				<div class="sso-schema-fields" data-schema-fields="course" style="display:none;">
+					<p class="sso-field">
+						<label for="sso_course_name"><?php esc_html_e( 'Course Name', 'beplus-smart-seo-google-ai' ); ?></label>
+						<input type="text" id="sso_course_name" name="sso_course[name]" value="<?php echo esc_attr( $course_meta['name'] ?? '' ); ?>" class="widefat" />
+					</p>
+					<p class="sso-field">
+						<label for="sso_course_provider"><?php esc_html_e( 'Provider (Organization)', 'beplus-smart-seo-google-ai' ); ?></label>
+						<input type="text" id="sso_course_provider" name="sso_course[provider]" value="<?php echo esc_attr( $course_meta['provider'] ?? '' ); ?>" class="widefat" />
+					</p>
+					<p class="sso-field">
+						<label for="sso_course_provider_url"><?php esc_html_e( 'Provider URL', 'beplus-smart-seo-google-ai' ); ?></label>
+						<input type="url" id="sso_course_provider_url" name="sso_course[provider_url]" value="<?php echo esc_attr( $course_meta['provider_url'] ?? '' ); ?>" class="widefat" />
+					</p>
+					<p class="sso-field">
+						<label for="sso_course_url"><?php esc_html_e( 'Course URL (if different from post)', 'beplus-smart-seo-google-ai' ); ?></label>
+						<input type="url" id="sso_course_url" name="sso_course[url]" value="<?php echo esc_attr( $course_meta['url'] ?? '' ); ?>" class="widefat" />
+					</p>
+				</div>
+
+				<?php
+				// ---- Review fields ----
+				$review_meta = get_post_meta( $post->ID, '_sso_schema_review', true );
+				$review_meta = is_array( $review_meta ) ? $review_meta : array();
+				?>
+				<div class="sso-schema-fields" data-schema-fields="review" style="display:none;">
+					<p class="sso-field">
+						<label for="sso_review_item"><?php esc_html_e( 'Item Reviewed (name)', 'beplus-smart-seo-google-ai' ); ?></label>
+						<input type="text" id="sso_review_item" name="sso_review[item_reviewed]" value="<?php echo esc_attr( $review_meta['item_reviewed'] ?? '' ); ?>" class="widefat" />
+					</p>
+					<p class="sso-field">
+						<label for="sso_review_rating"><?php esc_html_e( 'Rating (1–5)', 'beplus-smart-seo-google-ai' ); ?></label>
+						<select id="sso_review_rating" name="sso_review[rating]">
+							<?php for ( $r = 1; $r <= 5; $r++ ) : ?>
+								<option value="<?php echo esc_attr( $r ); ?>" <?php selected( (int) ( $review_meta['rating'] ?? 5 ), $r ); ?>><?php echo esc_html( $r ); ?></option>
+							<?php endfor; ?>
+						</select>
+					</p>
+					<p class="sso-field">
+						<label for="sso_review_body"><?php esc_html_e( 'Review Body', 'beplus-smart-seo-google-ai' ); ?></label>
+						<textarea id="sso_review_body" name="sso_review[body]" class="widefat" rows="3"><?php echo esc_textarea( $review_meta['body'] ?? '' ); ?></textarea>
+					</p>
+				</div>
+
+				<div class="sso-schema-fields" data-schema-fields="blogposting" style="display:none;">
+					<p class="description"><?php esc_html_e( 'BlogPosting uses the same Article fields (Headline and Author) above.', 'beplus-smart-seo-google-ai' ); ?></p>
+				</div>
+				<div class="sso-schema-fields" data-schema-fields="webpage" style="display:none;">
+					<p class="description"><?php esc_html_e( 'WebPage schema is built automatically from the post title, description and URL — no extra fields needed.', 'beplus-smart-seo-google-ai' ); ?></p>
 				</div>
 			</div>
 		</div>
@@ -400,6 +751,135 @@ class SSO_Meta_Box {
 			update_post_meta( $post_id, '_sso_schema_local_business', $lb_data );
 		} else {
 			delete_post_meta( $post_id, '_sso_schema_local_business' );
+		}
+
+		// HowTo schema fields.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce already verified.
+		if ( isset( $_POST['sso_howto'] ) && is_array( $_POST['sso_howto'] ) ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing
+			$howto_raw  = wp_unslash( $_POST['sso_howto'] );
+			$howto_data = array(
+				'total_time'     => sanitize_text_field( $howto_raw['total_time'] ?? '' ),
+				'estimated_cost' => sanitize_text_field( $howto_raw['estimated_cost'] ?? '' ),
+				'currency'       => sanitize_text_field( $howto_raw['currency'] ?? 'VND' ),
+			);
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing
+			$step_names = isset( $_POST['sso_howto_step_name'] ) ? array_map( 'sanitize_text_field', wp_unslash( (array) $_POST['sso_howto_step_name'] ) ) : array();
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing
+			$step_texts = isset( $_POST['sso_howto_step_text'] ) ? array_map( 'sanitize_text_field', wp_unslash( (array) $_POST['sso_howto_step_text'] ) ) : array();
+			$steps      = array();
+			foreach ( $step_names as $i => $sname ) {
+				if ( '' === trim( $sname ) ) {
+					continue;
+				}
+				$steps[] = array(
+					'name' => $sname,
+					'text' => $step_texts[ $i ] ?? '',
+				);
+			}
+			$howto_data['steps'] = $steps;
+			update_post_meta( $post_id, '_sso_schema_howto', $howto_data );
+		}
+
+		// Event schema fields.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		if ( isset( $_POST['sso_event'] ) && is_array( $_POST['sso_event'] ) ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing
+			$event_raw  = wp_unslash( $_POST['sso_event'] );
+			$event_data = array_map( 'sanitize_text_field', $event_raw );
+			if ( array_filter( $event_data ) ) {
+				update_post_meta( $post_id, '_sso_schema_event', $event_data );
+			} else {
+				delete_post_meta( $post_id, '_sso_schema_event' );
+			}
+		}
+
+		// VideoObject schema fields.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		if ( isset( $_POST['sso_video'] ) && is_array( $_POST['sso_video'] ) ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing
+			$video_raw  = wp_unslash( $_POST['sso_video'] );
+			$video_data = array();
+			foreach ( $video_raw as $key => $value ) {
+				if ( in_array( $key, array( 'content_url', 'embed_url', 'thumbnail_url' ), true ) ) {
+					$video_data[ $key ] = esc_url_raw( $value );
+				} elseif ( 'description' === $key ) {
+					$video_data[ $key ] = sanitize_textarea_field( $value );
+				} else {
+					$video_data[ $key ] = sanitize_text_field( $value );
+				}
+			}
+			if ( array_filter( $video_data ) ) {
+				update_post_meta( $post_id, '_sso_schema_video', $video_data );
+			} else {
+				delete_post_meta( $post_id, '_sso_schema_video' );
+			}
+		}
+
+		// Recipe schema fields.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		if ( isset( $_POST['sso_recipe'] ) && is_array( $_POST['sso_recipe'] ) ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing
+			$recipe_raw  = wp_unslash( $_POST['sso_recipe'] );
+			$recipe_data = array();
+			foreach ( $recipe_raw as $key => $value ) {
+				$recipe_data[ $key ] = in_array( $key, array( 'ingredients', 'instructions' ), true )
+					? sanitize_textarea_field( $value )
+					: sanitize_text_field( $value );
+			}
+			if ( array_filter( $recipe_data ) ) {
+				update_post_meta( $post_id, '_sso_schema_recipe', $recipe_data );
+			} else {
+				delete_post_meta( $post_id, '_sso_schema_recipe' );
+			}
+		}
+
+		// JobPosting schema fields.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		if ( isset( $_POST['sso_job'] ) && is_array( $_POST['sso_job'] ) ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing
+			$job_raw  = wp_unslash( $_POST['sso_job'] );
+			$job_data = array_map( 'sanitize_text_field', $job_raw );
+			if ( array_filter( $job_data ) ) {
+				update_post_meta( $post_id, '_sso_schema_job', $job_data );
+			} else {
+				delete_post_meta( $post_id, '_sso_schema_job' );
+			}
+		}
+
+		// Course schema fields.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		if ( isset( $_POST['sso_course'] ) && is_array( $_POST['sso_course'] ) ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing
+			$course_raw  = wp_unslash( $_POST['sso_course'] );
+			$course_data = array();
+			foreach ( $course_raw as $key => $value ) {
+				$course_data[ $key ] = in_array( $key, array( 'provider_url', 'url' ), true )
+					? esc_url_raw( $value )
+					: sanitize_text_field( $value );
+			}
+			if ( array_filter( $course_data ) ) {
+				update_post_meta( $post_id, '_sso_schema_course', $course_data );
+			} else {
+				delete_post_meta( $post_id, '_sso_schema_course' );
+			}
+		}
+
+		// Review schema fields.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		if ( isset( $_POST['sso_review'] ) && is_array( $_POST['sso_review'] ) ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing
+			$review_raw  = wp_unslash( $_POST['sso_review'] );
+			$review_data = array(
+				'item_reviewed' => sanitize_text_field( $review_raw['item_reviewed'] ?? '' ),
+				'rating'        => absint( $review_raw['rating'] ?? 5 ),
+				'body'          => sanitize_textarea_field( $review_raw['body'] ?? '' ),
+			);
+			if ( $review_data['item_reviewed'] || $review_data['body'] ) {
+				update_post_meta( $post_id, '_sso_schema_review', $review_data );
+			} else {
+				delete_post_meta( $post_id, '_sso_schema_review' );
+			}
 		}
 	}
 

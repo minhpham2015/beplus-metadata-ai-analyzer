@@ -6,7 +6,7 @@
  * Version:           1.0.0
  * Author:            BePlus
  * Author URI:        https://beplusthemes.com/
- * License:           GPL v2 or later
+ * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       beplus-smart-seo-google-ai
  * Domain Path:       /languages
@@ -60,7 +60,19 @@ final class SSO_Plugin {
 	private function __construct() {
 		$this->includes();
 
+		add_action( 'plugins_loaded', array( $this, 'load_textdomain' ), 1 );
 		add_action( 'plugins_loaded', array( $this, 'init_modules' ) );
+	}
+
+	/**
+	 * Load plugin text domain for translations.
+	 */
+	public function load_textdomain() {
+		load_plugin_textdomain(
+			'beplus-smart-seo-google-ai',
+			false,
+			dirname( SSO_PLUGIN_BASENAME ) . '/languages'
+		);
 	}
 
 	/**
@@ -70,12 +82,14 @@ final class SSO_Plugin {
 		require_once SSO_PLUGIN_DIR . 'includes/class-sso-settings.php';
 		require_once SSO_PLUGIN_DIR . 'includes/class-sso-analyzer.php';
 		require_once SSO_PLUGIN_DIR . 'includes/class-sso-meta-box.php';
+		require_once SSO_PLUGIN_DIR . 'includes/class-sso-post-columns.php';
 		require_once SSO_PLUGIN_DIR . 'includes/class-sso-sitemap.php';
 		require_once SSO_PLUGIN_DIR . 'includes/class-sso-opengraph.php';
 		require_once SSO_PLUGIN_DIR . 'includes/class-sso-breadcrumbs.php';
 		require_once SSO_PLUGIN_DIR . 'includes/class-sso-canonical.php';
 		require_once SSO_PLUGIN_DIR . 'includes/class-sso-robots.php';
 		require_once SSO_PLUGIN_DIR . 'includes/class-sso-schema.php';
+		require_once SSO_PLUGIN_DIR . 'includes/class-sso-llms-txt.php';
 	}
 
 	/**
@@ -87,12 +101,14 @@ final class SSO_Plugin {
 		SSO_Settings::instance();
 		SSO_Analyzer::instance();
 		SSO_Meta_Box::instance();
+		new SSO_Post_Columns();
 		SSO_Sitemap::instance();
 		SSO_OpenGraph::instance();
 		SSO_Breadcrumbs::instance();
 		SSO_Canonical::instance();
 		SSO_Robots::instance();
 		SSO_Schema::instance();
+		SSO_Llms_Txt::instance();
 	}
 
 	/**
@@ -141,7 +157,9 @@ sso_plugin();
 function sso_activate_plugin() {
 	require_once SSO_PLUGIN_DIR . 'includes/class-sso-settings.php';
 	require_once SSO_PLUGIN_DIR . 'includes/class-sso-sitemap.php';
+	require_once SSO_PLUGIN_DIR . 'includes/class-sso-llms-txt.php';
 	SSO_Sitemap::instance()->add_rewrite_rules();
+	SSO_Llms_Txt::instance()->add_rewrite_rule();
 	flush_rewrite_rules();
 
 	if ( ! get_option( 'sso_version' ) ) {

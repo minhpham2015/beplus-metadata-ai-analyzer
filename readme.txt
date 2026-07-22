@@ -2,7 +2,7 @@
 Contributors: beplus
 Tags: seo, xml sitemap, open graph, schema, structured data
 Requires at least: 5.0
-Tested up to: 7.0
+Tested up to: 6.7
 Stable tag: 1.0.0
 Requires PHP: 7.4
 License: GPLv2 or later
@@ -20,21 +20,29 @@ bloat:
   live Google search snippet preview and character counters.
 * **XML Sitemap** – a virtual sitemap served at `/sitemap.xml`, automatically
   pinged to Google on publish/update.
-* **Open Graph & Twitter Cards** – og:title, og:description, og:image,
-  twitter:card and friends, with a dedicated OG image field and sensible
-  fallbacks (featured image, then site default, then logo).
+* **Open Graph & Twitter Cards** – og:title, og:description, og:image, og:locale,
+  article:published_time, twitter:card and friends, with a dedicated OG image
+  field and sensible fallbacks (featured image, then site default, then logo).
+* **AI/LLM Meta Tags** – Dublin Core (DC.*), Citation meta (citation_title, etc.),
+  AI-specific tags (llm:summary, llm:topics), and robots max-snippet hints —
+  all optional and individually toggleable from Settings.
+* **llms.txt Generator** – serves a machine-readable Markdown summary of your
+  site at `/llms.txt` following the llmstxt.org standard, so LLMs can
+  understand your site structure and content.
 * **Focus Keyword Analysis** – instant, client-side scoring of your focus
   keyword against the title, description, slug, headings and content.
 * **Breadcrumbs** – a `sso_breadcrumbs()` template tag and a
-  `[sso_breadcrumb]` shortcode, with configurable separator and labels.
+  `[sso_breadcrumb]` shortcode, with full sub-category, CPT archive and child
+  page hierarchy support. BreadcrumbList JSON-LD is output automatically.
 * **Canonical URLs** – automatic canonical tags with a per-post manual
   override for duplicate content.
 * **Robots Meta Control** – noindex/nofollow per post, plus site-wide
   defaults per post type and archive.
 * **Schema.org (JSON-LD)** – a site-wide Organization/Person + WebSite graph,
-  plus per-post-type Article, Product (WooCommerce-aware), FAQPage or
-  LocalBusiness structured data, with manual overrides and a live JSON-LD
-  preview in Settings.
+  plus per-post-type Article, BlogPosting, WebPage, Product (WooCommerce-aware),
+  FAQPage, HowTo, Event, VideoObject, Recipe, JobPosting, Course, Review or
+  LocalBusiness structured data, with manual overrides per post and a live
+  JSON-LD preview in Settings.
 
 == Installation ==
 
@@ -83,3 +91,17 @@ post meta from the database via `uninstall.php`.
 
 = 1.0.0 =
 Initial release.
+
+== External Services ==
+
+This plugin makes the following external requests:
+
+= Google Sitemap Ping =
+When a post is published or updated, the plugin optionally pings Google to notify it of the updated sitemap. This request is sent to:
+
+    https://www.google.com/ping?sitemap=<your-sitemap-url>
+
+This ping is rate-limited to at most once every five minutes. No personal data is sent — only your public sitemap URL. Pinging can be disabled by turning off the XML sitemap in **Settings > Smart SEO Google & AI > Sitemap**.
+
+* Google's Privacy Policy: https://policies.google.com/privacy
+* Google's Terms of Service: https://policies.google.com/terms

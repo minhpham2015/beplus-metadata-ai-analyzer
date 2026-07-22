@@ -19,6 +19,14 @@ global $wpdb;
 // Remove plugin options.
 delete_option( 'sso_settings' );
 delete_site_option( 'sso_settings' ); // In case the plugin was network-activated.
+delete_option( 'sso_version' );
+delete_site_option( 'sso_version' );
+delete_option( 'sso_llms_custom_content' );
+delete_site_option( 'sso_llms_custom_content' );
+
+// Remove transients created by the plugin.
+delete_transient( 'sso_sitemap_xml' );
+delete_transient( 'sso_google_ping_last' );
 
 // Remove every post meta key the plugin ever writes.
 $meta_keys = array(
@@ -37,6 +45,15 @@ $meta_keys = array(
 	'_sso_schema_author',
 	'_sso_schema_faq',
 	'_sso_schema_local_business',
+	'_sso_schema_howto',
+	'_sso_schema_event',
+	'_sso_schema_video',
+	'_sso_schema_recipe',
+	'_sso_schema_job',
+	'_sso_schema_course',
+	'_sso_schema_review',
+	'_sso_seo_score',
+	'_sso_seo_score_calculated',
 );
 
 foreach ( $meta_keys as $meta_key ) {

@@ -46,6 +46,11 @@ class SSO_Settings {
 		add_action( 'admin_menu', array( $this, 'add_settings_page' ) );
 		add_action( 'admin_init', array( $this, 'register_settings' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
+
+		// Flush rewrite rules when settings are saved so /llms.txt becomes immediately available.
+		add_action( 'update_option_' . self::OPTION_KEY, function() {
+			flush_rewrite_rules();
+		} );
 	}
 
 	/**
@@ -67,9 +72,12 @@ class SSO_Settings {
 				),
 			),
 			'social'      => array(
-				'default_og_image' => 0,
-				'facebook_url'     => '',
-				'twitter_username' => '',
+				'default_og_image'   => 0,
+				'facebook_url'       => '',
+				'twitter_username'   => '',
+				'enable_dublin_core' => 1,
+				'enable_citation'    => 1,
+				'enable_ai_meta'     => 1,
 			),
 			'schema'      => array(
 				'entity_type' => 'organization',
@@ -93,6 +101,9 @@ class SSO_Settings {
 				'separator'     => '&raquo;',
 				'homepage_text' => __( 'Home', 'beplus-smart-seo-google-ai' ),
 				'show_category' => 1,
+			),
+			'advanced'    => array(
+				'llms_txt_enabled' => 0,
 			),
 		);
 	}
@@ -175,6 +186,13 @@ class SSO_Settings {
 				'sanitize_callback' => array( $this, 'sanitize' ),
 			)
 		);
+		register_setting(
+			'sso_settings_group',
+			'sso_llms_custom_content',
+			array(
+				'sanitize_callback' => 'sanitize_textarea_field',
+			)
+		);
 	}
 
 	/**
@@ -244,9 +262,12 @@ class SSO_Settings {
 
 			case 'social':
 				return array(
-					'default_og_image' => isset( $values['default_og_image'] ) ? absint( $values['default_og_image'] ) : 0,
-					'facebook_url'     => isset( $values['facebook_url'] ) ? esc_url_raw( $values['facebook_url'] ) : '',
-					'twitter_username' => isset( $values['twitter_username'] ) ? sanitize_text_field( ltrim( $values['twitter_username'], '@' ) ) : '',
+					'default_og_image'   => isset( $values['default_og_image'] ) ? absint( $values['default_og_image'] ) : 0,
+					'facebook_url'       => isset( $values['facebook_url'] ) ? esc_url_raw( $values['facebook_url'] ) : '',
+					'twitter_username'   => isset( $values['twitter_username'] ) ? sanitize_text_field( ltrim( $values['twitter_username'], '@' ) ) : '',
+					'enable_dublin_core' => ! empty( $values['enable_dublin_core'] ) ? 1 : 0,
+					'enable_citation'    => ! empty( $values['enable_citation'] ) ? 1 : 0,
+					'enable_ai_meta'     => ! empty( $values['enable_ai_meta'] ) ? 1 : 0,
 				);
 
 			case 'schema':
@@ -289,6 +310,11 @@ class SSO_Settings {
 					'show_category' => ! empty( $values['show_category'] ) ? 1 : 0,
 				);
 
+			case 'advanced':
+				return array(
+					'llms_txt_enabled' => ! empty( $values['llms_txt_enabled'] ) ? 1 : 0,
+				);
+
 			default:
 				return array();
 		}
@@ -315,10 +341,11 @@ class SSO_Settings {
 
 		$tabs       = array(
 			'general'     => __( 'General', 'beplus-smart-seo-google-ai' ),
-			'social'      => __( 'Social', 'beplus-smart-seo-google-ai' ),
+			'social'      => __( 'Social & AI Meta', 'beplus-smart-seo-google-ai' ),
 			'schema'      => __( 'Schema', 'beplus-smart-seo-google-ai' ),
 			'sitemap'     => __( 'Sitemap', 'beplus-smart-seo-google-ai' ),
 			'breadcrumbs' => __( 'Breadcrumbs', 'beplus-smart-seo-google-ai' ),
+			'advanced'    => __( 'Advanced', 'beplus-smart-seo-google-ai' ),
 		);
 		$active_tab = isset( $_GET['tab'] ) && isset( $tabs[ sanitize_key( wp_unslash( $_GET['tab'] ) ) ] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'general'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only tab navigation.
 
@@ -351,6 +378,9 @@ class SSO_Settings {
 						break;
 					case 'breadcrumbs':
 						$this->render_breadcrumbs_tab();
+						break;
+					case 'advanced':
+						$this->render_advanced_tab();
 						break;
 					default:
 						$this->render_general_tab();
@@ -451,6 +481,41 @@ class SSO_Settings {
 				<td>@<input type="text" id="sso_twitter_username" name="sso_settings[social][twitter_username]" value="<?php echo esc_attr( $social['twitter_username'] ); ?>" class="regular-text" /></td>
 			</tr>
 		</table>
+
+		<h2 class="title"><?php esc_html_e( 'AI Crawler & Indexing Meta Tags', 'beplus-smart-seo-google-ai' ); ?></h2>
+		<p class="description"><?php esc_html_e( 'These meta tags are always output in <head> for Open Graph and Twitter Card. The optional groups below extend coverage for academic indexers, AI scrapers, and LLM training data pipelines.', 'beplus-smart-seo-google-ai' ); ?></p>
+		<table class="form-table" role="presentation">
+			<tr>
+				<th scope="row"><?php esc_html_e( 'Dublin Core', 'beplus-smart-seo-google-ai' ); ?></th>
+				<td>
+					<label>
+						<input type="checkbox" name="sso_settings[social][enable_dublin_core]" value="1" <?php checked( ! empty( $social['enable_dublin_core'] ) ); ?> />
+						<?php esc_html_e( 'Output DC.title / DC.creator / DC.date / DC.language / DC.identifier', 'beplus-smart-seo-google-ai' ); ?>
+					</label>
+					<p class="description"><?php esc_html_e( 'Used by academic search engines and some AI indexers.', 'beplus-smart-seo-google-ai' ); ?></p>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><?php esc_html_e( 'Citation Meta', 'beplus-smart-seo-google-ai' ); ?></th>
+				<td>
+					<label>
+						<input type="checkbox" name="sso_settings[social][enable_citation]" value="1" <?php checked( ! empty( $social['enable_citation'] ) ); ?> />
+						<?php esc_html_e( 'Output citation_title / citation_author / citation_date / citation_journal_title', 'beplus-smart-seo-google-ai' ); ?>
+					</label>
+					<p class="description"><?php esc_html_e( 'Used by Google Scholar and AI research pipelines.', 'beplus-smart-seo-google-ai' ); ?></p>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><?php esc_html_e( 'AI/LLM Meta', 'beplus-smart-seo-google-ai' ); ?></th>
+				<td>
+					<label>
+						<input type="checkbox" name="sso_settings[social][enable_ai_meta]" value="1" <?php checked( ! empty( $social['enable_ai_meta'] ) ); ?> />
+						<?php esc_html_e( 'Output llm:summary and llm:topics (derived from meta description, focus keyword, categories)', 'beplus-smart-seo-google-ai' ); ?>
+					</label>
+					<p class="description"><?php esc_html_e( 'Helps LLM-based crawlers understand page content at a glance.', 'beplus-smart-seo-google-ai' ); ?></p>
+				</td>
+			</tr>
+		</table>
 		<?php
 	}
 
@@ -463,8 +528,17 @@ class SSO_Settings {
 		$type_opts = array(
 			''              => __( 'None', 'beplus-smart-seo-google-ai' ),
 			'article'       => __( 'Article', 'beplus-smart-seo-google-ai' ),
+			'blogposting'   => __( 'BlogPosting', 'beplus-smart-seo-google-ai' ),
+			'webpage'       => __( 'WebPage', 'beplus-smart-seo-google-ai' ),
 			'product'       => __( 'Product', 'beplus-smart-seo-google-ai' ),
 			'faqpage'       => __( 'FAQPage', 'beplus-smart-seo-google-ai' ),
+			'howto'         => __( 'HowTo', 'beplus-smart-seo-google-ai' ),
+			'event'         => __( 'Event', 'beplus-smart-seo-google-ai' ),
+			'video'         => __( 'VideoObject', 'beplus-smart-seo-google-ai' ),
+			'recipe'        => __( 'Recipe', 'beplus-smart-seo-google-ai' ),
+			'jobposting'    => __( 'JobPosting', 'beplus-smart-seo-google-ai' ),
+			'course'        => __( 'Course', 'beplus-smart-seo-google-ai' ),
+			'review'        => __( 'Review', 'beplus-smart-seo-google-ai' ),
 			'localbusiness' => __( 'LocalBusiness', 'beplus-smart-seo-google-ai' ),
 		);
 		?>
@@ -593,6 +667,50 @@ class SSO_Settings {
 							</label><br />
 						<?php endforeach; ?>
 					</fieldset>
+				</td>
+			</tr>
+		</table>
+		<?php
+	}
+
+	/**
+	 * Advanced tab: llms.txt generator settings.
+	 */
+	private function render_advanced_tab() {
+		$advanced = self::get( 'advanced' );
+		?>
+		<h2 class="title"><?php esc_html_e( 'llms.txt Generator', 'beplus-smart-seo-google-ai' ); ?></h2>
+		<p class="description">
+			<?php
+			printf(
+				/* translators: %s: link to llmstxt.org. */
+				esc_html__( 'Serves a machine-readable Markdown summary of your site at /llms.txt following the %s standard, so LLMs can understand your site\'s structure.', 'beplus-smart-seo-google-ai' ),
+				'<a href="https://llmstxt.org" target="_blank" rel="noopener noreferrer">llmstxt.org</a>'
+			);
+			?>
+		</p>
+		<table class="form-table" role="presentation">
+			<tr>
+				<th scope="row"><?php esc_html_e( 'Enable llms.txt', 'beplus-smart-seo-google-ai' ); ?></th>
+				<td>
+					<label>
+						<input type="checkbox" name="sso_settings[advanced][llms_txt_enabled]" value="1" <?php checked( ! empty( $advanced['llms_txt_enabled'] ) ); ?> />
+						<?php esc_html_e( 'Serve llms.txt at your domain root', 'beplus-smart-seo-google-ai' ); ?>
+					</label>
+					<?php if ( ! empty( $advanced['llms_txt_enabled'] ) ) : ?>
+						<p class="description">
+							<a href="<?php echo esc_url( home_url( '/llms.txt' ) ); ?>" target="_blank" rel="noopener noreferrer">
+								<?php echo esc_html( home_url( '/llms.txt' ) ); ?>
+							</a>
+						</p>
+					<?php endif; ?>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><label for="sso_llms_custom_content"><?php esc_html_e( 'Custom llms.txt Content', 'beplus-smart-seo-google-ai' ); ?></label></th>
+				<td>
+					<textarea id="sso_llms_custom_content" name="sso_llms_custom_content" class="large-text" rows="6"><?php echo esc_textarea( get_option( 'sso_llms_custom_content', '' ) ); ?></textarea>
+					<p class="description"><?php esc_html_e( 'Optional Markdown appended under "Additional Information" in the llms.txt file. Useful for adding custom context about your organisation or content focus.', 'beplus-smart-seo-google-ai' ); ?></p>
 				</td>
 			</tr>
 		</table>

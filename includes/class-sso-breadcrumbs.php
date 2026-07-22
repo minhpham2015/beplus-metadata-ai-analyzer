@@ -58,8 +58,10 @@ class SSO_Breadcrumbs {
 
 		if ( is_singular() ) {
 			global $post;
+			$post_type = get_post_type( $post );
 
-			if ( $show_category && 'post' === get_post_type( $post ) ) {
+			if ( $show_category && 'post' === $post_type ) {
+				// Standard post: Home > [Parent Cat >] Category > Post Title.
 				$categories = get_the_category( $post->ID );
 				if ( ! empty( $categories ) ) {
 					$cat       = $categories[0];
@@ -78,7 +80,8 @@ class SSO_Breadcrumbs {
 						'url'  => get_term_link( $cat ),
 					);
 				}
-			} elseif ( 'page' === get_post_type( $post ) && $post->post_parent ) {
+			} elseif ( 'page' === $post_type && $post->post_parent ) {
+				// Child page: Home > [Grandparent >] Parent > Page.
 				$ancestors = array_reverse( get_post_ancestors( $post ) );
 				foreach ( $ancestors as $ancestor_id ) {
 					$trail[] = array(
@@ -86,15 +89,98 @@ class SSO_Breadcrumbs {
 						'url'  => get_permalink( $ancestor_id ),
 					);
 				}
+			} elseif ( 'post' !== $post_type && 'page' !== $post_type ) {
+				// Custom post type: Home > CPT Archive > Post Title.
+				$post_type_obj = get_post_type_object( $post_type );
+				if ( $post_type_obj && $post_type_obj->has_archive ) {
+					$archive_link = get_post_type_archive_link( $post_type );
+					if ( $archive_link ) {
+						$trail[] = array(
+							'text' => $post_type_obj->labels->name,
+							'url'  => $archive_link,
+						);
+					}
+				}
+				// CPT taxonomy terms.
+				$taxonomies = get_object_taxonomies( $post_type, 'objects' );
+				foreach ( $taxonomies as $taxonomy ) {
+					if ( ! $taxonomy->hierarchical ) {
+						continue;
+					}
+					$terms = get_the_terms( $post->ID, $taxonomy->name );
+					if ( ! $terms || is_wp_error( $terms ) ) {
+						continue;
+					}
+					$term      = $terms[0];
+					$ancestors = array_reverse( get_ancestors( $term->term_id, $taxonomy->name ) );
+					foreach ( $ancestors as $ancestor_id ) {
+						$ancestor_term = get_term( $ancestor_id, $taxonomy->name );
+						if ( $ancestor_term && ! is_wp_error( $ancestor_term ) ) {
+							$trail[] = array(
+								'text' => $ancestor_term->name,
+								'url'  => get_term_link( $ancestor_term ),
+							);
+						}
+					}
+					$trail[] = array(
+						'text' => $term->name,
+						'url'  => get_term_link( $term ),
+					);
+					break; // Use first hierarchical taxonomy only.
+				}
 			}
 
 			$trail[] = array(
 				'text' => get_the_title( $post ),
 				'url'  => '',
 			);
-		} elseif ( is_category() || is_tag() || is_tax() ) {
+		} elseif ( is_category() ) {
+			// Category archive: Home > [Parent Cat >] Category.
+			$cat = get_queried_object();
+			if ( $cat && $cat->parent ) {
+				$ancestors = array_reverse( get_ancestors( $cat->term_id, 'category' ) );
+				foreach ( $ancestors as $ancestor_id ) {
+					$term = get_term( $ancestor_id, 'category' );
+					if ( $term && ! is_wp_error( $term ) ) {
+						$trail[] = array(
+							'text' => $term->name,
+							'url'  => get_term_link( $term ),
+						);
+					}
+				}
+			}
 			$trail[] = array(
 				'text' => single_term_title( '', false ),
+				'url'  => '',
+			);
+		} elseif ( is_tag() ) {
+			$trail[] = array(
+				'text' => single_term_title( '', false ),
+				'url'  => '',
+			);
+		} elseif ( is_tax() ) {
+			// Custom taxonomy: Home > [Parent Term >] Term.
+			$term = get_queried_object();
+			if ( $term && $term->parent ) {
+				$ancestors = array_reverse( get_ancestors( $term->term_id, $term->taxonomy ) );
+				foreach ( $ancestors as $ancestor_id ) {
+					$ancestor_term = get_term( $ancestor_id, $term->taxonomy );
+					if ( $ancestor_term && ! is_wp_error( $ancestor_term ) ) {
+						$trail[] = array(
+							'text' => $ancestor_term->name,
+							'url'  => get_term_link( $ancestor_term ),
+						);
+					}
+				}
+			}
+			$trail[] = array(
+				'text' => single_term_title( '', false ),
+				'url'  => '',
+			);
+		} elseif ( is_post_type_archive() ) {
+			// CPT archive: Home > CPT Archive.
+			$trail[] = array(
+				'text' => post_type_archive_title( '', false ),
 				'url'  => '',
 			);
 		} elseif ( is_search() ) {

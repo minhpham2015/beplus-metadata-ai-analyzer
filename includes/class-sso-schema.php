@@ -40,6 +40,7 @@ class SSO_Schema {
 	private function __construct() {
 		add_action( 'wp_footer', array( $this, 'output_global_schema' ) );
 		add_action( 'wp_head', array( $this, 'output_post_schema' ), 20 );
+		add_action( 'wp_head', array( $this, 'output_breadcrumb_schema' ), 21 );
 	}
 
 	/* ------------------------------------------------------------------ *
@@ -181,6 +182,12 @@ class SSO_Schema {
 			case 'article':
 				$data = $this->build_article_schema( $post_id );
 				break;
+			case 'blogposting':
+				$data = $this->build_blogposting_schema( $post_id );
+				break;
+			case 'webpage':
+				$data = $this->build_webpage_schema( $post_id );
+				break;
 			case 'product':
 				$data = $this->build_product_schema( $post_id );
 				break;
@@ -189,6 +196,27 @@ class SSO_Schema {
 				break;
 			case 'localbusiness':
 				$data = $this->build_localbusiness_schema( $post_id );
+				break;
+			case 'howto':
+				$data = $this->build_howto_schema( $post_id );
+				break;
+			case 'event':
+				$data = $this->build_event_schema( $post_id );
+				break;
+			case 'video':
+				$data = $this->build_video_schema( $post_id );
+				break;
+			case 'recipe':
+				$data = $this->build_recipe_schema( $post_id );
+				break;
+			case 'jobposting':
+				$data = $this->build_jobposting_schema( $post_id );
+				break;
+			case 'course':
+				$data = $this->build_course_schema( $post_id );
+				break;
+			case 'review':
+				$data = $this->build_review_schema( $post_id );
 				break;
 		}
 
@@ -370,6 +398,503 @@ class SSO_Schema {
 		}
 		if ( has_post_thumbnail( $post_id ) ) {
 			$data['image'] = get_the_post_thumbnail_url( $post_id, 'large' );
+		}
+
+		return $data;
+	}
+
+	/* ------------------------------------------------------------------ *
+	 * Additional per-post type schema builders
+	 * ------------------------------------------------------------------ */
+
+	/**
+	 * Build a BlogPosting schema node (more specific than Article, for blog posts).
+	 *
+	 * @param int $post_id Post ID.
+	 * @return array
+	 */
+	public function build_blogposting_schema( $post_id ) {
+		$data          = $this->build_article_schema( $post_id );
+		$data['@type'] = 'BlogPosting';
+		return $data;
+	}
+
+	/**
+	 * Build a WebPage schema node for static pages.
+	 *
+	 * @param int $post_id Post ID.
+	 * @return array
+	 */
+	public function build_webpage_schema( $post_id ) {
+		$description = get_post_meta( $post_id, '_sso_meta_description', true );
+		if ( ! $description ) {
+			$description = wp_trim_words( wp_strip_all_tags( get_the_excerpt( $post_id ) ), 30, '' );
+		}
+
+		$data = array(
+			'@type'         => 'WebPage',
+			'@id'           => get_permalink( $post_id ),
+			'url'           => get_permalink( $post_id ),
+			'name'          => get_the_title( $post_id ),
+			'isPartOf'      => array( '@id' => home_url( '/#website' ) ),
+			'datePublished' => get_the_date( 'c', $post_id ),
+			'dateModified'  => get_the_modified_date( 'c', $post_id ),
+		);
+
+		if ( $description ) {
+			$data['description'] = $description;
+		}
+		if ( has_post_thumbnail( $post_id ) ) {
+			$data['image'] = get_the_post_thumbnail_url( $post_id, 'large' );
+		}
+
+		return $data;
+	}
+
+	/**
+	 * Build a BreadcrumbList schema node by reusing SSO_Breadcrumbs::get_trail().
+	 *
+	 * Works for singular posts/pages AND category/tag/taxonomy/CPT archives.
+	 *
+	 * @return array|null Null when the trail has only one crumb (homepage).
+	 */
+	public function build_breadcrumblist_schema() {
+		$trail = SSO_Breadcrumbs::instance()->get_trail();
+
+		if ( count( $trail ) <= 1 ) {
+			return null;
+		}
+
+		$items    = array();
+		$position = 1;
+
+		foreach ( $trail as $index => $item ) {
+			$list_item = array(
+				'@type'    => 'ListItem',
+				'position' => $position++,
+				'name'     => $item['text'],
+			);
+
+			// Last crumb typically has no URL (current page) — resolve it.
+			if ( ! empty( $item['url'] ) ) {
+				$list_item['item'] = $item['url'];
+			} elseif ( is_singular() ) {
+				$list_item['item'] = get_permalink( get_queried_object_id() );
+			} elseif ( is_category() || is_tag() || is_tax() ) {
+				$term_link = get_term_link( get_queried_object() );
+				if ( ! is_wp_error( $term_link ) ) {
+					$list_item['item'] = $term_link;
+				}
+			} elseif ( is_post_type_archive() ) {
+				$archive_link = get_post_type_archive_link( get_query_var( 'post_type' ) );
+				if ( $archive_link ) {
+					$list_item['item'] = $archive_link;
+				}
+			} elseif ( is_author() ) {
+				$list_item['item'] = get_author_posts_url( get_queried_object_id() );
+			} elseif ( is_home() && ! is_front_page() ) {
+				$list_item['item'] = get_permalink( (int) get_option( 'page_for_posts' ) );
+			}
+
+			$items[] = $list_item;
+		}
+
+		return array(
+			'@type'           => 'BreadcrumbList',
+			'itemListElement' => $items,
+		);
+	}
+
+	/**
+	 * Output BreadcrumbList schema on singular posts/pages AND archive pages.
+	 *
+	 * Covers: single post, child page, CPT single, category archive,
+	 * sub-category archive, custom taxonomy archive, CPT archive, author archive.
+	 */
+	public function output_breadcrumb_schema() {
+		if ( is_admin() || is_front_page() || is_404() || is_search() ) {
+			return;
+		}
+
+		// Skip non-content contexts.
+		if ( ! is_singular() && ! is_category() && ! is_tag() && ! is_tax()
+			&& ! is_post_type_archive() && ! is_author()
+			&& ! ( is_home() && ! is_front_page() ) ) {
+			return;
+		}
+
+		$data = $this->build_breadcrumblist_schema();
+
+		if ( $data ) {
+			$this->print_ld_json( array_merge( array( '@context' => 'https://schema.org' ), $data ) );
+		}
+	}
+
+	/**
+	 * Build a HowTo schema node.
+	 *
+	 * @param int $post_id Post ID.
+	 * @return array
+	 */
+	public function build_howto_schema( $post_id ) {
+		$howto = get_post_meta( $post_id, '_sso_schema_howto', true );
+		if ( ! is_array( $howto ) ) {
+			$howto = array();
+		}
+
+		$data = array(
+			'@type' => 'HowTo',
+			'name'  => get_the_title( $post_id ),
+		);
+
+		$description = get_post_meta( $post_id, '_sso_meta_description', true );
+		if ( $description ) {
+			$data['description'] = $description;
+		}
+		if ( ! empty( $howto['total_time'] ) ) {
+			$data['totalTime'] = sanitize_text_field( $howto['total_time'] ); // ISO 8601, e.g. PT30M.
+		}
+		if ( ! empty( $howto['estimated_cost'] ) ) {
+			$data['estimatedCost'] = array(
+				'@type'    => 'MonetaryAmount',
+				'currency' => ! empty( $howto['currency'] ) ? $howto['currency'] : 'VND',
+				'value'    => sanitize_text_field( $howto['estimated_cost'] ),
+			);
+		}
+		if ( ! empty( $howto['steps'] ) && is_array( $howto['steps'] ) ) {
+			$steps = array();
+			foreach ( $howto['steps'] as $step ) {
+				if ( empty( $step['name'] ) ) {
+					continue;
+				}
+				$step_data = array(
+					'@type' => 'HowToStep',
+					'name'  => wp_strip_all_tags( $step['name'] ),
+				);
+				if ( ! empty( $step['text'] ) ) {
+					$step_data['text'] = wp_strip_all_tags( $step['text'] );
+				}
+				$steps[] = $step_data;
+			}
+			if ( $steps ) {
+				$data['step'] = $steps;
+			}
+		}
+		if ( has_post_thumbnail( $post_id ) ) {
+			$data['image'] = get_the_post_thumbnail_url( $post_id, 'large' );
+		}
+
+		return $data;
+	}
+
+	/**
+	 * Build an Event schema node.
+	 *
+	 * @param int $post_id Post ID.
+	 * @return array
+	 */
+	public function build_event_schema( $post_id ) {
+		$event = get_post_meta( $post_id, '_sso_schema_event', true );
+		if ( ! is_array( $event ) ) {
+			$event = array();
+		}
+
+		$data = array(
+			'@type'           => 'Event',
+			'name'            => ! empty( $event['name'] ) ? sanitize_text_field( $event['name'] ) : get_the_title( $post_id ),
+			'url'             => get_permalink( $post_id ),
+			'eventStatus'     => 'https://schema.org/EventScheduled',
+			'eventAttendanceMode' => 'https://schema.org/OfflineEventAttendanceMode',
+		);
+
+		if ( ! empty( $event['start_date'] ) ) {
+			$data['startDate'] = sanitize_text_field( $event['start_date'] );
+		}
+		if ( ! empty( $event['end_date'] ) ) {
+			$data['endDate'] = sanitize_text_field( $event['end_date'] );
+		}
+		if ( ! empty( $event['status'] ) ) {
+			$data['eventStatus'] = 'https://schema.org/' . sanitize_text_field( $event['status'] );
+		}
+		if ( ! empty( $event['attendance_mode'] ) ) {
+			$data['eventAttendanceMode'] = 'https://schema.org/' . sanitize_text_field( $event['attendance_mode'] );
+		}
+		if ( ! empty( $event['location_name'] ) ) {
+			$location = array(
+				'@type' => 'Place',
+				'name'  => sanitize_text_field( $event['location_name'] ),
+			);
+			if ( ! empty( $event['location_address'] ) ) {
+				$location['address'] = array(
+					'@type'         => 'PostalAddress',
+					'streetAddress' => sanitize_text_field( $event['location_address'] ),
+				);
+			}
+			$data['location'] = $location;
+		}
+		if ( ! empty( $event['organizer'] ) ) {
+			$data['organizer'] = array(
+				'@type' => 'Organization',
+				'name'  => sanitize_text_field( $event['organizer'] ),
+			);
+		}
+
+		$description = get_post_meta( $post_id, '_sso_meta_description', true );
+		if ( $description ) {
+			$data['description'] = $description;
+		}
+		if ( has_post_thumbnail( $post_id ) ) {
+			$data['image'] = get_the_post_thumbnail_url( $post_id, 'large' );
+		}
+
+		return $data;
+	}
+
+	/**
+	 * Build a VideoObject schema node.
+	 *
+	 * @param int $post_id Post ID.
+	 * @return array
+	 */
+	public function build_video_schema( $post_id ) {
+		$video = get_post_meta( $post_id, '_sso_schema_video', true );
+		if ( ! is_array( $video ) ) {
+			$video = array();
+		}
+
+		$data = array(
+			'@type'      => 'VideoObject',
+			'name'       => ! empty( $video['name'] ) ? sanitize_text_field( $video['name'] ) : get_the_title( $post_id ),
+			'uploadDate' => ! empty( $video['upload_date'] ) ? sanitize_text_field( $video['upload_date'] ) : get_the_date( 'c', $post_id ),
+		);
+
+		$description = ! empty( $video['description'] ) ? sanitize_textarea_field( $video['description'] ) : get_post_meta( $post_id, '_sso_meta_description', true );
+		if ( $description ) {
+			$data['description'] = $description;
+		}
+		if ( ! empty( $video['content_url'] ) ) {
+			$data['contentUrl'] = esc_url_raw( $video['content_url'] );
+		}
+		if ( ! empty( $video['embed_url'] ) ) {
+			$data['embedUrl'] = esc_url_raw( $video['embed_url'] );
+		}
+		if ( ! empty( $video['duration'] ) ) {
+			$data['duration'] = sanitize_text_field( $video['duration'] ); // ISO 8601, e.g. PT4M33S.
+		}
+
+		$thumb = has_post_thumbnail( $post_id ) ? get_the_post_thumbnail_url( $post_id, 'large' ) : '';
+		if ( ! $thumb && ! empty( $video['thumbnail_url'] ) ) {
+			$thumb = esc_url_raw( $video['thumbnail_url'] );
+		}
+		if ( $thumb ) {
+			$data['thumbnailUrl'] = $thumb;
+		}
+
+		return $data;
+	}
+
+	/**
+	 * Build a Recipe schema node.
+	 *
+	 * @param int $post_id Post ID.
+	 * @return array
+	 */
+	public function build_recipe_schema( $post_id ) {
+		$recipe = get_post_meta( $post_id, '_sso_schema_recipe', true );
+		if ( ! is_array( $recipe ) ) {
+			$recipe = array();
+		}
+
+		$data = array(
+			'@type'         => 'Recipe',
+			'name'          => ! empty( $recipe['name'] ) ? sanitize_text_field( $recipe['name'] ) : get_the_title( $post_id ),
+			'author'        => array(
+				'@type' => 'Person',
+				'name'  => get_the_author_meta( 'display_name', (int) get_post_field( 'post_author', $post_id ) ),
+			),
+			'datePublished' => get_the_date( 'c', $post_id ),
+		);
+
+		$description = get_post_meta( $post_id, '_sso_meta_description', true );
+		if ( $description ) {
+			$data['description'] = $description;
+		}
+		if ( has_post_thumbnail( $post_id ) ) {
+			$data['image'] = get_the_post_thumbnail_url( $post_id, 'large' );
+		}
+
+		$time_fields = array( 'prepTime', 'cookTime', 'totalTime' );
+		foreach ( $time_fields as $field ) {
+			$key = strtolower( preg_replace( '/([A-Z])/', '_$1', $field ) );
+			if ( ! empty( $recipe[ $key ] ) ) {
+				$data[ $field ] = sanitize_text_field( $recipe[ $key ] ); // ISO 8601 duration.
+			}
+		}
+		foreach ( array( 'recipeYield', 'recipeCategory', 'recipeCuisine' ) as $field ) {
+			$key = strtolower( preg_replace( '/([A-Z])/', '_$1', $field ) );
+			if ( ! empty( $recipe[ $key ] ) ) {
+				$data[ $field ] = sanitize_text_field( $recipe[ $key ] );
+			}
+		}
+
+		if ( ! empty( $recipe['ingredients'] ) ) {
+			$data['recipeIngredient'] = array_values(
+				array_filter( array_map( 'sanitize_text_field', explode( "\n", $recipe['ingredients'] ) ) )
+			);
+		}
+		if ( ! empty( $recipe['instructions'] ) ) {
+			$lines = array_values( array_filter( array_map( 'trim', explode( "\n", $recipe['instructions'] ) ) ) );
+			$steps = array();
+			foreach ( $lines as $line ) {
+				$steps[] = array(
+					'@type' => 'HowToStep',
+					'text'  => wp_strip_all_tags( $line ),
+				);
+			}
+			if ( $steps ) {
+				$data['recipeInstructions'] = $steps;
+			}
+		}
+
+		return $data;
+	}
+
+	/**
+	 * Build a JobPosting schema node.
+	 *
+	 * @param int $post_id Post ID.
+	 * @return array
+	 */
+	public function build_jobposting_schema( $post_id ) {
+		$job = get_post_meta( $post_id, '_sso_schema_job', true );
+		if ( ! is_array( $job ) ) {
+			$job = array();
+		}
+
+		$data = array(
+			'@type'      => 'JobPosting',
+			'title'      => ! empty( $job['title'] ) ? sanitize_text_field( $job['title'] ) : get_the_title( $post_id ),
+			'datePosted' => get_the_date( 'c', $post_id ),
+		);
+
+		$description = get_post_meta( $post_id, '_sso_meta_description', true );
+		if ( $description ) {
+			$data['description'] = $description;
+		}
+		if ( ! empty( $job['hiring_org'] ) ) {
+			$data['hiringOrganization'] = array(
+				'@type'  => 'Organization',
+				'name'   => sanitize_text_field( $job['hiring_org'] ),
+				'sameAs' => get_permalink( $post_id ),
+			);
+		}
+		if ( ! empty( $job['location'] ) ) {
+			$data['jobLocation'] = array(
+				'@type'   => 'Place',
+				'address' => array(
+					'@type'           => 'PostalAddress',
+					'addressLocality' => sanitize_text_field( $job['location'] ),
+				),
+			);
+		}
+		if ( ! empty( $job['employment_type'] ) ) {
+			$data['employmentType'] = sanitize_text_field( $job['employment_type'] );
+		}
+		if ( ! empty( $job['valid_through'] ) ) {
+			$data['validThrough'] = sanitize_text_field( $job['valid_through'] );
+		}
+		if ( ! empty( $job['salary'] ) ) {
+			$data['baseSalary'] = array(
+				'@type'    => 'MonetaryAmount',
+				'currency' => ! empty( $job['salary_currency'] ) ? sanitize_text_field( $job['salary_currency'] ) : 'VND',
+				'value'    => array(
+					'@type'    => 'QuantitativeValue',
+					'value'    => sanitize_text_field( $job['salary'] ),
+					'unitText' => ! empty( $job['salary_period'] ) ? sanitize_text_field( $job['salary_period'] ) : 'MONTH',
+				),
+			);
+		}
+
+		return $data;
+	}
+
+	/**
+	 * Build a Course schema node.
+	 *
+	 * @param int $post_id Post ID.
+	 * @return array
+	 */
+	public function build_course_schema( $post_id ) {
+		$course = get_post_meta( $post_id, '_sso_schema_course', true );
+		if ( ! is_array( $course ) ) {
+			$course = array();
+		}
+
+		$data = array(
+			'@type' => 'Course',
+			'name'  => ! empty( $course['name'] ) ? sanitize_text_field( $course['name'] ) : get_the_title( $post_id ),
+		);
+
+		$description = get_post_meta( $post_id, '_sso_meta_description', true );
+		if ( $description ) {
+			$data['description'] = $description;
+		}
+		if ( ! empty( $course['provider'] ) ) {
+			$provider = array(
+				'@type' => 'Organization',
+				'name'  => sanitize_text_field( $course['provider'] ),
+			);
+			if ( ! empty( $course['provider_url'] ) ) {
+				$provider['sameAs'] = esc_url_raw( $course['provider_url'] );
+			}
+			$data['provider'] = $provider;
+		}
+		if ( ! empty( $course['url'] ) ) {
+			$data['url'] = esc_url_raw( $course['url'] );
+		}
+
+		return $data;
+	}
+
+	/**
+	 * Build a Review schema node.
+	 *
+	 * @param int $post_id Post ID.
+	 * @return array
+	 */
+	public function build_review_schema( $post_id ) {
+		$review = get_post_meta( $post_id, '_sso_schema_review', true );
+		if ( ! is_array( $review ) ) {
+			$review = array();
+		}
+
+		$data = array(
+			'@type'         => 'Review',
+			'name'          => get_the_title( $post_id ),
+			'url'           => get_permalink( $post_id ),
+			'datePublished' => get_the_date( 'c', $post_id ),
+			'author'        => array(
+				'@type' => 'Person',
+				'name'  => get_the_author_meta( 'display_name', (int) get_post_field( 'post_author', $post_id ) ),
+			),
+		);
+
+		if ( ! empty( $review['item_reviewed'] ) ) {
+			$data['itemReviewed'] = array(
+				'@type' => 'Thing',
+				'name'  => sanitize_text_field( $review['item_reviewed'] ),
+			);
+		}
+		if ( ! empty( $review['rating'] ) ) {
+			$data['reviewRating'] = array(
+				'@type'       => 'Rating',
+				'ratingValue' => (string) absint( $review['rating'] ),
+				'bestRating'  => '5',
+				'worstRating' => '1',
+			);
+		}
+		if ( ! empty( $review['body'] ) ) {
+			$data['reviewBody'] = sanitize_textarea_field( $review['body'] );
 		}
 
 		return $data;

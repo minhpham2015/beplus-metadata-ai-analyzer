@@ -29,6 +29,23 @@
 	var doAnalyze       = null;
 
 	// =========================================================================
+	// Shared utility — module-level so all functions can call it
+	// =========================================================================
+
+	/**
+	 * Strip HTML tags from a string using the browser's parser.
+	 * The div is never appended to the live DOM so no scripts can execute.
+	 *
+	 * @param {string} html
+	 * @return {string}
+	 */
+	function stripHtml( html ) {
+		var div       = document.createElement( 'div' );
+		div.innerHTML = html || '';
+		return div.textContent || div.innerText || '';
+	}
+
+	// =========================================================================
 	// Bootstrap
 	// =========================================================================
 
@@ -43,6 +60,7 @@
 			initSnippetPreview();
 			initCharCounters();
 			initAnalyzer();
+			initAutoSuggest();
 			initGutenbergSubscribe();
 		}
 	} );
@@ -249,19 +267,6 @@
 				return false;
 			}
 			return new RegExp( escapeRegExp( keyword ), 'i' ).test( haystack );
-		}
-
-		/**
-		 * Strip HTML tags from a string using the browser's parser.
-		 * Never executes scripts because innerHTML is set on a detached node.
-		 *
-		 * @param {string} html
-		 * @return {string}
-		 */
-		function stripHtml( html ) {
-			var div       = document.createElement( 'div' );
-			div.innerHTML = html || '';
-			return div.textContent || div.innerText || '';
 		}
 
 		/**
@@ -628,6 +633,197 @@
 				}
 			} );
 		} );
+	}
+
+	// =========================================================================
+	// Auto-suggest SEO fields from post title / content
+	// =========================================================================
+
+	/**
+	 * Wire up the "✨ Auto-fill SEO" button.
+	 * Reuses the module-level getPostTitle(), getPostContent(), and stripHtml()
+	 * helpers so we stay consistent with the existing editor abstractions.
+	 */
+	function initAutoSuggest() {
+		var btn = document.getElementById( 'sso-autofill-btn' );
+		if ( ! btn ) {
+			return;
+		}
+
+		/**
+		 * Insert a dismissible suggestion chip below a field.
+		 *
+		 * @param {string} fieldId  ID of the target <input> or <textarea>.
+		 * @param {string} text     Suggested value.
+		 * @param {string} chipId   Unique ID for the chip element.
+		 */
+		function showSuggestion( fieldId, text, chipId ) {
+			var existing = document.getElementById( chipId );
+			if ( existing ) {
+				existing.remove();
+			}
+
+			var field = document.getElementById( fieldId );
+			if ( ! field ) {
+				return;
+			}
+
+			var chip = document.createElement( 'div' );
+			chip.id = chipId;
+			chip.className = 'sso-suggestion-chip';
+			chip.style.cssText = 'margin-top:4px;padding:6px 10px;background:#f0f6fc;border:1px solid #72aee6;border-radius:4px;display:flex;align-items:center;gap:8px;font-size:12px;';
+
+			var labelEl = document.createElement( 'span' );
+			labelEl.textContent = '💡 ' + ( ( ssoAdmin.i18n && ssoAdmin.i18n.suggestion ) || 'Suggestion' ) + ': ' + text;
+			labelEl.style.flex = '1';
+
+			var applyBtn = document.createElement( 'button' );
+			applyBtn.type = 'button';
+			applyBtn.className = 'button button-small';
+			applyBtn.textContent = ( ssoAdmin.i18n && ssoAdmin.i18n.apply ) || 'Apply';
+			applyBtn.addEventListener( 'click', function () {
+				field.value = text;
+				// Trigger input so char-counter and snippet preview update.
+				field.dispatchEvent( new Event( 'input' ) );
+				chip.remove();
+			} );
+
+			var dismissBtn = document.createElement( 'button' );
+			dismissBtn.type = 'button';
+			dismissBtn.style.cssText = 'background:none;border:none;cursor:pointer;font-size:14px;padding:0 4px;';
+			// Use × (U+00D7) as dismiss icon — set via textContent, never innerHTML.
+			dismissBtn.textContent = '×';
+			dismissBtn.addEventListener( 'click', function () {
+				chip.remove();
+			} );
+
+			chip.appendChild( labelEl );
+			chip.appendChild( applyBtn );
+			chip.appendChild( dismissBtn );
+			field.parentNode.insertBefore( chip, field.nextSibling );
+		}
+
+		/**
+		 * Suggest a long-tail focus keyword (2–4 words) from the post title.
+		 * Falls back to bigram frequency analysis on the post content when the
+		 * title yields fewer than 2 meaningful words.
+		 *
+		 * @param {string} title    Post title (plain text).
+		 * @param {string} content  Post content (already stripped of HTML).
+		 * @return {string}
+		 */
+		function suggestFocusKeyword( title, content ) {
+			var stopWords = [
+				// Vietnamese
+				'và','hay','hoặc','nhưng','với','của','cho','từ','là','có','được','trong',
+				'này','đó','các','những','một','để','khi','về','theo','như','tại','trên',
+				'dưới','sau','trước','hơn','rất','cũng','đã','sẽ','đang','bị','tôi','bạn',
+				'họ','chúng','mình','nó','lên','ra','vào','đi','lại','thì','mà','nên',
+				// English
+				'the','and','or','but','for','with','a','an','in','on','at','to','of',
+				'is','are','was','were','be','been','have','has','had','do','does','did',
+				'will','would','could','should','may','might','this','that','these','those',
+				'i','you','he','she','we','they','it','its','my','your','our','their',
+				'not','no','so','if','as','by','up','out','about','how','what','when','where'
+			];
+
+			function cleanWords( text ) {
+				return text
+					.toLowerCase()
+					.replace( /[^a-zA-ZÀ-ỹ0-9\s]/g, ' ' )
+					.split( /\s+/ )
+					.filter( function ( w ) {
+						return w.length >= 3 && stopWords.indexOf( w ) === -1;
+					} );
+			}
+
+			// 1. Try to build a 2–3-word phrase from the title.
+			var titleWords = cleanWords( title );
+			if ( titleWords.length >= 2 ) {
+				var kw = titleWords.slice( 0, Math.min( 3, titleWords.length ) ).join( ' ' );
+				if ( kw.length >= 6 && kw.length <= 60 ) {
+					return kw;
+				}
+			}
+			if ( titleWords.length === 1 ) {
+				var contentWords = cleanWords( content );
+				if ( contentWords.length >= 1 ) {
+					return titleWords[ 0 ] + ' ' + contentWords.slice( 0, 2 ).join( ' ' );
+				}
+				return titleWords[ 0 ];
+			}
+
+			// 2. Fallback: bigram frequency from content.
+			var words = cleanWords( content );
+			if ( words.length < 2 ) {
+				return words[ 0 ] || '';
+			}
+
+			var bigrams = {};
+			for ( var bi = 0; bi < words.length - 1; bi++ ) {
+				var bg = words[ bi ] + ' ' + words[ bi + 1 ];
+				bigrams[ bg ] = ( bigrams[ bg ] || 0 ) + 1;
+			}
+
+			var sorted = Object.keys( bigrams ).sort( function ( a, b ) {
+				return bigrams[ b ] - bigrams[ a ];
+			} );
+
+			for ( var bj = 0; bj < Math.min( 5, sorted.length ); bj++ ) {
+				var candidate = sorted[ bj ];
+				if ( candidate.length >= 6 && candidate.split( ' ' ).length >= 2 ) {
+					return candidate;
+				}
+			}
+
+			return words.slice( 0, 2 ).join( ' ' );
+		}
+
+		/**
+		 * Analyse the current post title / content and push suggestion chips.
+		 */
+		function autoSuggestSEOFields() {
+			var title    = getPostTitle();
+			var content  = stripHtml( getPostContent() );
+			var siteName = ssoAdmin.siteName || '';
+			var sep      = ssoAdmin.titleSep  || '–'; // en-dash fallback
+
+			// Meta Title suggestion.
+			var titleField = document.getElementById( 'sso_meta_title' );
+			if ( titleField && ! titleField.value.trim() && title ) {
+				var suggested = siteName ? ( title + ' ' + sep + ' ' + siteName ) : title;
+				showSuggestion( 'sso_meta_title', suggested, 'sso-chip-title' );
+			}
+
+			// Meta Description suggestion.
+			var descField = document.getElementById( 'sso_meta_description' );
+			if ( descField && ! descField.value.trim() && content ) {
+				var plainText = content.replace( /\s+/g, ' ' ).trim();
+				var desc = plainText.length > 155 ? plainText.substring( 0, 152 ) + '…' : plainText;
+				showSuggestion( 'sso_meta_description', desc, 'sso-chip-desc' );
+			}
+
+			// Focus Keyword suggestion — long-tail phrase (2–4 words) from title/content.
+			var kwField = document.getElementById( 'sso_focus_keyword' );
+			if ( kwField && ! kwField.value.trim() && ( title || content ) ) {
+				var kw = suggestFocusKeyword( title, content );
+				if ( kw ) {
+					showSuggestion( 'sso_focus_keyword', kw, 'sso-chip-kw' );
+				}
+			}
+
+			// Status feedback.
+			var status = document.getElementById( 'sso-autofill-status' );
+			if ( status ) {
+				status.textContent = ( ssoAdmin.i18n && ssoAdmin.i18n.contentAnalyzed ) || 'Content analyzed!';
+				status.style.cssText = 'margin-left:8px;color:#00a32a;font-size:12px;';
+				setTimeout( function () {
+					status.textContent = '';
+				}, 4000 );
+			}
+		}
+
+		btn.addEventListener( 'click', autoSuggestSEOFields );
 	}
 
 } )( jQuery );
