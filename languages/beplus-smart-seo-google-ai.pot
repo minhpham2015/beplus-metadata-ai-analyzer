@@ -1,0 +1,505 @@
+# BePlus Smart SEO Google & AI
+# Copyright (C) 2024 BePlus
+# This file is distributed under the GPL v2 or later.
+# https://beplusthemes.com
+msgid ""
+msgstr ""
+"Project-Id-Version: BePlus Smart SEO Google & AI 1.0.0\n"
+"Report-Msgid-Bugs-To: https://beplusthemes.com\n"
+"POT-Creation-Date: 2024-01-01 00:00:00+00:00\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"X-Generator: WP-CLI\n"
+"X-Domain: beplus-smart-seo-google-ai\n"
+
+#. Plugin Name of the plugin/theme
+msgid "BePlus Smart SEO Google & AI"
+msgstr ""
+
+#. Plugin URI of the plugin/theme
+msgid "https://beplusthemes.com/plugins/beplus-smart-seo-google-ai/"
+msgstr ""
+
+#. Description of the plugin/theme
+msgid "Complete SEO toolkit for WordPress: meta tags, XML sitemap, Open Graph & Twitter Cards, focus keyword analysis, breadcrumbs, canonical URLs, robots control, and Schema.org structured data (JSON-LD)."
+msgstr ""
+
+#. Author of the plugin/theme
+msgid "BePlus"
+msgstr ""
+
+#. Author URI of the plugin/theme
+msgid "https://beplusthemes.com/"
+msgstr ""
+
+#: includes/class-sso-settings.php:94
+#: includes/class-sso-settings.php:288
+#: includes/class-sso-breadcrumbs.php:50
+msgid "Home"
+msgstr ""
+
+#: includes/class-sso-settings.php:159
+#: includes/class-sso-settings.php:160
+#: includes/class-sso-meta-box.php:68
+msgid "Smart SEO Google & AI"
+msgstr ""
+
+#: includes/class-sso-settings.php:200
+#: includes/class-sso-settings.php:439
+#: includes/class-sso-settings.php:499
+#: includes/class-sso-meta-box.php:109
+#: includes/class-sso-meta-box.php:215
+msgid "Choose Image"
+msgstr ""
+
+#: includes/class-sso-settings.php:201
+#: includes/class-sso-meta-box.php:110
+msgid "Use this image"
+msgstr ""
+
+#: includes/class-sso-settings.php:202
+#: includes/class-sso-settings.php:440
+#: includes/class-sso-settings.php:500
+#: includes/class-sso-meta-box.php:111
+#: includes/class-sso-meta-box.php:114
+#: includes/class-sso-meta-box.php:216
+msgid "Remove"
+msgstr ""
+
+#: includes/class-sso-settings.php:203
+#: includes/class-sso-meta-box.php:278
+msgid "Add FAQ item"
+msgstr ""
+
+#: includes/class-sso-settings.php:317
+msgid "General"
+msgstr ""
+
+#: includes/class-sso-settings.php:318
+msgid "Social"
+msgstr ""
+
+#: includes/class-sso-settings.php:319
+#: includes/class-sso-meta-box.php:232
+msgid "Schema"
+msgstr ""
+
+#: includes/class-sso-settings.php:320
+msgid "Sitemap"
+msgstr ""
+
+#: includes/class-sso-settings.php:321
+msgid "Breadcrumbs"
+msgstr ""
+
+#: includes/class-sso-settings.php:327
+msgid "BePlus Smart SEO Google & AI"
+msgstr ""
+
+#: includes/class-sso-settings.php:375
+msgid "Title Separator"
+msgstr ""
+
+#: includes/class-sso-settings.php:381
+msgid "Search Results"
+msgstr ""
+
+#: includes/class-sso-settings.php:385
+msgid "Add noindex to internal search results pages"
+msgstr ""
+
+#: includes/class-sso-settings.php:390
+msgid "Archive Defaults"
+msgstr ""
+
+#: includes/class-sso-settings.php:393
+msgid "Noindex category archives"
+msgstr ""
+
+#: includes/class-sso-settings.php:394
+msgid "Noindex tag archives"
+msgstr ""
+
+#: includes/class-sso-settings.php:395
+msgid "Noindex author archives"
+msgstr ""
+
+#: includes/class-sso-settings.php:396
+msgid "Noindex date archives"
+msgstr ""
+
+#: includes/class-sso-settings.php:401
+msgid "Default Robots per Post Type"
+msgstr ""
+
+#: includes/class-sso-settings.php:409
+#, php-format
+msgid "Noindex %s by default"
+msgstr ""
+
+#: includes/class-sso-settings.php:413
+msgid "Used only when a post does not explicitly set noindex in its SEO meta box."
+msgstr ""
+
+#: includes/class-sso-settings.php:430
+msgid "Default OG Image"
+msgstr ""
+
+#: includes/class-sso-settings.php:441
+msgid "Used as the Open Graph / Twitter image fallback when a post has no featured image."
+msgstr ""
+
+#: includes/class-sso-settings.php:446
+msgid "Facebook Page URL"
+msgstr ""
+
+#: includes/class-sso-settings.php:450
+msgid "Twitter/X Username"
+msgstr ""
+
+#: includes/class-sso-settings.php:464
+#: includes/class-sso-meta-box.php:239
+msgid "None"
+msgstr ""
+
+#: includes/class-sso-settings.php:465
+#: includes/class-sso-meta-box.php:241
+msgid "Article"
+msgstr ""
+
+#: includes/class-sso-settings.php:466
+#: includes/class-sso-meta-box.php:242
+msgid "Product"
+msgstr ""
+
+#: includes/class-sso-settings.php:467
+#: includes/class-sso-meta-box.php:243
+msgid "FAQPage"
+msgstr ""
+
+#: includes/class-sso-settings.php:468
+#: includes/class-sso-meta-box.php:244
+msgid "LocalBusiness"
+msgstr ""
+
+#: includes/class-sso-settings.php:471
+msgid "Organization / Person"
+msgstr ""
+
+#: includes/class-sso-settings.php:474
+msgid "Entity Type"
+msgstr ""
+
+#: includes/class-sso-settings.php:476
+msgid "Organization"
+msgstr ""
+
+#: includes/class-sso-settings.php:478
+msgid "Person"
+msgstr ""
+
+#: includes/class-sso-settings.php:482
+msgid "Name"
+msgstr ""
+
+#: includes/class-sso-settings.php:486
+msgid "URL"
+msgstr ""
+
+#: includes/class-sso-settings.php:490
+msgid "Logo"
+msgstr ""
+
+#: includes/class-sso-settings.php:505
+msgid "Social Profiles (sameAs)"
+msgstr ""
+
+#: includes/class-sso-settings.php:517
+msgid "Schema per Post Type"
+msgstr ""
+
+#: includes/class-sso-settings.php:521
+msgid "Enabled"
+msgstr ""
+
+#: includes/class-sso-settings.php:522
+msgid "Post Type"
+msgstr ""
+
+#: includes/class-sso-settings.php:523
+msgid "Schema Type"
+msgstr ""
+
+#: includes/class-sso-settings.php:544
+msgid "Individual posts can override the schema type from the \"Schema\" tab of their SEO meta box."
+msgstr ""
+
+#: includes/class-sso-settings.php:546
+msgid "JSON-LD Preview (Organization + Website)"
+msgstr ""
+
+#: includes/class-sso-settings.php:568
+msgid "XML Sitemap"
+msgstr ""
+
+#: includes/class-sso-settings.php:572
+msgid "Enable XML sitemap"
+msgstr ""
+
+#: includes/class-sso-settings.php:578
+msgid "Your sitemap is available at: %s"
+msgstr ""
+
+#: includes/class-sso-settings.php:586
+msgid "Exclude Post Types"
+msgstr ""
+
+#: includes/class-sso-settings.php:610
+msgid "Separator"
+msgstr ""
+
+#: includes/class-sso-settings.php:614
+msgid "Homepage Text"
+msgstr ""
+
+#: includes/class-sso-settings.php:618
+msgid "Category"
+msgstr ""
+
+#: includes/class-sso-settings.php:622
+msgid "Show category in post breadcrumbs"
+msgstr ""
+
+#: includes/class-sso-settings.php:627
+msgid "Template Tag"
+msgstr ""
+
+#: includes/class-sso-settings.php:628
+msgid "or shortcode"
+msgstr ""
+
+#: includes/class-sso-breadcrumbs.php:103
+#, php-format
+msgid "Search results for: %s"
+msgstr ""
+
+#: includes/class-sso-breadcrumbs.php:108
+msgid "404 Not Found"
+msgstr ""
+
+#: includes/class-sso-breadcrumbs.php:144
+msgid "Breadcrumb"
+msgstr ""
+
+#: includes/class-sso-meta-box.php:112
+msgid "Question"
+msgstr ""
+
+#: includes/class-sso-meta-box.php:113
+msgid "Answer"
+msgstr ""
+
+#: includes/class-sso-meta-box.php:115
+msgid "Good"
+msgstr ""
+
+#: includes/class-sso-meta-box.php:116
+msgid "OK"
+msgstr ""
+
+#: includes/class-sso-meta-box.php:117
+msgid "Poor"
+msgstr ""
+
+#: includes/class-sso-meta-box.php:157
+msgid "General"
+msgstr ""
+
+#: includes/class-sso-meta-box.php:158
+msgid "Social"
+msgstr ""
+
+#: includes/class-sso-meta-box.php:159
+msgid "Schema"
+msgstr ""
+
+#: includes/class-sso-meta-box.php:171
+msgid "Meta Title"
+msgstr ""
+
+#: includes/class-sso-meta-box.php:177
+msgid "Meta Description"
+msgstr ""
+
+#: includes/class-sso-meta-box.php:183
+msgid "Focus Keyword"
+msgstr ""
+
+#: includes/class-sso-meta-box.php:193
+msgid "Canonical URL Override"
+msgstr ""
+
+#: includes/class-sso-meta-box.php:198
+msgid "Noindex this content"
+msgstr ""
+
+#: includes/class-sso-meta-box.php:199
+msgid "Nofollow links on this content"
+msgstr ""
+
+#: includes/class-sso-meta-box.php:200
+msgid "Exclude from XML sitemap"
+msgstr ""
+
+#: includes/class-sso-meta-box.php:206
+msgid "OG Image"
+msgstr ""
+
+#: includes/class-sso-meta-box.php:217
+msgid "Falls back to the featured image, then the site default image, if left empty."
+msgstr ""
+
+#: includes/class-sso-meta-box.php:221
+msgid "OG Title Override"
+msgstr ""
+
+#: includes/class-sso-meta-box.php:225
+msgid "OG Description Override"
+msgstr ""
+
+#: includes/class-sso-meta-box.php:238
+#, php-format
+msgid "Auto (Settings default: %s)"
+msgstr ""
+
+#: includes/class-sso-meta-box.php:245
+msgid "None (disable schema)"
+msgstr ""
+
+#: includes/class-sso-meta-box.php:256
+msgid "Headline Override"
+msgstr ""
+
+#: includes/class-sso-meta-box.php:260
+msgid "Author Name Override"
+msgstr ""
+
+#: includes/class-sso-meta-box.php:266
+msgid "FAQ Items"
+msgstr ""
+
+#: includes/class-sso-meta-box.php:271
+msgid "Question"
+msgstr ""
+
+#: includes/class-sso-meta-box.php:272
+msgid "Answer"
+msgstr ""
+
+#: includes/class-sso-meta-box.php:283
+msgid "Business Name"
+msgstr ""
+
+#: includes/class-sso-meta-box.php:287
+msgid "Street Address"
+msgstr ""
+
+#: includes/class-sso-meta-box.php:291
+msgid "City"
+msgstr ""
+
+#: includes/class-sso-meta-box.php:292
+msgid "Region"
+msgstr ""
+
+#: includes/class-sso-meta-box.php:293
+msgid "Postal Code"
+msgstr ""
+
+#: includes/class-sso-meta-box.php:296
+msgid "Country"
+msgstr ""
+
+#: includes/class-sso-meta-box.php:297
+msgid "Phone"
+msgstr ""
+
+#: includes/class-sso-meta-box.php:298
+msgid "Price Range"
+msgstr ""
+
+#: includes/class-sso-meta-box.php:303
+msgid "Product data (price, SKU, stock, rating) is pulled automatically from WooCommerce when available."
+msgstr ""
+
+#: includes/class-sso-analyzer.php:60
+msgid "Enter a focus keyword to run the SEO analysis."
+msgstr ""
+
+#: includes/class-sso-analyzer.php:61
+msgid "Focus keyword found in the SEO title"
+msgstr ""
+
+#: includes/class-sso-analyzer.php:62
+msgid "Focus keyword is missing from the SEO title"
+msgstr ""
+
+#: includes/class-sso-analyzer.php:63
+msgid "Focus keyword found in the meta description"
+msgstr ""
+
+#: includes/class-sso-analyzer.php:64
+msgid "Focus keyword is missing from the meta description"
+msgstr ""
+
+#: includes/class-sso-analyzer.php:65
+msgid "Focus keyword found in the URL slug"
+msgstr ""
+
+#: includes/class-sso-analyzer.php:66
+msgid "Focus keyword is missing from the URL slug"
+msgstr ""
+
+#: includes/class-sso-analyzer.php:67
+msgid "Focus keyword found in a heading"
+msgstr ""
+
+#: includes/class-sso-analyzer.php:68
+msgid "Focus keyword is missing from any heading"
+msgstr ""
+
+#: includes/class-sso-analyzer.php:69
+msgid "Focus keyword found in the first paragraph"
+msgstr ""
+
+#: includes/class-sso-analyzer.php:70
+msgid "Focus keyword is missing from the first paragraph"
+msgstr ""
+
+#: includes/class-sso-analyzer.php:71
+msgid "Keyword density is within a healthy range"
+msgstr ""
+
+#: includes/class-sso-analyzer.php:72
+msgid "Keyword density is too low or too high"
+msgstr ""
+
+#: includes/class-sso-analyzer.php:73
+msgid "SEO title length is good"
+msgstr ""
+
+#: includes/class-sso-analyzer.php:74
+msgid "SEO title length should be between 30 and 60 characters"
+msgstr ""
+
+#: includes/class-sso-analyzer.php:75
+msgid "Meta description length is good"
+msgstr ""
+
+#: includes/class-sso-analyzer.php:76
+msgid "Meta description length should be between 120 and 160 characters"
+msgstr ""

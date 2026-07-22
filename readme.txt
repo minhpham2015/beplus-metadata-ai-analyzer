@@ -1,0 +1,85 @@
+=== BePlus Smart SEO Google & AI ===
+Contributors: beplus
+Tags: seo, xml sitemap, open graph, schema, structured data
+Requires at least: 5.0
+Tested up to: 7.0
+Stable tag: 1.0.0
+Requires PHP: 7.4
+License: GPLv2 or later
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
+
+Lightweight SEO toolkit: meta tags, XML sitemap, Open Graph, focus keyword analysis, breadcrumbs, canonical URLs, robots control & Schema.org JSON-LD.
+
+== Description ==
+
+BePlus Smart SEO Google & AI gives every public post type a dedicated SEO meta
+box and adds the technical SEO foundations most sites need, without the
+bloat:
+
+* **Meta Tags Management** – custom meta title & description per post with a
+  live Google search snippet preview and character counters.
+* **XML Sitemap** – a virtual sitemap served at `/sitemap.xml`, automatically
+  pinged to Google on publish/update.
+* **Open Graph & Twitter Cards** – og:title, og:description, og:image,
+  twitter:card and friends, with a dedicated OG image field and sensible
+  fallbacks (featured image, then site default, then logo).
+* **Focus Keyword Analysis** – instant, client-side scoring of your focus
+  keyword against the title, description, slug, headings and content.
+* **Breadcrumbs** – a `sso_breadcrumbs()` template tag and a
+  `[sso_breadcrumb]` shortcode, with configurable separator and labels.
+* **Canonical URLs** – automatic canonical tags with a per-post manual
+  override for duplicate content.
+* **Robots Meta Control** – noindex/nofollow per post, plus site-wide
+  defaults per post type and archive.
+* **Schema.org (JSON-LD)** – a site-wide Organization/Person + WebSite graph,
+  plus per-post-type Article, Product (WooCommerce-aware), FAQPage or
+  LocalBusiness structured data, with manual overrides and a live JSON-LD
+  preview in Settings.
+
+== Installation ==
+
+1. Upload the plugin to the `/wp-content/plugins/` directory, or install it
+   through the Plugins screen directly.
+2. Activate the plugin through the 'Plugins' screen in WordPress.
+3. Go to **Settings > Smart SEO Google & AI** to configure General, Social,
+   Schema, Sitemap and Breadcrumbs options.
+4. Edit any post or page to fill in its SEO meta box (General / Social /
+   Schema tabs).
+
+== Frequently Asked Questions ==
+
+= Does this plugin create an actual sitemap.xml file? =
+
+No. The sitemap is generated on the fly through a rewrite rule, so it always
+reflects your current published content with no extra file to manage.
+
+= Is this compatible with the Block Editor (Gutenberg)? =
+
+Yes. The meta box and the focus keyword analyzer work with both the Block
+Editor and the Classic Editor.
+
+= Does the Product schema require WooCommerce? =
+
+WooCommerce is optional. Without it, Product schema still outputs the basic
+name/image/description; price, SKU, stock and rating are added automatically
+when WooCommerce is active.
+
+= What happens to my data when I delete the plugin? =
+
+Deleting the plugin (not just deactivating it) removes all of its options and
+post meta from the database via `uninstall.php`.
+
+== Screenshots ==
+
+1. SEO meta box with Google snippet preview and focus keyword analysis.
+2. Schema settings tab with a live JSON-LD preview.
+
+== Changelog ==
+
+= 1.0.0 =
+* Initial release.
+
+== Upgrade Notice ==
+
+= 1.0.0 =
+Initial release.
