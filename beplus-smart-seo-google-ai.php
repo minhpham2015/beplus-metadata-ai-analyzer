@@ -1,11 +1,10 @@
 <?php
 /**
  * Plugin Name:       BePlus Smart SEO Google & AI
- * Plugin URI:        https://beplusthemes.com/plugins/beplus-smart-seo-google-ai/
  * Description:       Complete SEO toolkit for WordPress: meta tags, XML sitemap, Open Graph & Twitter Cards, focus keyword analysis, breadcrumbs, canonical URLs, robots control, and Schema.org structured data (JSON-LD).
  * Version:           1.0.0
- * Author:            BePlus
- * Author URI:        https://beplusthemes.com/
+ * Author:      			Minh BePlus
+ * Author URI:  			https://beplusthemes.com/
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       beplus-smart-seo-google-ai
