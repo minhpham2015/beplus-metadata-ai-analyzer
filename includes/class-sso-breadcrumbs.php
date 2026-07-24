@@ -2,7 +2,7 @@
 /**
  * Breadcrumb trail: template tag sso_breadcrumbs() and the [sso_breadcrumb] shortcode.
  *
- * @package Beplus_Smart_SEO_Optimizer
+ * @package Beplus_Metadata_AI_Analyzer
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -47,7 +47,7 @@ class SSO_Breadcrumbs {
 	 */
 	public function get_trail() {
 		$settings      = SSO_Settings::get( 'breadcrumbs' );
-		$home_text     = ! empty( $settings['homepage_text'] ) ? $settings['homepage_text'] : __( 'Home', 'beplus-smart-seo-google-ai' );
+		$home_text     = ! empty( $settings['homepage_text'] ) ? $settings['homepage_text'] : __( 'Home', 'beplus-metadata-ai-analyzer' );
 		$show_category = ! empty( $settings['show_category'] );
 
 		$trail   = array();
@@ -186,12 +186,12 @@ class SSO_Breadcrumbs {
 		} elseif ( is_search() ) {
 			$trail[] = array(
 				/* translators: %s: search query. */
-				'text' => sprintf( __( 'Search results for: %s', 'beplus-smart-seo-google-ai' ), get_search_query() ),
+				'text' => sprintf( __( 'Search results for: %s', 'beplus-metadata-ai-analyzer' ), get_search_query() ),
 				'url'  => '',
 			);
 		} elseif ( is_404() ) {
 			$trail[] = array(
-				'text' => __( '404 Not Found', 'beplus-smart-seo-google-ai' ),
+				'text' => __( '404 Not Found', 'beplus-metadata-ai-analyzer' ),
 				'url'  => '',
 			);
 		} elseif ( is_author() ) {
@@ -227,7 +227,7 @@ class SSO_Breadcrumbs {
 		$separator = ! empty( $settings['separator'] ) ? $settings['separator'] : '&raquo;';
 		$count     = count( $trail );
 
-		$output = '<nav class="sso-breadcrumbs" aria-label="' . esc_attr__( 'Breadcrumb', 'beplus-smart-seo-google-ai' ) . '"><ol>';
+		$output = '<nav class="sso-breadcrumbs" aria-label="' . esc_attr__( 'Breadcrumb', 'beplus-metadata-ai-analyzer' ) . '"><ol>';
 
 		foreach ( $trail as $i => $item ) {
 			$output .= '<li class="sso-breadcrumb-item">';

@@ -6,7 +6,7 @@
  * filter dropdown support. Scores are stored as post meta and recalculated
  * on save_post.
  *
- * @package Beplus_Smart_SEO_Optimizer
+ * @package Beplus_Metadata_AI_Analyzer
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -77,13 +77,13 @@ class SSO_Post_Columns {
 
 		if ( $score >= 75 ) {
 			$color = '#00a32a';
-			$label = __( 'Good', 'beplus-smart-seo-google-ai' );
+			$label = __( 'Good', 'beplus-metadata-ai-analyzer' );
 		} elseif ( $score >= 50 ) {
 			$color = '#dba617';
-			$label = __( 'Average', 'beplus-smart-seo-google-ai' );
+			$label = __( 'Average', 'beplus-metadata-ai-analyzer' );
 		} else {
 			$color = '#d63638';
-			$label = __( 'Weak', 'beplus-smart-seo-google-ai' );
+			$label = __( 'Weak', 'beplus-metadata-ai-analyzer' );
 		}
 
 		printf(
@@ -92,7 +92,7 @@ class SSO_Post_Columns {
 			  <span style="font-size:11px;color:%s;">%s</span>
 			</div>',
 			esc_attr( $color ),
-			$score,
+			absint( $score ),
 			esc_attr( $color ),
 			esc_html( $label )
 		);
@@ -127,9 +127,9 @@ class SSO_Post_Columns {
 		echo '<option value="">— SEO Score —</option>';
 
 		$options = array(
-			'good'   => __( 'Good (75+)', 'beplus-smart-seo-google-ai' ),
-			'medium' => __( 'Average (50–74)', 'beplus-smart-seo-google-ai' ),
-			'weak'   => __( 'Weak (<50)', 'beplus-smart-seo-google-ai' ),
+			'good'   => __( 'Good (75+)', 'beplus-metadata-ai-analyzer' ),
+			'medium' => __( 'Average (50–74)', 'beplus-metadata-ai-analyzer' ),
+			'weak'   => __( 'Weak (<50)', 'beplus-metadata-ai-analyzer' ),
 		);
 		foreach ( $options as $val => $lbl ) {
 			printf(
@@ -304,6 +304,8 @@ class SSO_Post_Columns {
 
 	/**
 	 * Add SEO Score node to the WordPress Admin Bar when viewing or editing a post/page.
+	 * On non-singular contexts (homepage, archives, dashboard, post list, etc.) a
+	 * standalone "Beplus Smart SEO" node is shown instead, linking to plugin settings.
 	 *
 	 * @param WP_Admin_Bar $wp_admin_bar Admin bar instance.
 	 */
@@ -318,7 +320,7 @@ class SSO_Post_Columns {
 		$post_id = 0;
 
 		if ( is_admin() ) {
-			// Backend edit screen.
+			// Backend edit screen only.
 			$screen = get_current_screen();
 			if ( $screen && 'post' === $screen->base ) {
 				$post_id = get_the_ID();
@@ -330,7 +332,18 @@ class SSO_Post_Columns {
 			}
 		}
 
+		// No singular post context: homepage, archives, admin dashboard, post list, etc.
+		// Show a standalone top-level "Beplus Smart SEO" node linking to plugin settings.
 		if ( ! $post_id ) {
+			if ( current_user_can( 'manage_options' ) ) {
+				$wp_admin_bar->add_node( array(
+					'id'    => 'sso-settings-bar',
+					'title' => '<span class="ab-icon dashicons dashicons-chart-area" style="font:400 20px/1 dashicons;margin-top:2px;"></span> ' .
+					           __( 'Beplus Smart SEO', 'beplus-metadata-ai-analyzer' ),
+					'href'  => esc_url( admin_url( 'admin.php?page=sso-settings' ) ),
+					'meta'  => array( 'title' => __( 'Beplus Smart SEO Settings', 'beplus-metadata-ai-analyzer' ) ),
+				) );
+			}
 			return;
 		}
 
@@ -341,13 +354,13 @@ class SSO_Post_Columns {
 
 		if ( $score >= 75 ) {
 			$color = '#00a32a';
-			$label = __( 'Good', 'beplus-smart-seo-google-ai' );
+			$label = __( 'Good', 'beplus-metadata-ai-analyzer' );
 		} elseif ( $score >= 50 ) {
 			$color = '#dba617';
-			$label = __( 'Average', 'beplus-smart-seo-google-ai' );
+			$label = __( 'Average', 'beplus-metadata-ai-analyzer' );
 		} else {
 			$color = '#d63638';
-			$label = __( 'Weak', 'beplus-smart-seo-google-ai' );
+			$label = __( 'Weak', 'beplus-metadata-ai-analyzer' );
 		}
 
 		// Main node.
@@ -363,11 +376,11 @@ class SSO_Post_Columns {
 				esc_attr( $color ),
 				esc_html( $label )
 			),
-			'href'  => esc_url( get_edit_post_link( $post_id ) . '#sso-meta-box' ),
+			'href'  => esc_url( admin_url( 'post.php?post=' . $post_id . '&action=edit#sso-meta-box' ) ),
 			'meta'  => array(
 				'title' => sprintf(
 					/* translators: %d: SEO score out of 100 */
-					__( 'SEO Score: %d/100', 'beplus-smart-seo-google-ai' ),
+					__( 'SEO Score: %d/100', 'beplus-metadata-ai-analyzer' ),
 					$score
 				),
 			),
@@ -377,43 +390,52 @@ class SSO_Post_Columns {
 		$meta_title = get_post_meta( $post_id, '_sso_meta_title', true );
 		$meta_desc  = get_post_meta( $post_id, '_sso_meta_description', true );
 		$focus_kw   = get_post_meta( $post_id, '_sso_focus_keyword', true );
-		$edit_link  = esc_url( get_edit_post_link( $post_id ) . '#sso-meta-box' );
+		$edit_link  = esc_url( admin_url( 'post.php?post=' . $post_id . '&action=edit#sso-meta-box' ) );
 
 		$wp_admin_bar->add_node( array(
 			'parent' => 'sso-seo-score',
 			'id'     => 'sso-score-title',
 			'title'  => $meta_title
-				? '&#x2705; ' . __( 'Meta Title set', 'beplus-smart-seo-google-ai' )
-				: '&#x274C; ' . __( 'Meta Title missing', 'beplus-smart-seo-google-ai' ),
+				? '&#x2705; ' . __( 'Meta Title set', 'beplus-metadata-ai-analyzer' )
+				: '&#x274C; ' . __( 'Meta Title missing', 'beplus-metadata-ai-analyzer' ),
 			'href'   => $edit_link,
 		) );
 		$wp_admin_bar->add_node( array(
 			'parent' => 'sso-seo-score',
 			'id'     => 'sso-score-desc',
 			'title'  => $meta_desc
-				? '&#x2705; ' . __( 'Meta Description set', 'beplus-smart-seo-google-ai' )
-				: '&#x274C; ' . __( 'Meta Description missing', 'beplus-smart-seo-google-ai' ),
+				? '&#x2705; ' . __( 'Meta Description set', 'beplus-metadata-ai-analyzer' )
+				: '&#x274C; ' . __( 'Meta Description missing', 'beplus-metadata-ai-analyzer' ),
 			'href'   => $edit_link,
 		) );
 		$wp_admin_bar->add_node( array(
 			'parent' => 'sso-seo-score',
 			'id'     => 'sso-score-kw',
 			'title'  => $focus_kw
-				? '&#x2705; ' . __( 'Focus Keyword set', 'beplus-smart-seo-google-ai' )
-				: '&#x274C; ' . __( 'Focus Keyword missing', 'beplus-smart-seo-google-ai' ),
+				? '&#x2705; ' . __( 'Focus Keyword set', 'beplus-metadata-ai-analyzer' )
+				: '&#x274C; ' . __( 'Focus Keyword missing', 'beplus-metadata-ai-analyzer' ),
 			'href'   => $edit_link,
 		) );
 		$wp_admin_bar->add_node( array(
 			'parent' => 'sso-seo-score',
 			'id'     => 'sso-score-recalc',
-			'title'  => '&#x21BB; ' . __( 'Recalculate Score', 'beplus-smart-seo-google-ai' ),
+			'title'  => '&#x21BB; ' . __( 'Recalculate Score', 'beplus-metadata-ai-analyzer' ),
 			'href'   => esc_url( add_query_arg(
 				array(
 					'sso_recalc' => $post_id,
 					'sso_nonce'  => wp_create_nonce( 'sso_recalc_' . $post_id ),
 				),
-				get_edit_post_link( $post_id )
+				admin_url( 'post.php?post=' . $post_id . '&action=edit' )
 			) ),
+		) );
+
+		// Sub-node: "⚙ SEO Settings" → post's own SEO meta box.
+		$wp_admin_bar->add_node( array(
+			'parent' => 'sso-seo-score',
+			'id'     => 'sso-settings-link',
+			'title'  => '&#9881; ' . __( 'SEO Settings', 'beplus-metadata-ai-analyzer' ),
+			'href'   => $edit_link,
+			'meta'   => array( 'title' => __( 'Edit SEO settings for this post', 'beplus-metadata-ai-analyzer' ) ),
 		) );
 	}
 
@@ -445,10 +467,8 @@ class SSO_Post_Columns {
 		if ( ! is_admin_bar_showing() || ! current_user_can( 'edit_posts' ) ) {
 			return;
 		}
-		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Hardcoded CSS literal; no user input.
-		echo '<style>
-			#wpadminbar #wp-admin-bar-sso-seo-score > .ab-item { padding-top: 3px; }
-			#wpadminbar #wp-admin-bar-sso-seo-score .ab-sub-wrapper { min-width: 200px; }
-		</style>';
+		$css = '#wpadminbar #wp-admin-bar-sso-seo-score > .ab-item { padding-top: 3px; }
+			#wpadminbar #wp-admin-bar-sso-seo-score .ab-sub-wrapper { min-width: 200px; }';
+		wp_add_inline_style( 'admin-bar', $css );
 	}
 }

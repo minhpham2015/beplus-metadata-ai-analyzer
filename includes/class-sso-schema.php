@@ -3,7 +3,7 @@
  * Schema.org structured data (JSON-LD): a site-wide Organization/Person + WebSite
  * graph, plus per-post-type Article / Product / FAQPage / LocalBusiness markup.
  *
- * @package Beplus_Smart_SEO_Optimizer
+ * @package Beplus_Metadata_AI_Analyzer
  */
 
 if ( ! defined( 'ABSPATH' ) ) {

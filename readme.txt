@@ -1,4 +1,4 @@
-=== BePlus Smart SEO Google & AI ===
+=== Beplus Metadata AI Analyzer ===
 Contributors: bearsthemes, minhphamit
 Tags: seo, xml sitemap, open graph, schema, structured data
 Requires at least: 5.0
@@ -12,7 +12,7 @@ Lightweight SEO toolkit: meta tags, XML sitemap, Open Graph, focus keyword analy
 
 == Description ==
 
-BePlus Smart SEO Google & AI gives every public post type a dedicated SEO meta
+BePlus AI SEO Insights gives every public post type a dedicated SEO meta
 box and adds the technical SEO foundations most sites need, without the
 bloat:
 

@@ -7,7 +7,7 @@
  * round-trip. This class only supplies the thresholds and labels the JS needs,
  * localized onto the script by SSO_Meta_Box.
  *
- * @package Beplus_Smart_SEO_Optimizer
+ * @package Beplus_Metadata_AI_Analyzer
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -57,23 +57,23 @@ class SSO_Analyzer {
 			'densityMin' => 0.5,
 			'densityMax' => 2.5,
 			'labels'     => array(
-				'keywordMissing'       => __( 'Enter a focus keyword to run the SEO analysis.', 'beplus-smart-seo-google-ai' ),
-				'keywordInTitle'       => __( 'Focus keyword found in the SEO title', 'beplus-smart-seo-google-ai' ),
-				'keywordNotInTitle'    => __( 'Focus keyword is missing from the SEO title', 'beplus-smart-seo-google-ai' ),
-				'keywordInDesc'        => __( 'Focus keyword found in the meta description', 'beplus-smart-seo-google-ai' ),
-				'keywordNotInDesc'     => __( 'Focus keyword is missing from the meta description', 'beplus-smart-seo-google-ai' ),
-				'keywordInSlug'        => __( 'Focus keyword found in the URL slug', 'beplus-smart-seo-google-ai' ),
-				'keywordNotInSlug'     => __( 'Focus keyword is missing from the URL slug', 'beplus-smart-seo-google-ai' ),
-				'keywordInHeading'     => __( 'Focus keyword found in a heading', 'beplus-smart-seo-google-ai' ),
-				'keywordNotInHeading'  => __( 'Focus keyword is missing from any heading', 'beplus-smart-seo-google-ai' ),
-				'keywordInFirstPara'   => __( 'Focus keyword found in the first paragraph', 'beplus-smart-seo-google-ai' ),
-				'keywordNotInFirstPara' => __( 'Focus keyword is missing from the first paragraph', 'beplus-smart-seo-google-ai' ),
-				'densityGood'          => __( 'Keyword density is within a healthy range', 'beplus-smart-seo-google-ai' ),
-				'densityBad'           => __( 'Keyword density is too low or too high', 'beplus-smart-seo-google-ai' ),
-				'titleLengthGood'      => __( 'SEO title length is good', 'beplus-smart-seo-google-ai' ),
-				'titleLengthBad'       => __( 'SEO title length should be between 30 and 60 characters', 'beplus-smart-seo-google-ai' ),
-				'descLengthGood'       => __( 'Meta description length is good', 'beplus-smart-seo-google-ai' ),
-				'descLengthBad'        => __( 'Meta description length should be between 120 and 160 characters', 'beplus-smart-seo-google-ai' ),
+				'keywordMissing'       => __( 'Enter a focus keyword to run the SEO analysis.', 'beplus-metadata-ai-analyzer' ),
+				'keywordInTitle'       => __( 'Focus keyword found in the SEO title', 'beplus-metadata-ai-analyzer' ),
+				'keywordNotInTitle'    => __( 'Focus keyword is missing from the SEO title', 'beplus-metadata-ai-analyzer' ),
+				'keywordInDesc'        => __( 'Focus keyword found in the meta description', 'beplus-metadata-ai-analyzer' ),
+				'keywordNotInDesc'     => __( 'Focus keyword is missing from the meta description', 'beplus-metadata-ai-analyzer' ),
+				'keywordInSlug'        => __( 'Focus keyword found in the URL slug', 'beplus-metadata-ai-analyzer' ),
+				'keywordNotInSlug'     => __( 'Focus keyword is missing from the URL slug', 'beplus-metadata-ai-analyzer' ),
+				'keywordInHeading'     => __( 'Focus keyword found in a heading', 'beplus-metadata-ai-analyzer' ),
+				'keywordNotInHeading'  => __( 'Focus keyword is missing from any heading', 'beplus-metadata-ai-analyzer' ),
+				'keywordInFirstPara'   => __( 'Focus keyword found in the first paragraph', 'beplus-metadata-ai-analyzer' ),
+				'keywordNotInFirstPara' => __( 'Focus keyword is missing from the first paragraph', 'beplus-metadata-ai-analyzer' ),
+				'densityGood'          => __( 'Keyword density is within a healthy range', 'beplus-metadata-ai-analyzer' ),
+				'densityBad'           => __( 'Keyword density is too low or too high', 'beplus-metadata-ai-analyzer' ),
+				'titleLengthGood'      => __( 'SEO title length is good', 'beplus-metadata-ai-analyzer' ),
+				'titleLengthBad'       => __( 'SEO title length should be between 30 and 60 characters', 'beplus-metadata-ai-analyzer' ),
+				'descLengthGood'       => __( 'Meta description length is good', 'beplus-metadata-ai-analyzer' ),
+				'descLengthBad'        => __( 'Meta description length should be between 120 and 160 characters', 'beplus-metadata-ai-analyzer' ),
 			),
 		);
 	}

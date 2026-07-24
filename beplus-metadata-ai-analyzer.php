@@ -1,18 +1,18 @@
 <?php
 /**
- * Plugin Name:       BePlus Smart SEO Google & AI
+ * Plugin Name:       Beplus Metadata AI Analyzer
  * Description:       Complete SEO toolkit for WordPress: meta tags, XML sitemap, Open Graph & Twitter Cards, focus keyword analysis, breadcrumbs, canonical URLs, robots control, and Schema.org structured data (JSON-LD).
  * Version:           1.0.0
  * Author:      			Minh BePlus
  * Author URI:  			https://beplusthemes.com/
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
- * Text Domain:       beplus-smart-seo-google-ai
+ * Text Domain:       beplus-metadata-ai-analyzer
  * Domain Path:       /languages
  * Requires at least: 5.0
  * Requires PHP:      7.4
  *
- * @package Beplus_Smart_SEO_Optimizer
+ * @package Beplus_Metadata_AI_Analyzer
  */
 
 // Prevent direct file access.
@@ -59,19 +59,7 @@ final class SSO_Plugin {
 	private function __construct() {
 		$this->includes();
 
-		add_action( 'plugins_loaded', array( $this, 'load_textdomain' ), 1 );
 		add_action( 'plugins_loaded', array( $this, 'init_modules' ) );
-	}
-
-	/**
-	 * Load plugin text domain for translations.
-	 */
-	public function load_textdomain() {
-		load_plugin_textdomain(
-			'beplus-smart-seo-google-ai',
-			false,
-			dirname( SSO_PLUGIN_BASENAME ) . '/languages'
-		);
 	}
 
 	/**
@@ -125,7 +113,7 @@ final class SSO_Plugin {
 		add_action(
 			'wp_head',
 			function () {
-				echo "\n<!-- BePlus Smart SEO & Google AI Optimizer v" . esc_html( SSO_VERSION ) . " - https://beplus.vn -->\n";
+				echo "\n<!-- Beplus Metadata AI Analyzer v" . esc_html( SSO_VERSION ) . " - https://beplus.vn -->\n";
 			},
 			0
 		);
@@ -133,7 +121,7 @@ final class SSO_Plugin {
 		add_action(
 			'wp_head',
 			function () {
-				echo "\n<!-- / BePlus Smart SEO & Google AI Optimizer -->\n";
+				echo "\n<!-- / Beplus Metadata AI Analyzer -->\n";
 			},
 			99
 		);

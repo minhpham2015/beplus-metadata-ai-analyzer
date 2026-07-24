@@ -3,7 +3,7 @@
  * Virtual XML sitemap served at /sitemap.xml (no file is ever written to disk)
  * plus a lightweight Google ping on publish/update.
  *
- * @package Beplus_Smart_SEO_Optimizer
+ * @package Beplus_Metadata_AI_Analyzer
  */
 
 if ( ! defined( 'ABSPATH' ) ) {

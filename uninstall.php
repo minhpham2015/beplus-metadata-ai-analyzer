@@ -6,7 +6,7 @@
  * WordPress only executes this file when the plugin is deleted from the
  * Plugins screen (not on simple deactivation).
  *
- * @package Beplus_Smart_SEO_Optimizer
+ * @package Beplus_Metadata_AI_Analyzer
  */
 
 // Bail out if this file is accessed directly instead of through WordPress uninstall.

@@ -3,7 +3,7 @@
  * Settings module: admin settings page (General / Social / Schema / Sitemap tabs)
  * and the shared option accessor used by every other module.
  *
- * @package Beplus_Smart_SEO_Optimizer
+ * @package Beplus_Metadata_AI_Analyzer
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -99,7 +99,7 @@ class SSO_Settings {
 			),
 			'breadcrumbs' => array(
 				'separator'     => '&raquo;',
-				'homepage_text' => __( 'Home', 'beplus-smart-seo-google-ai' ),
+				'homepage_text' => __( 'Home', 'beplus-metadata-ai-analyzer' ),
 				'show_category' => 1,
 			),
 			'advanced'    => array(
@@ -163,15 +163,17 @@ class SSO_Settings {
 	}
 
 	/**
-	 * Register the settings page under Settings > Smart SEO Google & AI.
+	 * Register the settings page as a top-level menu item.
 	 */
 	public function add_settings_page() {
-		add_options_page(
-			__( 'Smart SEO Google & AI', 'beplus-smart-seo-google-ai' ),
-			__( 'Smart SEO Google & AI', 'beplus-smart-seo-google-ai' ),
+		add_menu_page(
+			__( 'Beplus Smart SEO', 'beplus-metadata-ai-analyzer' ),
+			__( 'Beplus Smart SEO', 'beplus-metadata-ai-analyzer' ),
 			'manage_options',
 			'sso-settings',
-			array( $this, 'render_settings_page' )
+			array( $this, 'render_settings_page' ),
+			'dashicons-chart-area',
+			80
 		);
 	}
 
@@ -215,11 +217,11 @@ class SSO_Settings {
 			array(
 				'context' => 'settings',
 				'i18n'    => array(
-					'chooseImage' => __( 'Choose Image', 'beplus-smart-seo-google-ai' ),
-					'useImage'    => __( 'Use this image', 'beplus-smart-seo-google-ai' ),
-					'removeImage' => __( 'Remove', 'beplus-smart-seo-google-ai' ),
-					'addRow'      => __( 'Add FAQ item', 'beplus-smart-seo-google-ai' ),
-					'removeRow'   => __( 'Remove', 'beplus-smart-seo-google-ai' ),
+					'chooseImage' => __( 'Choose Image', 'beplus-metadata-ai-analyzer' ),
+					'useImage'    => __( 'Use this image', 'beplus-metadata-ai-analyzer' ),
+					'removeImage' => __( 'Remove', 'beplus-metadata-ai-analyzer' ),
+					'addRow'      => __( 'Add FAQ item', 'beplus-metadata-ai-analyzer' ),
+					'removeRow'   => __( 'Remove', 'beplus-metadata-ai-analyzer' ),
 				),
 			)
 		);
@@ -306,7 +308,7 @@ class SSO_Settings {
 			case 'breadcrumbs':
 				return array(
 					'separator'     => isset( $values['separator'] ) ? sanitize_text_field( $values['separator'] ) : '&raquo;',
-					'homepage_text' => isset( $values['homepage_text'] ) ? sanitize_text_field( $values['homepage_text'] ) : __( 'Home', 'beplus-smart-seo-google-ai' ),
+					'homepage_text' => isset( $values['homepage_text'] ) ? sanitize_text_field( $values['homepage_text'] ) : __( 'Home', 'beplus-metadata-ai-analyzer' ),
 					'show_category' => ! empty( $values['show_category'] ) ? 1 : 0,
 				);
 
@@ -340,22 +342,22 @@ class SSO_Settings {
 		}
 
 		$tabs       = array(
-			'general'     => __( 'General', 'beplus-smart-seo-google-ai' ),
-			'social'      => __( 'Social & AI Meta', 'beplus-smart-seo-google-ai' ),
-			'schema'      => __( 'Schema', 'beplus-smart-seo-google-ai' ),
-			'sitemap'     => __( 'Sitemap', 'beplus-smart-seo-google-ai' ),
-			'breadcrumbs' => __( 'Breadcrumbs', 'beplus-smart-seo-google-ai' ),
-			'advanced'    => __( 'Advanced', 'beplus-smart-seo-google-ai' ),
+			'general'     => __( 'General', 'beplus-metadata-ai-analyzer' ),
+			'social'      => __( 'Social & AI Meta', 'beplus-metadata-ai-analyzer' ),
+			'schema'      => __( 'Schema', 'beplus-metadata-ai-analyzer' ),
+			'sitemap'     => __( 'Sitemap', 'beplus-metadata-ai-analyzer' ),
+			'breadcrumbs' => __( 'Breadcrumbs', 'beplus-metadata-ai-analyzer' ),
+			'advanced'    => __( 'Advanced', 'beplus-metadata-ai-analyzer' ),
 		);
 		$active_tab = isset( $_GET['tab'] ) && isset( $tabs[ sanitize_key( wp_unslash( $_GET['tab'] ) ) ] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'general'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only tab navigation.
 
 		?>
 		<div class="wrap sso-settings-wrap">
-			<h1><?php esc_html_e( 'BePlus Smart SEO Google & AI', 'beplus-smart-seo-google-ai' ); ?></h1>
+			<h1><?php esc_html_e( 'Beplus Smart SEO', 'beplus-metadata-ai-analyzer' ); ?></h1>
 
 			<h2 class="nav-tab-wrapper">
 				<?php foreach ( $tabs as $tab_key => $tab_label ) : ?>
-					<a href="<?php echo esc_url( add_query_arg( array( 'page' => 'sso-settings', 'tab' => $tab_key ), admin_url( 'options-general.php' ) ) ); ?>"
+					<a href="<?php echo esc_url( add_query_arg( array( 'page' => 'sso-settings', 'tab' => $tab_key ), admin_url( 'admin.php' ) ) ); ?>"
 						class="nav-tab <?php echo $active_tab === $tab_key ? 'nav-tab-active' : ''; ?>">
 						<?php echo esc_html( $tab_label ); ?>
 					</a>
@@ -402,33 +404,33 @@ class SSO_Settings {
 		?>
 		<table class="form-table" role="presentation">
 			<tr>
-				<th scope="row"><label for="sso_title_separator"><?php esc_html_e( 'Title Separator', 'beplus-smart-seo-google-ai' ); ?></label></th>
+				<th scope="row"><label for="sso_title_separator"><?php esc_html_e( 'Title Separator', 'beplus-metadata-ai-analyzer' ); ?></label></th>
 				<td>
 					<input type="text" id="sso_title_separator" name="sso_settings[general][title_separator]" value="<?php echo esc_attr( $general['title_separator'] ); ?>" class="small-text" maxlength="5" />
 				</td>
 			</tr>
 			<tr>
-				<th scope="row"><?php esc_html_e( 'Search Results', 'beplus-smart-seo-google-ai' ); ?></th>
+				<th scope="row"><?php esc_html_e( 'Search Results', 'beplus-metadata-ai-analyzer' ); ?></th>
 				<td>
 					<label>
 						<input type="checkbox" name="sso_settings[general][noindex_search]" value="1" <?php checked( ! empty( $general['noindex_search'] ) ); ?> />
-						<?php esc_html_e( 'Add noindex to internal search results pages', 'beplus-smart-seo-google-ai' ); ?>
+						<?php esc_html_e( 'Add noindex to internal search results pages', 'beplus-metadata-ai-analyzer' ); ?>
 					</label>
 				</td>
 			</tr>
 			<tr>
-				<th scope="row"><?php esc_html_e( 'Archive Defaults', 'beplus-smart-seo-google-ai' ); ?></th>
+				<th scope="row"><?php esc_html_e( 'Archive Defaults', 'beplus-metadata-ai-analyzer' ); ?></th>
 				<td>
 					<fieldset>
-						<label><input type="checkbox" name="sso_settings[general][noindex_archives][category]" value="1" <?php checked( ! empty( $general['noindex_archives']['category'] ) ); ?> /> <?php esc_html_e( 'Noindex category archives', 'beplus-smart-seo-google-ai' ); ?></label><br />
-						<label><input type="checkbox" name="sso_settings[general][noindex_archives][post_tag]" value="1" <?php checked( ! empty( $general['noindex_archives']['post_tag'] ) ); ?> /> <?php esc_html_e( 'Noindex tag archives', 'beplus-smart-seo-google-ai' ); ?></label><br />
-						<label><input type="checkbox" name="sso_settings[general][noindex_archives][author]" value="1" <?php checked( ! empty( $general['noindex_archives']['author'] ) ); ?> /> <?php esc_html_e( 'Noindex author archives', 'beplus-smart-seo-google-ai' ); ?></label><br />
-						<label><input type="checkbox" name="sso_settings[general][noindex_archives][date]" value="1" <?php checked( ! empty( $general['noindex_archives']['date'] ) ); ?> /> <?php esc_html_e( 'Noindex date archives', 'beplus-smart-seo-google-ai' ); ?></label>
+						<label><input type="checkbox" name="sso_settings[general][noindex_archives][category]" value="1" <?php checked( ! empty( $general['noindex_archives']['category'] ) ); ?> /> <?php esc_html_e( 'Noindex category archives', 'beplus-metadata-ai-analyzer' ); ?></label><br />
+						<label><input type="checkbox" name="sso_settings[general][noindex_archives][post_tag]" value="1" <?php checked( ! empty( $general['noindex_archives']['post_tag'] ) ); ?> /> <?php esc_html_e( 'Noindex tag archives', 'beplus-metadata-ai-analyzer' ); ?></label><br />
+						<label><input type="checkbox" name="sso_settings[general][noindex_archives][author]" value="1" <?php checked( ! empty( $general['noindex_archives']['author'] ) ); ?> /> <?php esc_html_e( 'Noindex author archives', 'beplus-metadata-ai-analyzer' ); ?></label><br />
+						<label><input type="checkbox" name="sso_settings[general][noindex_archives][date]" value="1" <?php checked( ! empty( $general['noindex_archives']['date'] ) ); ?> /> <?php esc_html_e( 'Noindex date archives', 'beplus-metadata-ai-analyzer' ); ?></label>
 					</fieldset>
 				</td>
 			</tr>
 			<tr>
-				<th scope="row"><?php esc_html_e( 'Default Robots per Post Type', 'beplus-smart-seo-google-ai' ); ?></th>
+				<th scope="row"><?php esc_html_e( 'Default Robots per Post Type', 'beplus-metadata-ai-analyzer' ); ?></th>
 				<td>
 					<fieldset>
 						<?php foreach ( $this->get_public_post_types() as $post_type ) : ?>
@@ -436,11 +438,11 @@ class SSO_Settings {
 								<input type="checkbox" name="sso_settings[general][noindex_post_types][<?php echo esc_attr( $post_type->name ); ?>]" value="1" <?php checked( ! empty( $general['noindex_post_types'][ $post_type->name ] ) ); ?> />
 								<?php
 								/* translators: %s: post type label. */
-								echo esc_html( sprintf( __( 'Noindex %s by default', 'beplus-smart-seo-google-ai' ), $post_type->label ) );
+								echo esc_html( sprintf( __( 'Noindex %s by default', 'beplus-metadata-ai-analyzer' ), $post_type->label ) );
 								?>
 							</label><br />
 						<?php endforeach; ?>
-						<p class="description"><?php esc_html_e( 'Used only when a post does not explicitly set noindex in its SEO meta box.', 'beplus-smart-seo-google-ai' ); ?></p>
+						<p class="description"><?php esc_html_e( 'Used only when a post does not explicitly set noindex in its SEO meta box.', 'beplus-metadata-ai-analyzer' ); ?></p>
 					</fieldset>
 				</td>
 			</tr>
@@ -457,7 +459,7 @@ class SSO_Settings {
 		?>
 		<table class="form-table" role="presentation">
 			<tr>
-				<th scope="row"><?php esc_html_e( 'Default OG Image', 'beplus-smart-seo-google-ai' ); ?></th>
+				<th scope="row"><?php esc_html_e( 'Default OG Image', 'beplus-metadata-ai-analyzer' ); ?></th>
 				<td>
 					<div class="sso-media-field">
 						<input type="hidden" class="sso-media-input" name="sso_settings[social][default_og_image]" value="<?php echo esc_attr( $social['default_og_image'] ); ?>" />
@@ -466,53 +468,53 @@ class SSO_Settings {
 								<img src="<?php echo esc_url( $image_url ); ?>" alt="" />
 							<?php endif; ?>
 						</div>
-						<button type="button" class="button sso-media-select"><?php esc_html_e( 'Choose Image', 'beplus-smart-seo-google-ai' ); ?></button>
-						<button type="button" class="button sso-media-remove" <?php echo $image_url ? '' : 'style="display:none;"'; ?>><?php esc_html_e( 'Remove', 'beplus-smart-seo-google-ai' ); ?></button>
-						<p class="description"><?php esc_html_e( 'Used as the Open Graph / Twitter image fallback when a post has no featured image.', 'beplus-smart-seo-google-ai' ); ?></p>
+						<button type="button" class="button sso-media-select"><?php esc_html_e( 'Choose Image', 'beplus-metadata-ai-analyzer' ); ?></button>
+						<button type="button" class="button sso-media-remove" <?php echo $image_url ? '' : 'style="display:none;"'; ?>><?php esc_html_e( 'Remove', 'beplus-metadata-ai-analyzer' ); ?></button>
+						<p class="description"><?php esc_html_e( 'Used as the Open Graph / Twitter image fallback when a post has no featured image.', 'beplus-metadata-ai-analyzer' ); ?></p>
 					</div>
 				</td>
 			</tr>
 			<tr>
-				<th scope="row"><label for="sso_facebook_url"><?php esc_html_e( 'Facebook Page URL', 'beplus-smart-seo-google-ai' ); ?></label></th>
+				<th scope="row"><label for="sso_facebook_url"><?php esc_html_e( 'Facebook Page URL', 'beplus-metadata-ai-analyzer' ); ?></label></th>
 				<td><input type="url" id="sso_facebook_url" name="sso_settings[social][facebook_url]" value="<?php echo esc_attr( $social['facebook_url'] ); ?>" class="regular-text" /></td>
 			</tr>
 			<tr>
-				<th scope="row"><label for="sso_twitter_username"><?php esc_html_e( 'Twitter/X Username', 'beplus-smart-seo-google-ai' ); ?></label></th>
+				<th scope="row"><label for="sso_twitter_username"><?php esc_html_e( 'Twitter/X Username', 'beplus-metadata-ai-analyzer' ); ?></label></th>
 				<td>@<input type="text" id="sso_twitter_username" name="sso_settings[social][twitter_username]" value="<?php echo esc_attr( $social['twitter_username'] ); ?>" class="regular-text" /></td>
 			</tr>
 		</table>
 
-		<h2 class="title"><?php esc_html_e( 'AI Crawler & Indexing Meta Tags', 'beplus-smart-seo-google-ai' ); ?></h2>
-		<p class="description"><?php esc_html_e( 'These meta tags are always output in <head> for Open Graph and Twitter Card. The optional groups below extend coverage for academic indexers, AI scrapers, and LLM training data pipelines.', 'beplus-smart-seo-google-ai' ); ?></p>
+		<h2 class="title"><?php esc_html_e( 'AI Crawler & Indexing Meta Tags', 'beplus-metadata-ai-analyzer' ); ?></h2>
+		<p class="description"><?php esc_html_e( 'These meta tags are always output in <head> for Open Graph and Twitter Card. The optional groups below extend coverage for academic indexers, AI scrapers, and LLM training data pipelines.', 'beplus-metadata-ai-analyzer' ); ?></p>
 		<table class="form-table" role="presentation">
 			<tr>
-				<th scope="row"><?php esc_html_e( 'Dublin Core', 'beplus-smart-seo-google-ai' ); ?></th>
+				<th scope="row"><?php esc_html_e( 'Dublin Core', 'beplus-metadata-ai-analyzer' ); ?></th>
 				<td>
 					<label>
 						<input type="checkbox" name="sso_settings[social][enable_dublin_core]" value="1" <?php checked( ! empty( $social['enable_dublin_core'] ) ); ?> />
-						<?php esc_html_e( 'Output DC.title / DC.creator / DC.date / DC.language / DC.identifier', 'beplus-smart-seo-google-ai' ); ?>
+						<?php esc_html_e( 'Output DC.title / DC.creator / DC.date / DC.language / DC.identifier', 'beplus-metadata-ai-analyzer' ); ?>
 					</label>
-					<p class="description"><?php esc_html_e( 'Used by academic search engines and some AI indexers.', 'beplus-smart-seo-google-ai' ); ?></p>
+					<p class="description"><?php esc_html_e( 'Used by academic search engines and some AI indexers.', 'beplus-metadata-ai-analyzer' ); ?></p>
 				</td>
 			</tr>
 			<tr>
-				<th scope="row"><?php esc_html_e( 'Citation Meta', 'beplus-smart-seo-google-ai' ); ?></th>
+				<th scope="row"><?php esc_html_e( 'Citation Meta', 'beplus-metadata-ai-analyzer' ); ?></th>
 				<td>
 					<label>
 						<input type="checkbox" name="sso_settings[social][enable_citation]" value="1" <?php checked( ! empty( $social['enable_citation'] ) ); ?> />
-						<?php esc_html_e( 'Output citation_title / citation_author / citation_date / citation_journal_title', 'beplus-smart-seo-google-ai' ); ?>
+						<?php esc_html_e( 'Output citation_title / citation_author / citation_date / citation_journal_title', 'beplus-metadata-ai-analyzer' ); ?>
 					</label>
-					<p class="description"><?php esc_html_e( 'Used by Google Scholar and AI research pipelines.', 'beplus-smart-seo-google-ai' ); ?></p>
+					<p class="description"><?php esc_html_e( 'Used by Google Scholar and AI research pipelines.', 'beplus-metadata-ai-analyzer' ); ?></p>
 				</td>
 			</tr>
 			<tr>
-				<th scope="row"><?php esc_html_e( 'AI/LLM Meta', 'beplus-smart-seo-google-ai' ); ?></th>
+				<th scope="row"><?php esc_html_e( 'AI/LLM Meta', 'beplus-metadata-ai-analyzer' ); ?></th>
 				<td>
 					<label>
 						<input type="checkbox" name="sso_settings[social][enable_ai_meta]" value="1" <?php checked( ! empty( $social['enable_ai_meta'] ) ); ?> />
-						<?php esc_html_e( 'Output llm:summary and llm:topics (derived from meta description, focus keyword, categories)', 'beplus-smart-seo-google-ai' ); ?>
+						<?php esc_html_e( 'Output llm:summary and llm:topics (derived from meta description, focus keyword, categories)', 'beplus-metadata-ai-analyzer' ); ?>
 					</label>
-					<p class="description"><?php esc_html_e( 'Helps LLM-based crawlers understand page content at a glance.', 'beplus-smart-seo-google-ai' ); ?></p>
+					<p class="description"><?php esc_html_e( 'Helps LLM-based crawlers understand page content at a glance.', 'beplus-metadata-ai-analyzer' ); ?></p>
 				</td>
 			</tr>
 		</table>
@@ -526,42 +528,42 @@ class SSO_Settings {
 		$schema    = self::get( 'schema' );
 		$logo_url  = $schema['logo'] ? wp_get_attachment_image_url( (int) $schema['logo'], 'medium' ) : '';
 		$type_opts = array(
-			''              => __( 'None', 'beplus-smart-seo-google-ai' ),
-			'article'       => __( 'Article', 'beplus-smart-seo-google-ai' ),
-			'blogposting'   => __( 'BlogPosting', 'beplus-smart-seo-google-ai' ),
-			'webpage'       => __( 'WebPage', 'beplus-smart-seo-google-ai' ),
-			'product'       => __( 'Product', 'beplus-smart-seo-google-ai' ),
-			'faqpage'       => __( 'FAQPage', 'beplus-smart-seo-google-ai' ),
-			'howto'         => __( 'HowTo', 'beplus-smart-seo-google-ai' ),
-			'event'         => __( 'Event', 'beplus-smart-seo-google-ai' ),
-			'video'         => __( 'VideoObject', 'beplus-smart-seo-google-ai' ),
-			'recipe'        => __( 'Recipe', 'beplus-smart-seo-google-ai' ),
-			'jobposting'    => __( 'JobPosting', 'beplus-smart-seo-google-ai' ),
-			'course'        => __( 'Course', 'beplus-smart-seo-google-ai' ),
-			'review'        => __( 'Review', 'beplus-smart-seo-google-ai' ),
-			'localbusiness' => __( 'LocalBusiness', 'beplus-smart-seo-google-ai' ),
+			''              => __( 'None', 'beplus-metadata-ai-analyzer' ),
+			'article'       => __( 'Article', 'beplus-metadata-ai-analyzer' ),
+			'blogposting'   => __( 'BlogPosting', 'beplus-metadata-ai-analyzer' ),
+			'webpage'       => __( 'WebPage', 'beplus-metadata-ai-analyzer' ),
+			'product'       => __( 'Product', 'beplus-metadata-ai-analyzer' ),
+			'faqpage'       => __( 'FAQPage', 'beplus-metadata-ai-analyzer' ),
+			'howto'         => __( 'HowTo', 'beplus-metadata-ai-analyzer' ),
+			'event'         => __( 'Event', 'beplus-metadata-ai-analyzer' ),
+			'video'         => __( 'VideoObject', 'beplus-metadata-ai-analyzer' ),
+			'recipe'        => __( 'Recipe', 'beplus-metadata-ai-analyzer' ),
+			'jobposting'    => __( 'JobPosting', 'beplus-metadata-ai-analyzer' ),
+			'course'        => __( 'Course', 'beplus-metadata-ai-analyzer' ),
+			'review'        => __( 'Review', 'beplus-metadata-ai-analyzer' ),
+			'localbusiness' => __( 'LocalBusiness', 'beplus-metadata-ai-analyzer' ),
 		);
 		?>
-		<h2 class="title"><?php esc_html_e( 'Organization / Person', 'beplus-smart-seo-google-ai' ); ?></h2>
+		<h2 class="title"><?php esc_html_e( 'Organization / Person', 'beplus-metadata-ai-analyzer' ); ?></h2>
 		<table class="form-table" role="presentation">
 			<tr>
-				<th scope="row"><?php esc_html_e( 'Entity Type', 'beplus-smart-seo-google-ai' ); ?></th>
+				<th scope="row"><?php esc_html_e( 'Entity Type', 'beplus-metadata-ai-analyzer' ); ?></th>
 				<td>
-					<label><input type="radio" name="sso_settings[schema][entity_type]" value="organization" <?php checked( 'organization', $schema['entity_type'] ); ?> /> <?php esc_html_e( 'Organization', 'beplus-smart-seo-google-ai' ); ?></label>
+					<label><input type="radio" name="sso_settings[schema][entity_type]" value="organization" <?php checked( 'organization', $schema['entity_type'] ); ?> /> <?php esc_html_e( 'Organization', 'beplus-metadata-ai-analyzer' ); ?></label>
 					&nbsp;&nbsp;
-					<label><input type="radio" name="sso_settings[schema][entity_type]" value="person" <?php checked( 'person', $schema['entity_type'] ); ?> /> <?php esc_html_e( 'Person', 'beplus-smart-seo-google-ai' ); ?></label>
+					<label><input type="radio" name="sso_settings[schema][entity_type]" value="person" <?php checked( 'person', $schema['entity_type'] ); ?> /> <?php esc_html_e( 'Person', 'beplus-metadata-ai-analyzer' ); ?></label>
 				</td>
 			</tr>
 			<tr>
-				<th scope="row"><label for="sso_schema_name"><?php esc_html_e( 'Name', 'beplus-smart-seo-google-ai' ); ?></label></th>
+				<th scope="row"><label for="sso_schema_name"><?php esc_html_e( 'Name', 'beplus-metadata-ai-analyzer' ); ?></label></th>
 				<td><input type="text" id="sso_schema_name" name="sso_settings[schema][name]" value="<?php echo esc_attr( $schema['name'] ); ?>" class="regular-text" /></td>
 			</tr>
 			<tr>
-				<th scope="row"><label for="sso_schema_url"><?php esc_html_e( 'URL', 'beplus-smart-seo-google-ai' ); ?></label></th>
+				<th scope="row"><label for="sso_schema_url"><?php esc_html_e( 'URL', 'beplus-metadata-ai-analyzer' ); ?></label></th>
 				<td><input type="url" id="sso_schema_url" name="sso_settings[schema][url]" value="<?php echo esc_attr( $schema['url'] ); ?>" class="regular-text" /></td>
 			</tr>
 			<tr>
-				<th scope="row"><?php esc_html_e( 'Logo', 'beplus-smart-seo-google-ai' ); ?></th>
+				<th scope="row"><?php esc_html_e( 'Logo', 'beplus-metadata-ai-analyzer' ); ?></th>
 				<td>
 					<div class="sso-media-field">
 						<input type="hidden" class="sso-media-input" name="sso_settings[schema][logo]" value="<?php echo esc_attr( $schema['logo'] ); ?>" />
@@ -570,13 +572,13 @@ class SSO_Settings {
 								<img src="<?php echo esc_url( $logo_url ); ?>" alt="" />
 							<?php endif; ?>
 						</div>
-						<button type="button" class="button sso-media-select"><?php esc_html_e( 'Choose Image', 'beplus-smart-seo-google-ai' ); ?></button>
-						<button type="button" class="button sso-media-remove" <?php echo $logo_url ? '' : 'style="display:none;"'; ?>><?php esc_html_e( 'Remove', 'beplus-smart-seo-google-ai' ); ?></button>
+						<button type="button" class="button sso-media-select"><?php esc_html_e( 'Choose Image', 'beplus-metadata-ai-analyzer' ); ?></button>
+						<button type="button" class="button sso-media-remove" <?php echo $logo_url ? '' : 'style="display:none;"'; ?>><?php esc_html_e( 'Remove', 'beplus-metadata-ai-analyzer' ); ?></button>
 					</div>
 				</td>
 			</tr>
 			<tr>
-				<th scope="row"><?php esc_html_e( 'Social Profiles (sameAs)', 'beplus-smart-seo-google-ai' ); ?></th>
+				<th scope="row"><?php esc_html_e( 'Social Profiles (sameAs)', 'beplus-metadata-ai-analyzer' ); ?></th>
 				<td>
 					<?php foreach ( array( 'facebook', 'twitter', 'linkedin', 'instagram', 'youtube' ) as $network ) : ?>
 						<p>
@@ -588,13 +590,13 @@ class SSO_Settings {
 			</tr>
 		</table>
 
-		<h2 class="title"><?php esc_html_e( 'Schema per Post Type', 'beplus-smart-seo-google-ai' ); ?></h2>
+		<h2 class="title"><?php esc_html_e( 'Schema per Post Type', 'beplus-metadata-ai-analyzer' ); ?></h2>
 		<table class="widefat sso-schema-post-types">
 			<thead>
 				<tr>
-					<th><?php esc_html_e( 'Enabled', 'beplus-smart-seo-google-ai' ); ?></th>
-					<th><?php esc_html_e( 'Post Type', 'beplus-smart-seo-google-ai' ); ?></th>
-					<th><?php esc_html_e( 'Schema Type', 'beplus-smart-seo-google-ai' ); ?></th>
+					<th><?php esc_html_e( 'Enabled', 'beplus-metadata-ai-analyzer' ); ?></th>
+					<th><?php esc_html_e( 'Post Type', 'beplus-metadata-ai-analyzer' ); ?></th>
+					<th><?php esc_html_e( 'Schema Type', 'beplus-metadata-ai-analyzer' ); ?></th>
 				</tr>
 			</thead>
 			<tbody>
@@ -615,9 +617,9 @@ class SSO_Settings {
 				<?php endforeach; ?>
 			</tbody>
 		</table>
-		<p class="description"><?php esc_html_e( 'Individual posts can override the schema type from the "Schema" tab of their SEO meta box.', 'beplus-smart-seo-google-ai' ); ?></p>
+		<p class="description"><?php esc_html_e( 'Individual posts can override the schema type from the "Schema" tab of their SEO meta box.', 'beplus-metadata-ai-analyzer' ); ?></p>
 
-		<h2 class="title"><?php esc_html_e( 'JSON-LD Preview (Organization + Website)', 'beplus-smart-seo-google-ai' ); ?></h2>
+		<h2 class="title"><?php esc_html_e( 'JSON-LD Preview (Organization + Website)', 'beplus-metadata-ai-analyzer' ); ?></h2>
 		<?php
 		$preview = array(
 			'@context' => 'https://schema.org',
@@ -639,17 +641,17 @@ class SSO_Settings {
 		?>
 		<table class="form-table" role="presentation">
 			<tr>
-				<th scope="row"><?php esc_html_e( 'XML Sitemap', 'beplus-smart-seo-google-ai' ); ?></th>
+				<th scope="row"><?php esc_html_e( 'XML Sitemap', 'beplus-metadata-ai-analyzer' ); ?></th>
 				<td>
 					<label>
 						<input type="checkbox" name="sso_settings[sitemap][enabled]" value="1" <?php checked( ! empty( $sitemap['enabled'] ) ); ?> />
-						<?php esc_html_e( 'Enable XML sitemap', 'beplus-smart-seo-google-ai' ); ?>
+						<?php esc_html_e( 'Enable XML sitemap', 'beplus-metadata-ai-analyzer' ); ?>
 					</label>
 					<p class="description">
 						<?php
 						printf(
 							/* translators: %s: sitemap URL. */
-							esc_html__( 'Your sitemap is available at: %s', 'beplus-smart-seo-google-ai' ),
+							esc_html__( 'Your sitemap is available at: %s', 'beplus-metadata-ai-analyzer' ),
 							'<a href="' . esc_url( home_url( '/sitemap.xml' ) ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( home_url( '/sitemap.xml' ) ) . '</a>'
 						);
 						?>
@@ -657,7 +659,7 @@ class SSO_Settings {
 				</td>
 			</tr>
 			<tr>
-				<th scope="row"><?php esc_html_e( 'Exclude Post Types', 'beplus-smart-seo-google-ai' ); ?></th>
+				<th scope="row"><?php esc_html_e( 'Exclude Post Types', 'beplus-metadata-ai-analyzer' ); ?></th>
 				<td>
 					<fieldset>
 						<?php foreach ( $this->get_public_post_types() as $post_type ) : ?>
@@ -679,23 +681,23 @@ class SSO_Settings {
 	private function render_advanced_tab() {
 		$advanced = self::get( 'advanced' );
 		?>
-		<h2 class="title"><?php esc_html_e( 'llms.txt Generator', 'beplus-smart-seo-google-ai' ); ?></h2>
+		<h2 class="title"><?php esc_html_e( 'llms.txt Generator', 'beplus-metadata-ai-analyzer' ); ?></h2>
 		<p class="description">
 			<?php
 			printf(
 				/* translators: %s: link to llmstxt.org. */
-				esc_html__( 'Serves a machine-readable Markdown summary of your site at /llms.txt following the %s standard, so LLMs can understand your site\'s structure.', 'beplus-smart-seo-google-ai' ),
+				esc_html__( 'Serves a machine-readable Markdown summary of your site at /llms.txt following the %s standard, so LLMs can understand your site\'s structure.', 'beplus-metadata-ai-analyzer' ),
 				'<a href="https://llmstxt.org" target="_blank" rel="noopener noreferrer">llmstxt.org</a>'
 			);
 			?>
 		</p>
 		<table class="form-table" role="presentation">
 			<tr>
-				<th scope="row"><?php esc_html_e( 'Enable llms.txt', 'beplus-smart-seo-google-ai' ); ?></th>
+				<th scope="row"><?php esc_html_e( 'Enable llms.txt', 'beplus-metadata-ai-analyzer' ); ?></th>
 				<td>
 					<label>
 						<input type="checkbox" name="sso_settings[advanced][llms_txt_enabled]" value="1" <?php checked( ! empty( $advanced['llms_txt_enabled'] ) ); ?> />
-						<?php esc_html_e( 'Serve llms.txt at your domain root', 'beplus-smart-seo-google-ai' ); ?>
+						<?php esc_html_e( 'Serve llms.txt at your domain root', 'beplus-metadata-ai-analyzer' ); ?>
 					</label>
 					<?php if ( ! empty( $advanced['llms_txt_enabled'] ) ) : ?>
 						<p class="description">
@@ -707,10 +709,10 @@ class SSO_Settings {
 				</td>
 			</tr>
 			<tr>
-				<th scope="row"><label for="sso_llms_custom_content"><?php esc_html_e( 'Custom llms.txt Content', 'beplus-smart-seo-google-ai' ); ?></label></th>
+				<th scope="row"><label for="sso_llms_custom_content"><?php esc_html_e( 'Custom llms.txt Content', 'beplus-metadata-ai-analyzer' ); ?></label></th>
 				<td>
 					<textarea id="sso_llms_custom_content" name="sso_llms_custom_content" class="large-text" rows="6"><?php echo esc_textarea( get_option( 'sso_llms_custom_content', '' ) ); ?></textarea>
-					<p class="description"><?php esc_html_e( 'Optional Markdown appended under "Additional Information" in the llms.txt file. Useful for adding custom context about your organisation or content focus.', 'beplus-smart-seo-google-ai' ); ?></p>
+					<p class="description"><?php esc_html_e( 'Optional Markdown appended under "Additional Information" in the llms.txt file. Useful for adding custom context about your organisation or content focus.', 'beplus-metadata-ai-analyzer' ); ?></p>
 				</td>
 			</tr>
 		</table>
@@ -725,25 +727,25 @@ class SSO_Settings {
 		?>
 		<table class="form-table" role="presentation">
 			<tr>
-				<th scope="row"><label for="sso_bc_separator"><?php esc_html_e( 'Separator', 'beplus-smart-seo-google-ai' ); ?></label></th>
+				<th scope="row"><label for="sso_bc_separator"><?php esc_html_e( 'Separator', 'beplus-metadata-ai-analyzer' ); ?></label></th>
 				<td><input type="text" id="sso_bc_separator" name="sso_settings[breadcrumbs][separator]" value="<?php echo esc_attr( $breadcrumbs['separator'] ); ?>" class="small-text" /></td>
 			</tr>
 			<tr>
-				<th scope="row"><label for="sso_bc_home"><?php esc_html_e( 'Homepage Text', 'beplus-smart-seo-google-ai' ); ?></label></th>
+				<th scope="row"><label for="sso_bc_home"><?php esc_html_e( 'Homepage Text', 'beplus-metadata-ai-analyzer' ); ?></label></th>
 				<td><input type="text" id="sso_bc_home" name="sso_settings[breadcrumbs][homepage_text]" value="<?php echo esc_attr( $breadcrumbs['homepage_text'] ); ?>" class="regular-text" /></td>
 			</tr>
 			<tr>
-				<th scope="row"><?php esc_html_e( 'Category', 'beplus-smart-seo-google-ai' ); ?></th>
+				<th scope="row"><?php esc_html_e( 'Category', 'beplus-metadata-ai-analyzer' ); ?></th>
 				<td>
 					<label>
 						<input type="checkbox" name="sso_settings[breadcrumbs][show_category]" value="1" <?php checked( ! empty( $breadcrumbs['show_category'] ) ); ?> />
-						<?php esc_html_e( 'Show category in post breadcrumbs', 'beplus-smart-seo-google-ai' ); ?>
+						<?php esc_html_e( 'Show category in post breadcrumbs', 'beplus-metadata-ai-analyzer' ); ?>
 					</label>
 				</td>
 			</tr>
 			<tr>
-				<th scope="row"><?php esc_html_e( 'Template Tag', 'beplus-smart-seo-google-ai' ); ?></th>
-				<td><code>&lt;?php if ( function_exists( 'sso_breadcrumbs' ) ) { sso_breadcrumbs(); } ?&gt;</code> <?php esc_html_e( 'or shortcode', 'beplus-smart-seo-google-ai' ); ?> <code>[sso_breadcrumb]</code></td>
+				<th scope="row"><?php esc_html_e( 'Template Tag', 'beplus-metadata-ai-analyzer' ); ?></th>
+				<td><code>&lt;?php if ( function_exists( 'sso_breadcrumbs' ) ) { sso_breadcrumbs(); } ?&gt;</code> <?php esc_html_e( 'or shortcode', 'beplus-metadata-ai-analyzer' ); ?> <code>[sso_breadcrumb]</code></td>
 			</tr>
 		</table>
 		<?php

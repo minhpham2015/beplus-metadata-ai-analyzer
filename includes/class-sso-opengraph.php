@@ -2,7 +2,7 @@
 /**
  * Open Graph and Twitter Card meta tag output.
  *
- * @package Beplus_Smart_SEO_Optimizer
+ * @package Beplus_Metadata_AI_Analyzer
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
