@@ -12,7 +12,7 @@ Lightweight SEO toolkit: meta tags, XML sitemap, Open Graph, focus keyword analy
 
 == Description ==
 
-BePlus AI SEO Insights gives every public post type a dedicated SEO meta
+Beplus Metadata AI Analyzer gives every public post type a dedicated SEO meta
 box and adds the technical SEO foundations most sites need, without the
 bloat:
 
@@ -31,8 +31,8 @@ bloat:
   understand your site structure and content.
 * **Focus Keyword Analysis** – instant, client-side scoring of your focus
   keyword against the title, description, slug, headings and content.
-* **Breadcrumbs** – a `sso_breadcrumbs()` template tag and a
-  `[sso_breadcrumb]` shortcode, with full sub-category, CPT archive and child
+* **Breadcrumbs** – a `bpmaa_breadcrumbs()` template tag and a
+  `[bpmaa_breadcrumb]` shortcode, with full sub-category, CPT archive and child
   page hierarchy support. BreadcrumbList JSON-LD is output automatically.
 * **Canonical URLs** – automatic canonical tags with a per-post manual
   override for duplicate content.
@@ -44,12 +44,21 @@ bloat:
   LocalBusiness structured data, with manual overrides per post and a live
   JSON-LD preview in Settings.
 
+= About BePlus =
+
+This plugin is developed and maintained by BePlus,
+a WordPress and Shopify development studio with 10+
+years of experience building themes and plugins for
+nonprofits and eCommerce brands.
+
+Learn more at [beplusthemes.com](https://beplusthemes.com/).
+
 == Installation ==
 
 1. Upload the plugin to the `/wp-content/plugins/` directory, or install it
    through the Plugins screen directly.
 2. Activate the plugin through the 'Plugins' screen in WordPress.
-3. Go to **Settings > Smart SEO Google & AI** to configure General, Social,
+3. Go to **Settings > Metadata AI Analyzer** to configure General, Social,
    Schema, Sitemap and Breadcrumbs options.
 4. Edit any post or page to fill in its SEO meta box (General / Social /
    Schema tabs).
@@ -77,6 +86,9 @@ when WooCommerce is active.
 Deleting the plugin (not just deactivating it) removes all of its options and
 post meta from the database via `uninstall.php`.
 
+= Who develops this plugin? =
+This plugin is developed and maintained by BePlus, a WordPress and Shopify development studio. You can learn more about our work at [beplusthemes.com](https://beplusthemes.com/).
+
 == Screenshots ==
 
 1. SEO meta box with Google snippet preview and focus keyword analysis.
@@ -101,7 +113,7 @@ When a post is published or updated, the plugin optionally pings Google to notif
 
     https://www.google.com/ping?sitemap=<your-sitemap-url>
 
-This ping is rate-limited to at most once every five minutes. No personal data is sent — only your public sitemap URL. Pinging can be disabled by turning off the XML sitemap in **Settings > Smart SEO Google & AI > Sitemap**.
+This ping is rate-limited to at most once every five minutes. No personal data is sent — only your public sitemap URL. Pinging can be disabled by turning off the XML sitemap in **Settings > Metadata AI Analyzer > Sitemap**.
 
 * Google's Privacy Policy: https://policies.google.com/privacy
 * Google's Terms of Service: https://policies.google.com/terms
