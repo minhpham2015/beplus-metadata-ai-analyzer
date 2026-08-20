@@ -428,6 +428,7 @@
 				title:    ssoAdmin.i18n.chooseImage,
 				button:   { text: ssoAdmin.i18n.useImage },
 				multiple: false,
+				library:  { type: 'image' },
 			} );
 
 			frame.on( 'select', function () {
