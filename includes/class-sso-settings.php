@@ -259,7 +259,12 @@ class SSO_Settings {
 					'title_separator'    => isset( $values['title_separator'] ) ? sanitize_text_field( $values['title_separator'] ) : '-',
 					'noindex_search'     => ! empty( $values['noindex_search'] ) ? 1 : 0,
 					'noindex_post_types' => isset( $values['noindex_post_types'] ) ? array_map( 'absint', (array) $values['noindex_post_types'] ) : array(),
-					'noindex_archives'   => isset( $values['noindex_archives'] ) ? array_map( 'absint', (array) $values['noindex_archives'] ) : array(),
+					'noindex_archives'   => array(
+						'category' => ! empty( $values['noindex_archives']['category'] ) ? 1 : 0,
+						'post_tag' => ! empty( $values['noindex_archives']['post_tag'] ) ? 1 : 0,
+						'author'   => ! empty( $values['noindex_archives']['author'] ) ? 1 : 0,
+						'date'     => ! empty( $values['noindex_archives']['date'] ) ? 1 : 0,
+					),
 				);
 
 			case 'social':
