@@ -3,7 +3,7 @@ Contributors: bearsthemes, minhphamit
 Tags: seo, xml sitemap, open graph, schema, structured data
 Requires at least: 5.0
 Tested up to: 7.0
-Stable tag: 1.0.0
+Stable tag: 1.0.1
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -96,10 +96,25 @@ This plugin is developed and maintained by BePlus, a WordPress and Shopify devel
 
 == Changelog ==
 
+= 1.0.1 =
+* Fix: "Noindex" archive checkboxes (tag/author/date) in Settings → General now
+  persist correctly when unchecked, instead of silently reverting to noindex.
+* Fix: XML sitemap now excludes posts noindexed via a post type's site-wide
+  default, not just posts noindexed individually.
+* Fix: canonical URLs for paginated archives (blog index, category/tag/tax,
+  post type archives, author archives) now point at the current page instead
+  of always page 1.
+* Fix: the "Choose Image" media picker (OG image, default OG image, schema
+  logo) now only allows selecting images.
+
 = 1.0.0 =
 * Initial release.
 
 == Upgrade Notice ==
+
+= 1.0.1 =
+Fixes noindex settings persistence, sitemap/robots consistency, paginated
+archive canonical URLs, and the image picker. Recommended update.
 
 = 1.0.0 =
 Initial release.
