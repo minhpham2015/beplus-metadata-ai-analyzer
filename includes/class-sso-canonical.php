@@ -64,29 +64,52 @@ class SSO_Canonical {
 
 		if ( is_home() ) {
 			$page_for_posts = (int) get_option( 'page_for_posts' );
-			return $page_for_posts ? get_permalink( $page_for_posts ) : home_url( '/' );
+			$link           = $page_for_posts ? get_permalink( $page_for_posts ) : home_url( '/' );
+			return $this->add_pagination( $link );
 		}
 
 		if ( is_category() || is_tag() || is_tax() ) {
 			$link = get_term_link( get_queried_object() );
-			return is_wp_error( $link ) ? '' : $link;
+			return is_wp_error( $link ) ? '' : $this->add_pagination( $link );
 		}
 
 		if ( is_post_type_archive() ) {
 			$link = get_post_type_archive_link( get_query_var( 'post_type' ) );
-			return $link ? $link : '';
+			return $link ? $this->add_pagination( $link ) : '';
 		}
 
 		if ( is_author() ) {
-			return get_author_posts_url( get_queried_object_id() );
+			return $this->add_pagination( get_author_posts_url( get_queried_object_id() ) );
 		}
 
 		if ( is_date() ) {
+			// $wp->request already reflects the matched "page/N" segment for paged date archives.
 			global $wp;
 			return home_url( trailingslashit( $wp->request ) );
 		}
 
 		return '';
+	}
+
+	/**
+	 * Append the current "page/N" pagination segment (or ?paged=N for plain permalinks)
+	 * to an archive's page-1 URL, so paginated archive pages don't all canonicalize to page 1.
+	 *
+	 * @param string $url Unpaginated (page 1) archive URL.
+	 * @return string
+	 */
+	private function add_pagination( $url ) {
+		$paged = max( 1, (int) get_query_var( 'paged' ) );
+		if ( $paged < 2 ) {
+			return $url;
+		}
+
+		global $wp_rewrite;
+		if ( $wp_rewrite->using_permalinks() ) {
+			return user_trailingslashit( trailingslashit( $url ) . $wp_rewrite->pagination_base . '/' . $paged );
+		}
+
+		return add_query_arg( 'paged', $paged, $url );
 	}
 
 	/**

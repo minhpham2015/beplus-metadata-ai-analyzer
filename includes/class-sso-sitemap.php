@@ -168,6 +168,7 @@ class SSO_Sitemap {
 	public function get_urls() {
 		$urls               = array();
 		$exclude_post_types = SSO_Settings::get( 'sitemap', 'exclude_post_types', array() );
+		$noindex_post_types = SSO_Settings::get( 'general', 'noindex_post_types', array() );
 
 		$post_types = get_post_types( array( 'public' => true ), 'names' );
 		unset( $post_types['attachment'] );
@@ -175,6 +176,29 @@ class SSO_Sitemap {
 		foreach ( $post_types as $post_type ) {
 			if ( ! empty( $exclude_post_types[ $post_type ] ) ) {
 				continue;
+			}
+
+			// Mirror SSO_Robots::resolve_flags(): a per-post _sso_noindex value always wins;
+			// otherwise noindex state falls back to this post type's site-wide default.
+			if ( ! empty( $noindex_post_types[ $post_type ] ) ) {
+				$noindex_meta_query = array(
+					'key'     => '_sso_noindex',
+					'value'   => '0',
+					'compare' => '=',
+				);
+			} else {
+				$noindex_meta_query = array(
+					'relation' => 'OR',
+					array(
+						'key'     => '_sso_noindex',
+						'compare' => 'NOT EXISTS',
+					),
+					array(
+						'key'     => '_sso_noindex',
+						'value'   => '1',
+						'compare' => '!=',
+					),
+				);
 			}
 
 			$query = new WP_Query(
@@ -194,19 +218,7 @@ class SSO_Sitemap {
 							'key'     => '_sso_sitemap_exclude',
 							'compare' => 'NOT EXISTS',
 						),
-						// Exclude posts marked noindex (either key absent or value is not '1').
-						array(
-							'relation' => 'OR',
-							array(
-								'key'     => '_sso_noindex',
-								'compare' => 'NOT EXISTS',
-							),
-							array(
-								'key'     => '_sso_noindex',
-								'value'   => '1',
-								'compare' => '!=',
-							),
-						),
+						$noindex_meta_query,
 					),
 				)
 			);
