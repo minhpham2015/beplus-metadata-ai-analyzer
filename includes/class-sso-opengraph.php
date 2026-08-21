@@ -126,7 +126,7 @@ class SSO_OpenGraph {
 			}
 
 			$url      = get_permalink( $post_id );
-			$type     = ( 'post' === $post_type || 'page' === $post_type ) ? ( 'page' === $post_type ? 'website' : 'article' ) : 'article';
+			$type     = ( 'page' === $post_type ) ? 'website' : 'article';
 			$image    = $this->get_image_url( $post_id );
 			$date_pub = get_the_date( 'c', $post_id );
 			$date_mod = get_the_modified_date( 'c', $post_id );
