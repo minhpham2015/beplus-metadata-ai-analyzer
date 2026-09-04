@@ -649,6 +649,7 @@ class SSO_Settings {
 				<th scope="row"><?php esc_html_e( 'XML Sitemap', 'beplus-metadata-ai-analyzer' ); ?></th>
 				<td>
 					<label>
+						<input type="hidden" name="sso_settings[sitemap][enabled]" value="0" />
 						<input type="checkbox" name="sso_settings[sitemap][enabled]" value="1" <?php checked( ! empty( $sitemap['enabled'] ) ); ?> />
 						<?php esc_html_e( 'Enable XML sitemap', 'beplus-metadata-ai-analyzer' ); ?>
 					</label>
@@ -701,6 +702,7 @@ class SSO_Settings {
 				<th scope="row"><?php esc_html_e( 'Enable llms.txt', 'beplus-metadata-ai-analyzer' ); ?></th>
 				<td>
 					<label>
+						<input type="hidden" name="sso_settings[advanced][llms_txt_enabled]" value="0" />
 						<input type="checkbox" name="sso_settings[advanced][llms_txt_enabled]" value="1" <?php checked( ! empty( $advanced['llms_txt_enabled'] ) ); ?> />
 						<?php esc_html_e( 'Serve llms.txt at your domain root', 'beplus-metadata-ai-analyzer' ); ?>
 					</label>

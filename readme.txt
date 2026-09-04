@@ -3,7 +3,7 @@ Contributors: bearsthemes, minhphamit
 Tags: seo, xml sitemap, open graph, schema, structured data
 Requires at least: 5.0
 Tested up to: 7.0
-Stable tag: 1.0.1
+Stable tag: 1.0.2
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -31,8 +31,8 @@ bloat:
   understand your site structure and content.
 * **Focus Keyword Analysis** – instant, client-side scoring of your focus
   keyword against the title, description, slug, headings and content.
-* **Breadcrumbs** – a `bpmaa_breadcrumbs()` template tag and a
-  `[bpmaa_breadcrumb]` shortcode, with full sub-category, CPT archive and child
+* **Breadcrumbs** – a `sso_breadcrumbs()` template tag and a
+  `[sso_breadcrumb]` shortcode, with full sub-category, CPT archive and child
   page hierarchy support. BreadcrumbList JSON-LD is output automatically.
 * **Canonical URLs** – automatic canonical tags with a per-post manual
   override for duplicate content.
@@ -96,6 +96,20 @@ This plugin is developed and maintained by BePlus, a WordPress and Shopify devel
 
 == Changelog ==
 
+= 1.0.2 =
+* Fix: `robots.txt` now correctly points to the plugin's own `/sitemap.xml`
+  instead of WordPress core's default `/wp-sitemap.xml`, so search engines
+  discover the sitemap that actually respects this plugin's noindex/exclude
+  settings.
+* Fix: the "Enable XML sitemap" and "Enable llms.txt" checkboxes in Settings
+  can now actually be turned off. Because each of those settings tabs
+  contained only a single checkbox, unchecking it and saving submitted no
+  data for that tab at all (standard HTML checkbox behavior), so the plugin
+  silently kept the previous "enabled" value — the toggle looked stuck on.
+* Fix: readme documentation corrected — the breadcrumb template tag and
+  shortcode are `sso_breadcrumbs()` / `[sso_breadcrumb]` (not the old
+  `bpmaa_*` names left over from an earlier plugin rename).
+
 = 1.0.1 =
 * Fix: "Noindex" archive checkboxes (tag/author/date) in Settings → General now
   persist correctly when unchecked, instead of silently reverting to noindex.
@@ -111,6 +125,11 @@ This plugin is developed and maintained by BePlus, a WordPress and Shopify devel
 * Initial release.
 
 == Upgrade Notice ==
+
+= 1.0.2 =
+Fixes robots.txt pointing to the wrong sitemap, the Sitemap/llms.txt enable
+toggles not saving when turned off, and corrects the breadcrumb
+function/shortcode names in the docs. Recommended update.
 
 = 1.0.1 =
 Fixes noindex settings persistence, sitemap/robots consistency, paginated
