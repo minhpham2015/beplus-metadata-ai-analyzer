@@ -101,6 +101,11 @@ This plugin is developed and maintained by BePlus, a WordPress and Shopify devel
   instead of WordPress core's default `/wp-sitemap.xml`, so search engines
   discover the sitemap that actually respects this plugin's noindex/exclude
   settings.
+* Fix: the "Enable XML sitemap" and "Enable llms.txt" checkboxes in Settings
+  can now actually be turned off. Because each of those settings tabs
+  contained only a single checkbox, unchecking it and saving submitted no
+  data for that tab at all (standard HTML checkbox behavior), so the plugin
+  silently kept the previous "enabled" value — the toggle looked stuck on.
 * Fix: readme documentation corrected — the breadcrumb template tag and
   shortcode are `sso_breadcrumbs()` / `[sso_breadcrumb]` (not the old
   `bpmaa_*` names left over from an earlier plugin rename).
@@ -122,7 +127,8 @@ This plugin is developed and maintained by BePlus, a WordPress and Shopify devel
 == Upgrade Notice ==
 
 = 1.0.2 =
-Fixes robots.txt pointing to the wrong sitemap and corrects the breadcrumb
+Fixes robots.txt pointing to the wrong sitemap, the Sitemap/llms.txt enable
+toggles not saving when turned off, and corrects the breadcrumb
 function/shortcode names in the docs. Recommended update.
 
 = 1.0.1 =
