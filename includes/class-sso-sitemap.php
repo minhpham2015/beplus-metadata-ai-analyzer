@@ -66,6 +66,30 @@ class SSO_Sitemap {
 
 		// Invalidate cache when plugin settings change.
 		add_action( 'updated_option', array( $this, 'on_option_updated' ), 10, 1 );
+
+		// Point robots.txt at our sitemap instead of WordPress core's wp-sitemap.xml.
+		add_filter( 'robots_txt', array( $this, 'filter_robots_txt' ), 10, 1 );
+	}
+
+	/**
+	 * Replace (or append) the Sitemap: line in robots.txt so it points at
+	 * our /sitemap.xml instead of WordPress core's default wp-sitemap.xml.
+	 *
+	 * @param string $output Existing robots.txt content.
+	 * @return string
+	 */
+	public function filter_robots_txt( $output ) {
+		if ( ! (bool) SSO_Settings::get( 'sitemap', 'enabled', 1 ) ) {
+			return $output;
+		}
+
+		$our_sitemap = home_url( '/sitemap.xml' );
+
+		// Strip any existing "Sitemap:" line(s) — including WP core's wp-sitemap.xml — to avoid duplicates/mismatches.
+		$output = preg_replace( '/^Sitemap:.*$/mi', '', $output );
+		$output = trim( $output );
+
+		return $output . "\n\nSitemap: " . esc_url_raw( $our_sitemap ) . "\n";
 	}
 
 	/**
