@@ -203,7 +203,7 @@ class SSO_Settings {
 	 * @param string $hook Current admin page hook.
 	 */
 	public function enqueue_assets( $hook ) {
-		if ( 'settings_page_sso-settings' !== $hook ) {
+		if ( 'toplevel_page_sso-settings' !== $hook ) {
 			return;
 		}
 
