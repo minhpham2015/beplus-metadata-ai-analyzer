@@ -113,7 +113,7 @@ final class SSO_Plugin {
 		add_action(
 			'wp_head',
 			function () {
-				echo "\n<!-- Beplus Metadata AI Analyzer v" . esc_html( SSO_VERSION ) . " - https://beplus.vn -->\n";
+				echo "\n<!-- Beplus Metadata AI Analyzer v" . esc_html( SSO_VERSION ) . " - https://beplusthemes.com -->\n";
 			},
 			0
 		);
