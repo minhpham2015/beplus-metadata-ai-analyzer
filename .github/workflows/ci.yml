@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  php-syntax:
+    name: PHP Syntax Check (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.4', '8.0', '8.1', '8.2', '8.3']
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP ${{ matrix.php }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+
+      - name: Lint all PHP files
+        run: |
+          find . -name "*.php" -not -path "./vendor/*" -not -path "./node_modules/*" \
+            -print0 | xargs -0 -n1 php -l
+
+  phpcs:
+    name: WordPress Coding Standards
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          coverage: none
+          tools: composer
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache
+          key: composer-${{ hashFiles('composer.json') }}
+
+      - name: Install dependencies
+        run: composer install --no-progress --prefer-dist
+
+      - name: Run PHPCS
+        run: composer run lint
+
+  plugin-check:
+    name: Version Consistency Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify readme.txt Stable tag matches plugin header Version
+        run: |
+          README_VER=$(grep -m1 -oP '(?<=Stable tag: )\S+' readme.txt)
+          HEADER_VER=$(grep -m1 -oP '(?<=Version:\s{0,20})\S+' beplus-metadata-ai-analyzer.php)
+          echo "readme.txt Stable tag: $README_VER"
+          echo "Plugin header Version: $HEADER_VER"
+          if [ "$README_VER" != "$HEADER_VER" ]; then
+            echo "::error::Version mismatch — readme.txt says $README_VER, plugin header says $HEADER_VER"
+            exit 1
+          fi
