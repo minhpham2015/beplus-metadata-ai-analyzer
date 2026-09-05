@@ -97,6 +97,14 @@ Never hand-edit the SVN copy — always regenerate it from a fresh `git clone`
 of `main` so SVN can never drift from what's actually in the reviewed
 GitHub history.
 
+**Dev-only files never ship to WordPress.org:** `.github/`, `CLAUDE.md`,
+`CHANGELOG.md`, `docs/`, `composer.json`/`composer.lock`, `phpcs.xml.dist`,
+`.gitignore` are repo infrastructure only. The `rsync` command in
+`docs/RELEASE.md` explicitly excludes all of them — if you add a new
+dev-only file/folder at the repo root, add it to that exclude list too, or
+it will accidentally get published to every WordPress site running this
+plugin.
+
 ## Things NOT to do
 
 - Don't add a database table or custom `$wpdb->query()` — this plugin
