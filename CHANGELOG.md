@@ -4,6 +4,34 @@ All notable changes to this project are documented here (dev-facing —
 see `readme.txt` for the user-facing WordPress.org changelog).
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.0.3] - 2026-09-05
+
+### Added
+- **Paginated sitemap index for large sites.** `SSO_Sitemap::get_sitemap_xml()`
+  now takes a `$page` argument. At or below `MAX_URLS_PER_PAGE` (2000) the root
+  `/sitemap.xml` stays a single `<urlset>` (fully back-compatible — small sites
+  are byte-for-byte unchanged). Above 2000 total URLs, `/sitemap.xml` returns a
+  `<sitemapindex>` linking `/sitemap-1.xml` … `/sitemap-N.xml`, each a 2000-URL
+  `<urlset>` chunk. New rewrite rule `^sitemap-([0-9]+)\.xml$` +
+  `sso_sitemap_page` query var; out-of-range chunk requests return 404.
+  Motivation: `posts_per_page => -1` gathered every URL into one in-memory
+  document, which risks memory/timeout on sites with tens of thousands of
+  posts. The gather now runs once per cache window (shared `URLS_CACHE_KEY`
+  transient) and is sliced per chunk.
+- Split XML building into `build_urlset_xml()` / `build_index_xml()` helpers;
+  added `get_cached_urls()` (shared URL-list cache) and `MAX_CACHED_PAGES`
+  (bounds the invalidation loop in `clear_sitemap_cache()`, which now clears
+  the index, every chunk, and the URL-list transient).
+- One-time `flush_rewrite_rules()` on the version-bump path in
+  `beplus-metadata-ai-analyzer.php` so in-place upgrades (not just
+  deactivate/reactivate) register the new `/sitemap-N.xml` rule.
+
+### Changed
+- `Tested up to: 7.1` — verified on a live WP 7.1 / PHP 8.3 Docker site:
+  sitemap (single + index + chunks + 404), cache invalidation on post
+  delete, meta tags, Open Graph, and JSON-LD schema all render correctly with
+  no PHP Fatal/Warning/Notice.
+
 ## [1.0.2] - 2026-09-04
 
 ### Fixed
