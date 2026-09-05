@@ -22,8 +22,13 @@ and Schema.org JSON-LD — published on WordPress.org as
   Schema tabs), save handler with nonce + capability checks.
 - `includes/class-sso-sitemap.php` — virtual `/sitemap.xml` (rewrite rule,
   never a real file), 12h transient cache, invalidated on save/delete post
-  or settings change. Also owns the `robots_txt` filter that must always
-  point at OUR sitemap, not WordPress core's `/wp-sitemap.xml`.
+  or settings change. Above `MAX_URLS_PER_PAGE` (2000) URLs it auto-switches
+  to a `<sitemapindex>` linking `/sitemap-N.xml` chunks (added 1.0.3); the
+  shared URL list is cached once (`URLS_CACHE_KEY`) and sliced per chunk. Any
+  new rewrite rule added here needs a one-time `flush_rewrite_rules()` on the
+  version-bump path in the main plugin file, or in-place upgrades 404. Also
+  owns the `robots_txt` filter that must always point at OUR sitemap, not
+  WordPress core's `/wp-sitemap.xml`.
 - `includes/class-sso-schema.php` — JSON-LD builders (Article, Product,
   FAQPage, HowTo, Event, Recipe, JobPosting, Course, Review, LocalBusiness,
   BreadcrumbList, site-wide Organization/WebSite graph).

@@ -28,9 +28,37 @@ class SSO_Sitemap {
 	const QUERY_VAR = 'sso_sitemap';
 
 	/**
+	 * Query var holding the sub-sitemap page number (0 = index / single sitemap).
+	 */
+	const PAGE_QUERY_VAR = 'sso_sitemap_page';
+
+	/**
+	 * Maximum URLs per sitemap file. Above this total, /sitemap.xml becomes a
+	 * sitemap index pointing at /sitemap-1.xml, /sitemap-2.xml, … chunks.
+	 * 2000 mirrors WordPress core's per-sitemap default and keeps each file
+	 * small enough to build in memory without strain.
+	 */
+	const MAX_URLS_PER_PAGE = 2000;
+
+	/**
+	 * Upper bound of chunk transients cleared on cache invalidation. At
+	 * MAX_URLS_PER_PAGE=2000 this covers up to 1,000,000 URLs — far beyond any
+	 * realistic WordPress site, while keeping clear_sitemap_cache() a cheap,
+	 * bounded loop.
+	 */
+	const MAX_CACHED_PAGES = 500;
+
+	/**
 	 * Transient key for the cached sitemap XML (12-hour TTL).
 	 */
 	const CACHE_KEY = 'sso_sitemap_xml';
+
+	/**
+	 * Transient key for the cached full URL list (12-hour TTL). Shared by the
+	 * index and every chunk so the (potentially expensive) URL gather runs
+	 * once per cache window rather than once per requested sub-sitemap.
+	 */
+	const URLS_CACHE_KEY = 'sso_sitemap_urls';
 
 	/**
 	 * Transient key used to rate-limit Google pings (5-minute cooldown).
@@ -93,20 +121,26 @@ class SSO_Sitemap {
 	}
 
 	/**
-	 * Register the /sitemap.xml virtual rewrite rule.
+	 * Register the /sitemap.xml + /sitemap-N.xml virtual rewrite rules.
 	 */
 	public function add_rewrite_rules() {
 		add_rewrite_rule( '^sitemap\.xml$', 'index.php?' . self::QUERY_VAR . '=1', 'top' );
+		add_rewrite_rule(
+			'^sitemap-([0-9]+)\.xml$',
+			'index.php?' . self::QUERY_VAR . '=1&' . self::PAGE_QUERY_VAR . '=$matches[1]',
+			'top'
+		);
 	}
 
 	/**
-	 * Whitelist our query var.
+	 * Whitelist our query vars.
 	 *
 	 * @param string[] $vars Public query vars.
 	 * @return string[]
 	 */
 	public function add_query_var( $vars ) {
 		$vars[] = self::QUERY_VAR;
+		$vars[] = self::PAGE_QUERY_VAR;
 		return $vars;
 	}
 
@@ -124,49 +158,159 @@ class SSO_Sitemap {
 			return;
 		}
 
+		$page = (int) get_query_var( self::PAGE_QUERY_VAR );
+
+		$xml = $this->get_sitemap_xml( $page );
+
+		// A request for /sitemap-N.xml with an out-of-range N (no URLs) is a 404.
+		if ( '' === $xml ) {
+			status_header( 404 );
+			nocache_headers();
+			return;
+		}
+
 		header( 'Content-Type: application/xml; charset=UTF-8' );
-		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- XML is pre-built with esc_url/esc_html applied per field in get_sitemap_xml().
-		echo $this->get_sitemap_xml();
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- XML is pre-built with esc_url/esc_html applied per field.
+		echo $xml;
 		exit;
 	}
 
 	/**
-	 * Return the sitemap XML string, serving from a 12-hour transient cache when available.
+	 * Return the sitemap XML for the requested page, serving from a 12-hour
+	 * transient cache when available.
 	 *
-	 * Cache is invalidated on every post save/delete and whenever the plugin settings change.
+	 * - $page === 0: if the total URL count is within one page, returns a
+	 *   normal <urlset>. If it exceeds MAX_URLS_PER_PAGE, returns a
+	 *   <sitemapindex> pointing at /sitemap-1.xml … /sitemap-N.xml instead.
+	 * - $page >= 1: returns the <urlset> for that chunk, or '' if out of range.
 	 *
-	 * @return string Full <?xml …> sitemap string.
+	 * Cache is invalidated on every post save/delete and whenever the plugin
+	 * settings change.
+	 *
+	 * @param int $page Sub-sitemap page number (0 = index or single sitemap).
+	 * @return string Full <?xml …> sitemap string, or '' for an out-of-range page.
 	 */
-	public function get_sitemap_xml() {
-		$cached = get_transient( self::CACHE_KEY );
+	public function get_sitemap_xml( $page = 0 ) {
+		$page      = max( 0, (int) $page );
+		$cache_key = self::CACHE_KEY . '_' . $page;
+
+		$cached = get_transient( $cache_key );
 		if ( false !== $cached ) {
 			return $cached;
 		}
 
-		$xml  = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
-		$xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
+		$urls  = $this->get_cached_urls();
+		$total = count( $urls );
 
-		foreach ( $this->get_urls() as $item ) {
-			$xml .= "\t<url>\n";
-			$xml .= "\t\t<loc>" . esc_url( $item['loc'] ) . "</loc>\n";
-			if ( ! empty( $item['lastmod'] ) ) {
-				$xml .= "\t\t<lastmod>" . esc_html( $item['lastmod'] ) . "</lastmod>\n";
-			}
-			$xml .= "\t</url>\n";
+		// Root request on a large site → emit a sitemap index.
+		if ( 0 === $page && $total > self::MAX_URLS_PER_PAGE ) {
+			$xml = $this->build_index_xml( $total );
+			set_transient( $cache_key, $xml, 12 * HOUR_IN_SECONDS );
+			return $xml;
 		}
 
-		$xml .= '</urlset>';
+		// Root request on a small site → single urlset over all URLs (back-compat).
+		if ( 0 === $page ) {
+			$slice = $urls;
+		} else {
+			// Chunk request → the Nth slice; empty slice means out-of-range (404).
+			$offset = ( $page - 1 ) * self::MAX_URLS_PER_PAGE;
+			if ( $offset >= $total ) {
+				return '';
+			}
+			$slice = array_slice( $urls, $offset, self::MAX_URLS_PER_PAGE );
+		}
 
-		set_transient( self::CACHE_KEY, $xml, 12 * HOUR_IN_SECONDS );
+		$xml = $this->build_urlset_xml( $slice );
+		set_transient( $cache_key, $xml, 12 * HOUR_IN_SECONDS );
 
 		return $xml;
 	}
 
 	/**
-	 * Delete the cached sitemap XML so it is regenerated on the next request.
+	 * Build a <urlset> document from a list of URL items.
+	 *
+	 * @param array[] $items List of ['loc' => string, 'lastmod' => string].
+	 * @return string
+	 */
+	private function build_urlset_xml( $items ) {
+		$xml  = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+		$xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
+
+		foreach ( $items as $item ) {
+			$xml .= "	<url>\n";
+			$xml .= "		<loc>" . esc_url( $item['loc'] ) . "</loc>\n";
+			if ( ! empty( $item['lastmod'] ) ) {
+				$xml .= "		<lastmod>" . esc_html( $item['lastmod'] ) . "</lastmod>\n";
+			}
+			$xml .= "	</url>\n";
+		}
+
+		$xml .= '</urlset>';
+
+		return $xml;
+	}
+
+	/**
+	 * Build a <sitemapindex> document listing one child sitemap per chunk.
+	 *
+	 * @param int $total Total number of URLs across all chunks.
+	 * @return string
+	 */
+	private function build_index_xml( $total ) {
+		$pages = (int) ceil( $total / self::MAX_URLS_PER_PAGE );
+		$now   = gmdate( 'c' );
+
+		$xml  = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+		$xml .= '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
+
+		for ( $i = 1; $i <= $pages; $i++ ) {
+			$xml .= "	<sitemap>\n";
+			$xml .= "		<loc>" . esc_url( home_url( '/sitemap-' . $i . '.xml' ) ) . "</loc>\n";
+			$xml .= "		<lastmod>" . esc_html( $now ) . "</lastmod>\n";
+			$xml .= "	</sitemap>\n";
+		}
+
+		$xml .= '</sitemapindex>';
+
+		return $xml;
+	}
+
+	/**
+	 * Return the full URL list, cached in a 12-hour transient shared by the
+	 * index and every chunk so the gather runs once per cache window.
+	 *
+	 * @return array[]
+	 */
+	private function get_cached_urls() {
+		$cached = get_transient( self::URLS_CACHE_KEY );
+		if ( false !== $cached && is_array( $cached ) ) {
+			return $cached;
+		}
+
+		$urls = $this->get_urls();
+		set_transient( self::URLS_CACHE_KEY, $urls, 12 * HOUR_IN_SECONDS );
+
+		return $urls;
+	}
+
+	/**
+	 * Delete all cached sitemap XML (index, every chunk, and the shared URL
+	 * list) so everything is regenerated on the next request.
+	 *
+	 * Chunk transients are keyed by page number; we delete page 0 (index /
+	 * single sitemap) plus every chunk up to the current URL count, and clear
+	 * a generous fixed range as a safety net in case the count shrank.
 	 */
 	public function clear_sitemap_cache() {
-		delete_transient( self::CACHE_KEY );
+		delete_transient( self::URLS_CACHE_KEY );
+		delete_transient( self::CACHE_KEY . '_0' );
+
+		// Clear per-chunk caches. Range is bounded and cheap; covers shrinking
+		// URL counts (e.g. bulk-deleting posts) without leaving stale chunks.
+		for ( $i = 1; $i <= self::MAX_CACHED_PAGES; $i++ ) {
+			delete_transient( self::CACHE_KEY . '_' . $i );
+		}
 	}
 
 	/**

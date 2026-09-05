@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Beplus Metadata AI Analyzer
  * Description:       Complete SEO toolkit for WordPress: meta tags, XML sitemap, Open Graph & Twitter Cards, focus keyword analysis, breadcrumbs, canonical URLs, robots control, and Schema.org structured data (JSON-LD).
- * Version:           1.0.2
+ * Version:           1.0.3
  * Author:      			Minh BePlus
  * Author URI:  			https://beplusthemes.com/
  * License:           GPL-2.0-or-later
@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants.
-define( 'SSO_VERSION', '1.0.2' );
+define( 'SSO_VERSION', '1.0.3' );
 define( 'SSO_PLUGIN_FILE', __FILE__ );
 define( 'SSO_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'SSO_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -171,7 +171,20 @@ add_action(
 	function () {
 		$stored = get_option( 'sso_version', '0' );
 		if ( version_compare( $stored, SSO_VERSION, '<' ) ) {
-			// Placeholder for future upgrade routines.
+			// 1.0.3 introduced the /sitemap-N.xml sub-sitemap rewrite rule.
+			// Sites upgrading in place (not deactivate/reactivate) won't have
+			// it registered until rewrite rules are flushed, so flush once on
+			// the version bump. Rules are registered on 'init' (priority
+			// default) before this runs on a normal request cycle; deferring
+			// the flush to 'init' priority 20 guarantees they exist first.
+			add_action(
+				'init',
+				function () {
+					SSO_Sitemap::instance()->add_rewrite_rules();
+					flush_rewrite_rules();
+				},
+				20
+			);
 			update_option( 'sso_version', SSO_VERSION );
 		}
 	}

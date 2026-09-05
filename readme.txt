@@ -2,8 +2,8 @@
 Contributors: bearsthemes, minhphamit
 Tags: seo, xml sitemap, open graph, schema, structured data
 Requires at least: 5.0
-Tested up to: 7.0
-Stable tag: 1.0.2
+Tested up to: 7.1
+Stable tag: 1.0.3
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -96,6 +96,16 @@ This plugin is developed and maintained by BePlus, a WordPress and Shopify devel
 
 == Changelog ==
 
+= 1.0.3 =
+* New: the XML sitemap now automatically becomes a paginated sitemap index
+  on large sites. Up to 2,000 URLs it stays a single `/sitemap.xml` (no
+  change for most sites); above that, `/sitemap.xml` turns into a
+  `<sitemapindex>` pointing at `/sitemap-1.xml`, `/sitemap-2.xml`, … each
+  holding 2,000 URLs. This avoids building one huge sitemap in memory (which
+  could time out or exceed limits on sites with tens of thousands of posts)
+  and matches how WordPress core paginates its own sitemaps.
+* Compatibility: tested up to WordPress 7.1.
+
 = 1.0.2 =
 * Fix: `robots.txt` now correctly points to the plugin's own `/sitemap.xml`
   instead of WordPress core's default `/wp-sitemap.xml`, so search engines
@@ -125,6 +135,10 @@ This plugin is developed and maintained by BePlus, a WordPress and Shopify devel
 * Initial release.
 
 == Upgrade Notice ==
+
+= 1.0.3 =
+Large sites now get a paginated sitemap index (/sitemap-N.xml) automatically;
+tested up to WordPress 7.1. No change for sites under 2,000 URLs.
 
 = 1.0.2 =
 Fixes robots.txt pointing to the wrong sitemap, the Sitemap/llms.txt enable
