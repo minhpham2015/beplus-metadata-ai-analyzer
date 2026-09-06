@@ -3,8 +3,8 @@ Contributors: bearsthemes, minhphamit
 Tags: seo, xml sitemap, open graph, schema, structured data
 Requires at least: 5.0
 Tested up to: 7.1
-Stable tag: 1.0.3
-Requires PHP: 7.4
+Stable tag: 1.0.4
+Requires PHP: 8.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -96,6 +96,16 @@ This plugin is developed and maintained by BePlus, a WordPress and Shopify devel
 
 == Changelog ==
 
+= 1.0.4 =
+* New: sitemap entries now include a `<priority>` value (1.0 for the front
+  page/static pages, 0.7 for posts, 0.5 for taxonomy term archives) —
+  standard practice among SEO plugins.
+* New: `/sitemap.xml` and every `/sitemap-N.xml` now link an XSL stylesheet
+  so opening the link directly in a browser shows a readable HTML table
+  instead of raw XML — purely cosmetic, search engines are unaffected.
+* Maintenance: `Requires PHP` raised to 8.1 (7.4 reached end-of-life in
+  November 2022 and no longer receives security patches).
+
 = 1.0.3 =
 * New: the XML sitemap now automatically becomes a paginated sitemap index
   on large sites. Up to 2,000 URLs it stays a single `/sitemap.xml` (no
@@ -135,6 +145,10 @@ This plugin is developed and maintained by BePlus, a WordPress and Shopify devel
 * Initial release.
 
 == Upgrade Notice ==
+
+= 1.0.4 =
+Sitemap URLs now include priority values and a readable HTML view when
+opened directly. Requires PHP 8.1+ (was 7.4, now end-of-life).
 
 = 1.0.3 =
 Large sites now get a paginated sitemap index (/sitemap-N.xml) automatically;

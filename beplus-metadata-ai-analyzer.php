@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Beplus Metadata AI Analyzer
  * Description:       Complete SEO toolkit for WordPress: meta tags, XML sitemap, Open Graph & Twitter Cards, focus keyword analysis, breadcrumbs, canonical URLs, robots control, and Schema.org structured data (JSON-LD).
- * Version:           1.0.3
+ * Version:           1.0.4
  * Author:      			Minh BePlus
  * Author URI:  			https://beplusthemes.com/
  * License:           GPL-2.0-or-later
@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants.
-define( 'SSO_VERSION', '1.0.3' );
+define( 'SSO_VERSION', '1.0.4' );
 define( 'SSO_PLUGIN_FILE', __FILE__ );
 define( 'SSO_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'SSO_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
