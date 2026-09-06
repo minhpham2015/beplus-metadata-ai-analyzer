@@ -4,6 +4,40 @@ All notable changes to this project are documented here (dev-facing —
 see `readme.txt` for the user-facing WordPress.org changelog).
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.0.4] - 2026-09-06
+
+### Added
+- **Sitemap `<priority>` values.** `get_urls()` now tags every URL with a
+  `priority` field via new `calc_priority()`: 1.0 for the front page and
+  `page` post type, 0.7 for everything else (posts/CPTs), 0.5 for taxonomy
+  term archives. Filterable per-URL via `sso_sitemap_url_priority`. Purely
+  conventional (Google publicly ignores `<priority>` since ~2020) but
+  standard practice among SEO plugins and still read by some non-Google
+  tools/crawlers.
+- **`/sitemap.xsl` readable stylesheet.** New virtual endpoint (rewrite rule
+  + `XSL_QUERY_VAR`, never a real file — same pattern as the sitemap itself)
+  serving a static XSLT document. Every `<?xml version...?>` sitemap output
+  now includes a `<?xml-stylesheet type="text/xsl" href=".../sitemap.xsl"?>`
+  processing instruction, so a human opening `/sitemap.xml` in a browser
+  sees a styled HTML table (URL/lastmod/priority, or the sitemap index list)
+  instead of raw XML. Purely cosmetic — search engines ignore the PI and
+  parse the underlying `<urlset>`/`<sitemapindex>` exactly as before, and no
+  build step / real file changed.
+
+### Changed
+- `Requires PHP` raised 7.4 → 8.1. 7.4 reached end-of-life 2022-11-28 (no
+  security patches for ~4 years); CI matrix now tests 8.1/8.2/8.3 only.
+  `phpcs.xml.dist` `testVersion` updated to match.
+- Fixed a CI bug (not a plugin bug): the "Version Consistency Check" job's
+  `grep -oP '(?<=Version:\s{0,20})\S+'` used a variable-length lookbehind,
+  which GNU grep 3.11 (current Ubuntu Actions runner) rejects outright
+  ("lookbehind assertion is not fixed length"), failing the job on every run
+  regardless of whether versions actually matched. Replaced with the
+  fixed-width `Version:\s*\K\S+` (`\K` resets the match start instead of
+  requiring a lookbehind). Verified both readme.txt/plugin-header versions
+  were already in sync before this fix — this was a CI false-negative, not a
+  real version mismatch.
+
 ## [1.0.3] - 2026-09-05
 
 ### Added

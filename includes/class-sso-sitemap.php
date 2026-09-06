@@ -33,6 +33,12 @@ class SSO_Sitemap {
 	const PAGE_QUERY_VAR = 'sso_sitemap_page';
 
 	/**
+	 * Query var flag used to detect a request for the sitemap's XSL
+	 * stylesheet (the human-readable HTML view of the XML).
+	 */
+	const XSL_QUERY_VAR = 'sso_sitemap_xsl';
+
+	/**
 	 * Maximum URLs per sitemap file. Above this total, /sitemap.xml becomes a
 	 * sitemap index pointing at /sitemap-1.xml, /sitemap-2.xml, … chunks.
 	 * 2000 mirrors WordPress core's per-sitemap default and keeps each file
@@ -84,6 +90,7 @@ class SSO_Sitemap {
 		add_action( 'init', array( $this, 'add_rewrite_rules' ) );
 		add_filter( 'query_vars', array( $this, 'add_query_var' ) );
 		add_action( 'template_redirect', array( $this, 'maybe_render_sitemap' ) );
+		add_action( 'template_redirect', array( $this, 'maybe_render_stylesheet' ) );
 
 		// Invalidate cached sitemap whenever content changes.
 		add_action( 'save_post', array( $this, 'clear_sitemap_cache' ), 10 );
@@ -121,7 +128,8 @@ class SSO_Sitemap {
 	}
 
 	/**
-	 * Register the /sitemap.xml + /sitemap-N.xml virtual rewrite rules.
+	 * Register the /sitemap.xml + /sitemap-N.xml + /sitemap.xsl virtual
+	 * rewrite rules.
 	 */
 	public function add_rewrite_rules() {
 		add_rewrite_rule( '^sitemap\.xml$', 'index.php?' . self::QUERY_VAR . '=1', 'top' );
@@ -130,6 +138,7 @@ class SSO_Sitemap {
 			'index.php?' . self::QUERY_VAR . '=1&' . self::PAGE_QUERY_VAR . '=$matches[1]',
 			'top'
 		);
+		add_rewrite_rule( '^sitemap\.xsl$', 'index.php?' . self::XSL_QUERY_VAR . '=1', 'top' );
 	}
 
 	/**
@@ -141,7 +150,92 @@ class SSO_Sitemap {
 	public function add_query_var( $vars ) {
 		$vars[] = self::QUERY_VAR;
 		$vars[] = self::PAGE_QUERY_VAR;
+		$vars[] = self::XSL_QUERY_VAR;
 		return $vars;
+	}
+
+	/**
+	 * Output the /sitemap.xsl stylesheet referenced by every sitemap's
+	 * <?xml-stylesheet ?> PI, turning the raw XML into a readable HTML table
+	 * when opened directly in a browser. Never written to disk — generated
+	 * on request, same virtual-file pattern as the sitemap itself.
+	 */
+	public function maybe_render_stylesheet() {
+		if ( ! get_query_var( self::XSL_QUERY_VAR ) ) {
+			return;
+		}
+
+		header( 'Content-Type: application/xml; charset=UTF-8' );
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static XSLT markup with esc_html() applied to the only dynamic value (site name).
+		echo $this->get_stylesheet_xsl();
+		exit;
+	}
+
+	/**
+	 * Build the static XSLT document for /sitemap.xsl.
+	 *
+	 * @return string
+	 */
+	private function get_stylesheet_xsl() {
+		$site_name = esc_html( get_bloginfo( 'name' ) );
+
+		return <<<XSL
+<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:sitemap="http://www.sitemaps.org/schemas/sitemap/0.9">
+<xsl:output method="html" encoding="UTF-8" indent="yes"/>
+<xsl:template match="/">
+<html>
+<head>
+<title>{$site_name} — XML Sitemap</title>
+<meta charset="UTF-8"/>
+<style>
+body{font:14px/1.5 -apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#222;background:#f6f7f7;margin:0;padding:2em}
+h1{font-size:1.3em;margin:0 0 .3em}
+p.desc{color:#666;margin:0 0 1.5em}
+table{width:100%;border-collapse:collapse;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+th,td{padding:.6em 1em;text-align:left;border-bottom:1px solid #eee}
+th{background:#2271b1;color:#fff;font-weight:600}
+tr:hover td{background:#f0f6fc}
+a{color:#2271b1;text-decoration:none}
+a:hover{text-decoration:underline}
+.count{color:#666;font-size:.9em;margin-bottom:1em}
+</style>
+</head>
+<body>
+<h1>{$site_name} — XML Sitemap</h1>
+<p class="desc">This is an XML sitemap, generated for search engines. <a href="https://www.sitemaps.org/">Learn more about sitemaps.</a></p>
+<xsl:choose>
+<xsl:when test="sitemap:sitemapindex">
+<p class="count"><xsl:value-of select="count(sitemap:sitemapindex/sitemap:sitemap)"/> sitemaps</p>
+<table>
+<tr><th>Sitemap</th><th>Last Modified</th></tr>
+<xsl:for-each select="sitemap:sitemapindex/sitemap:sitemap">
+<tr>
+<td><a href="{sitemap:loc}"><xsl:value-of select="sitemap:loc"/></a></td>
+<td><xsl:value-of select="sitemap:lastmod"/></td>
+</tr>
+</xsl:for-each>
+</table>
+</xsl:when>
+<xsl:otherwise>
+<p class="count"><xsl:value-of select="count(sitemap:urlset/sitemap:url)"/> URLs</p>
+<table>
+<tr><th>URL</th><th>Last Modified</th><th>Priority</th></tr>
+<xsl:for-each select="sitemap:urlset/sitemap:url">
+<tr>
+<td><a href="{sitemap:loc}"><xsl:value-of select="sitemap:loc"/></a></td>
+<td><xsl:value-of select="sitemap:lastmod"/></td>
+<td><xsl:value-of select="sitemap:priority"/></td>
+</tr>
+</xsl:for-each>
+</table>
+</xsl:otherwise>
+</xsl:choose>
+</body>
+</html>
+</xsl:template>
+</xsl:stylesheet>
+XSL;
 	}
 
 	/**
@@ -230,11 +324,12 @@ class SSO_Sitemap {
 	/**
 	 * Build a <urlset> document from a list of URL items.
 	 *
-	 * @param array[] $items List of ['loc' => string, 'lastmod' => string].
+	 * @param array[] $items List of ['loc' => string, 'lastmod' => string, 'priority' => string].
 	 * @return string
 	 */
 	private function build_urlset_xml( $items ) {
 		$xml  = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+		$xml .= $this->stylesheet_pi();
 		$xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
 
 		foreach ( $items as $item ) {
@@ -242,6 +337,9 @@ class SSO_Sitemap {
 			$xml .= "		<loc>" . esc_url( $item['loc'] ) . "</loc>\n";
 			if ( ! empty( $item['lastmod'] ) ) {
 				$xml .= "		<lastmod>" . esc_html( $item['lastmod'] ) . "</lastmod>\n";
+			}
+			if ( ! empty( $item['priority'] ) ) {
+				$xml .= "		<priority>" . esc_html( $item['priority'] ) . "</priority>\n";
 			}
 			$xml .= "	</url>\n";
 		}
@@ -262,6 +360,7 @@ class SSO_Sitemap {
 		$now   = gmdate( 'c' );
 
 		$xml  = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+		$xml .= $this->stylesheet_pi();
 		$xml .= '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
 
 		for ( $i = 1; $i <= $pages; $i++ ) {
@@ -274,6 +373,21 @@ class SSO_Sitemap {
 		$xml .= '</sitemapindex>';
 
 		return $xml;
+	}
+
+	/**
+	 * Build the <?xml-stylesheet ?> processing instruction that makes
+	 * /sitemap.xml render as a readable HTML table instead of raw XML when a
+	 * human opens the link directly in a browser — every mainstream SEO
+	 * plugin (Yoast, RankMath) does this. Points at the virtual
+	 * /sitemap.xsl endpoint (never a real file on disk, same pattern as the
+	 * sitemap itself). Purely cosmetic: search engines ignore the PI and
+	 * parse the XML underneath exactly as before.
+	 *
+	 * @return string
+	 */
+	private function stylesheet_pi() {
+		return '<?xml-stylesheet type="text/xsl" href="' . esc_url( home_url( '/sitemap.xsl' ) ) . '"?>' . "\n";
 	}
 
 	/**
@@ -393,8 +507,9 @@ class SSO_Sitemap {
 
 			foreach ( $query->posts as $post_id ) {
 				$urls[] = array(
-					'loc'     => get_permalink( $post_id ),
-					'lastmod' => get_the_modified_date( 'c', $post_id ),
+					'loc'      => get_permalink( $post_id ),
+					'lastmod'  => get_the_modified_date( 'c', $post_id ),
+					'priority' => $this->calc_priority( $post_id, $post_type ),
 				);
 			}
 		}
@@ -416,13 +531,50 @@ class SSO_Sitemap {
 					continue;
 				}
 				$urls[] = array(
-					'loc'     => $link,
-					'lastmod' => '',
+					'loc'      => $link,
+					'lastmod'  => '',
+					'priority' => '0.5',
 				);
 			}
 		}
 
 		return apply_filters( 'sso_sitemap_urls', $urls );
+	}
+
+	/**
+	 * Assign a <priority> value (0.0–1.0) for one URL. This is a purely
+	 * conventional SEO signal — search engines (notably Google, since ~2020)
+	 * publicly ignore it, but it remains standard practice (every major SEO
+	 * plugin emits it) and some non-Google crawlers/tools still read it.
+	 * Deliberately simple and static, not user-configurable, to avoid adding
+	 * settings-UI surface for a value with no measurable ranking effect.
+	 *
+	 * - Front page / "page" post type: 1.0 (site root and static pages are
+	 *   typically the most important, low-churn URLs on a site).
+	 * - Everything else (posts, CPTs): 0.7.
+	 * Filterable via `sso_sitemap_url_priority` for sites that want different
+	 * weighting without patching the plugin.
+	 *
+	 * @param int    $post_id   Post ID.
+	 * @param string $post_type Post type of $post_id.
+	 * @return string Priority formatted to one decimal place, e.g. "1.0".
+	 */
+	private function calc_priority( $post_id, $post_type ) {
+		$priority = ( 'page' === $post_type || (int) get_option( 'page_on_front' ) === $post_id )
+			? 1.0
+			: 0.7;
+
+		/**
+		 * Filter the sitemap <priority> value for a single URL.
+		 *
+		 * @param float  $priority  Calculated priority (0.0–1.0).
+		 * @param int    $post_id   Post ID.
+		 * @param string $post_type Post type.
+		 */
+		$priority = (float) apply_filters( 'sso_sitemap_url_priority', $priority, $post_id, $post_type );
+		$priority = max( 0.0, min( 1.0, $priority ) );
+
+		return number_format( $priority, 1 );
 	}
 
 	/**
