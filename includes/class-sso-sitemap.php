@@ -334,12 +334,12 @@ XSL;
 
 		foreach ( $items as $item ) {
 			$xml .= "	<url>\n";
-			$xml .= "		<loc>" . esc_url( $item['loc'] ) . "</loc>\n";
+			$xml .= '		<loc>' . esc_url( $item['loc'] ) . "</loc>\n";
 			if ( ! empty( $item['lastmod'] ) ) {
-				$xml .= "		<lastmod>" . esc_html( $item['lastmod'] ) . "</lastmod>\n";
+				$xml .= '		<lastmod>' . esc_html( $item['lastmod'] ) . "</lastmod>\n";
 			}
 			if ( ! empty( $item['priority'] ) ) {
-				$xml .= "		<priority>" . esc_html( $item['priority'] ) . "</priority>\n";
+				$xml .= '		<priority>' . esc_html( $item['priority'] ) . "</priority>\n";
 			}
 			$xml .= "	</url>\n";
 		}
@@ -365,8 +365,8 @@ XSL;
 
 		for ( $i = 1; $i <= $pages; $i++ ) {
 			$xml .= "	<sitemap>\n";
-			$xml .= "		<loc>" . esc_url( home_url( '/sitemap-' . $i . '.xml' ) ) . "</loc>\n";
-			$xml .= "		<lastmod>" . esc_html( $now ) . "</lastmod>\n";
+			$xml .= '		<loc>' . esc_url( home_url( '/sitemap-' . $i . '.xml' ) ) . "</loc>\n";
+			$xml .= '		<lastmod>' . esc_html( $now ) . "</lastmod>\n";
 			$xml .= "	</sitemap>\n";
 		}
 
@@ -587,7 +587,7 @@ XSL;
 	 * @param WP_Post $post    Post object.
 	 * @param bool    $update  Whether this is an existing post being updated.
 	 */
-	public function ping_search_engines( $post_id, $post, $update ) {
+	public function ping_search_engines( $post_id, $post, $update ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- required by the save_post hook signature.
 		if ( wp_is_post_autosave( $post_id ) || wp_is_post_revision( $post_id ) ) {
 			return;
 		}

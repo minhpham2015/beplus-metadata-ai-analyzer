@@ -20,12 +20,12 @@ class SSO_Post_Columns {
 	 * Constructor — register all hooks.
 	 */
 	public function __construct() {
-		add_action( 'admin_init',    array( $this, 'register_hooks' ) );
-		add_action( 'save_post',     array( $this, 'recalculate_score' ), 20 );
+		add_action( 'admin_init', array( $this, 'register_hooks' ) );
+		add_action( 'save_post', array( $this, 'recalculate_score' ), 20 );
 		add_action( 'admin_bar_menu', array( $this, 'add_admin_bar_score' ), 999 );
-		add_action( 'admin_init',    array( $this, 'handle_recalc_request' ) );
-		add_action( 'wp_head',       array( $this, 'admin_bar_styles' ) );
-		add_action( 'admin_head',    array( $this, 'admin_bar_styles' ) );
+		add_action( 'admin_init', array( $this, 'handle_recalc_request' ) );
+		add_action( 'wp_head', array( $this, 'admin_bar_styles' ) );
+		add_action( 'admin_head', array( $this, 'admin_bar_styles' ) );
 	}
 
 	/**
@@ -34,12 +34,12 @@ class SSO_Post_Columns {
 	 */
 	public function register_hooks() {
 		foreach ( get_post_types( array( 'public' => true ), 'names' ) as $post_type ) {
-			add_filter( "manage_{$post_type}_posts_columns",        array( $this, 'add_seo_column' ) );
-			add_action( "manage_{$post_type}_posts_custom_column",  array( $this, 'render_seo_column' ), 10, 2 );
+			add_filter( "manage_{$post_type}_posts_columns", array( $this, 'add_seo_column' ) );
+			add_action( "manage_{$post_type}_posts_custom_column", array( $this, 'render_seo_column' ), 10, 2 );
 			add_filter( "manage_edit-{$post_type}_sortable_columns", array( $this, 'sortable_seo_column' ) );
 		}
 		add_action( 'restrict_manage_posts', array( $this, 'filter_dropdown' ) );
-		add_action( 'pre_get_posts',         array( $this, 'handle_sort_and_filter' ) );
+		add_action( 'pre_get_posts', array( $this, 'handle_sort_and_filter' ) );
 	}
 
 	/**
@@ -164,7 +164,7 @@ class SSO_Post_Columns {
 			: '';
 
 		if ( $filter ) {
-			$meta_query = $query->get( 'meta_query' ) ?: array();
+			$meta_query = $query->get( 'meta_query' ) ? $query->get( 'meta_query' ) : array();
 
 			if ( 'good' === $filter ) {
 				$meta_query[] = array(
@@ -325,24 +325,24 @@ class SSO_Post_Columns {
 			if ( $screen && 'post' === $screen->base ) {
 				$post_id = get_the_ID();
 			}
-		} else {
+		} elseif ( is_singular() ) {
 			// Frontend single post/page.
-			if ( is_singular() ) {
-				$post_id = get_the_ID();
-			}
+			$post_id = get_the_ID();
 		}
 
 		// No singular post context: homepage, archives, admin dashboard, post list, etc.
 		// Show a standalone top-level "Beplus Smart SEO" node linking to plugin settings.
 		if ( ! $post_id ) {
 			if ( current_user_can( 'manage_options' ) ) {
-				$wp_admin_bar->add_node( array(
-					'id'    => 'sso-settings-bar',
-					'title' => '<span class="ab-icon dashicons dashicons-chart-area" style="font:400 20px/1 dashicons;margin-top:2px;"></span> ' .
-					           __( 'Beplus Smart SEO', 'beplus-metadata-ai-analyzer' ),
-					'href'  => esc_url( admin_url( 'admin.php?page=sso-settings' ) ),
-					'meta'  => array( 'title' => __( 'Beplus Smart SEO Settings', 'beplus-metadata-ai-analyzer' ) ),
-				) );
+				$wp_admin_bar->add_node(
+					array(
+						'id'    => 'sso-settings-bar',
+						'title' => '<span class="ab-icon dashicons dashicons-chart-area" style="font:400 20px/1 dashicons;margin-top:2px;"></span> ' .
+								__( 'Beplus Smart SEO', 'beplus-metadata-ai-analyzer' ),
+						'href'  => esc_url( admin_url( 'admin.php?page=sso-settings' ) ),
+						'meta'  => array( 'title' => __( 'Beplus Smart SEO Settings', 'beplus-metadata-ai-analyzer' ) ),
+					)
+				);
 			}
 			return;
 		}
@@ -364,27 +364,29 @@ class SSO_Post_Columns {
 		}
 
 		// Main node.
-		$wp_admin_bar->add_node( array(
-			'id'    => 'sso-seo-score',
-			'title' => sprintf(
-				'<span style="display:inline-flex;align-items:center;gap:6px;">
+		$wp_admin_bar->add_node(
+			array(
+				'id'    => 'sso-seo-score',
+				'title' => sprintf(
+					'<span style="display:inline-flex;align-items:center;gap:6px;">
 					<span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%%;background:%s;color:#fff;font-weight:700;font-size:11px;line-height:1;">%d</span>
 					<span style="color:#eee;font-size:12px;">SEO: <strong style="color:%s;">%s</strong></span>
 				</span>',
-				esc_attr( $color ),
-				$score,
-				esc_attr( $color ),
-				esc_html( $label )
-			),
-			'href'  => esc_url( admin_url( 'post.php?post=' . $post_id . '&action=edit#sso-meta-box' ) ),
-			'meta'  => array(
-				'title' => sprintf(
-					/* translators: %d: SEO score out of 100 */
-					__( 'SEO Score: %d/100', 'beplus-metadata-ai-analyzer' ),
-					$score
+					esc_attr( $color ),
+					$score,
+					esc_attr( $color ),
+					esc_html( $label )
 				),
-			),
-		) );
+				'href'  => esc_url( admin_url( 'post.php?post=' . $post_id . '&action=edit#sso-meta-box' ) ),
+				'meta'  => array(
+					'title' => sprintf(
+						/* translators: %d: SEO score out of 100 */
+						__( 'SEO Score: %d/100', 'beplus-metadata-ai-analyzer' ),
+						$score
+					),
+				),
+			)
+		);
 
 		// Sub-nodes: breakdown hints.
 		$meta_title = get_post_meta( $post_id, '_sso_meta_title', true );
@@ -392,51 +394,63 @@ class SSO_Post_Columns {
 		$focus_kw   = get_post_meta( $post_id, '_sso_focus_keyword', true );
 		$edit_link  = esc_url( admin_url( 'post.php?post=' . $post_id . '&action=edit#sso-meta-box' ) );
 
-		$wp_admin_bar->add_node( array(
-			'parent' => 'sso-seo-score',
-			'id'     => 'sso-score-title',
-			'title'  => $meta_title
-				? '&#x2705; ' . __( 'Meta Title set', 'beplus-metadata-ai-analyzer' )
-				: '&#x274C; ' . __( 'Meta Title missing', 'beplus-metadata-ai-analyzer' ),
-			'href'   => $edit_link,
-		) );
-		$wp_admin_bar->add_node( array(
-			'parent' => 'sso-seo-score',
-			'id'     => 'sso-score-desc',
-			'title'  => $meta_desc
-				? '&#x2705; ' . __( 'Meta Description set', 'beplus-metadata-ai-analyzer' )
-				: '&#x274C; ' . __( 'Meta Description missing', 'beplus-metadata-ai-analyzer' ),
-			'href'   => $edit_link,
-		) );
-		$wp_admin_bar->add_node( array(
-			'parent' => 'sso-seo-score',
-			'id'     => 'sso-score-kw',
-			'title'  => $focus_kw
-				? '&#x2705; ' . __( 'Focus Keyword set', 'beplus-metadata-ai-analyzer' )
-				: '&#x274C; ' . __( 'Focus Keyword missing', 'beplus-metadata-ai-analyzer' ),
-			'href'   => $edit_link,
-		) );
-		$wp_admin_bar->add_node( array(
-			'parent' => 'sso-seo-score',
-			'id'     => 'sso-score-recalc',
-			'title'  => '&#x21BB; ' . __( 'Recalculate Score', 'beplus-metadata-ai-analyzer' ),
-			'href'   => esc_url( add_query_arg(
-				array(
-					'sso_recalc' => $post_id,
-					'sso_nonce'  => wp_create_nonce( 'sso_recalc_' . $post_id ),
+		$wp_admin_bar->add_node(
+			array(
+				'parent' => 'sso-seo-score',
+				'id'     => 'sso-score-title',
+				'title'  => $meta_title
+					? '&#x2705; ' . __( 'Meta Title set', 'beplus-metadata-ai-analyzer' )
+					: '&#x274C; ' . __( 'Meta Title missing', 'beplus-metadata-ai-analyzer' ),
+				'href'   => $edit_link,
+			)
+		);
+		$wp_admin_bar->add_node(
+			array(
+				'parent' => 'sso-seo-score',
+				'id'     => 'sso-score-desc',
+				'title'  => $meta_desc
+					? '&#x2705; ' . __( 'Meta Description set', 'beplus-metadata-ai-analyzer' )
+					: '&#x274C; ' . __( 'Meta Description missing', 'beplus-metadata-ai-analyzer' ),
+				'href'   => $edit_link,
+			)
+		);
+		$wp_admin_bar->add_node(
+			array(
+				'parent' => 'sso-seo-score',
+				'id'     => 'sso-score-kw',
+				'title'  => $focus_kw
+					? '&#x2705; ' . __( 'Focus Keyword set', 'beplus-metadata-ai-analyzer' )
+					: '&#x274C; ' . __( 'Focus Keyword missing', 'beplus-metadata-ai-analyzer' ),
+				'href'   => $edit_link,
+			)
+		);
+		$wp_admin_bar->add_node(
+			array(
+				'parent' => 'sso-seo-score',
+				'id'     => 'sso-score-recalc',
+				'title'  => '&#x21BB; ' . __( 'Recalculate Score', 'beplus-metadata-ai-analyzer' ),
+				'href'   => esc_url(
+					add_query_arg(
+						array(
+							'sso_recalc' => $post_id,
+							'sso_nonce'  => wp_create_nonce( 'sso_recalc_' . $post_id ),
+						),
+						admin_url( 'post.php?post=' . $post_id . '&action=edit' )
+					)
 				),
-				admin_url( 'post.php?post=' . $post_id . '&action=edit' )
-			) ),
-		) );
+			)
+		);
 
 		// Sub-node: "⚙ SEO Settings" → post's own SEO meta box.
-		$wp_admin_bar->add_node( array(
-			'parent' => 'sso-seo-score',
-			'id'     => 'sso-settings-link',
-			'title'  => '&#9881; ' . __( 'SEO Settings', 'beplus-metadata-ai-analyzer' ),
-			'href'   => $edit_link,
-			'meta'   => array( 'title' => __( 'Edit SEO settings for this post', 'beplus-metadata-ai-analyzer' ) ),
-		) );
+		$wp_admin_bar->add_node(
+			array(
+				'parent' => 'sso-seo-score',
+				'id'     => 'sso-settings-link',
+				'title'  => '&#9881; ' . __( 'SEO Settings', 'beplus-metadata-ai-analyzer' ),
+				'href'   => $edit_link,
+				'meta'   => array( 'title' => __( 'Edit SEO settings for this post', 'beplus-metadata-ai-analyzer' ) ),
+			)
+		);
 	}
 
 	/**

@@ -3,8 +3,8 @@
  * Plugin Name:       Beplus Metadata AI Analyzer
  * Description:       Complete SEO toolkit for WordPress: meta tags, XML sitemap, Open Graph & Twitter Cards, focus keyword analysis, breadcrumbs, canonical URLs, robots control, and Schema.org structured data (JSON-LD).
  * Version:           1.0.4
- * Author:      			Minh BePlus
- * Author URI:  			https://beplusthemes.com/
+ * Author:                  Minh BePlus
+ * Author URI:              https://beplusthemes.com/
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       beplus-metadata-ai-analyzer
@@ -14,6 +14,8 @@
  *
  * @package Beplus_Metadata_AI_Analyzer
  */
+
+// phpcs:disable WordPress.Files.FileName.InvalidClassFileName, Universal.Files.SeparateFunctionsFromOO.Mixed -- this is the plugin bootstrap file (WordPress requires the main class file named after the plugin slug, not the class); it intentionally also hosts the small activation/deactivation/upgrade-hook functions rather than splitting them into a separate include for 3 one-off callbacks.
 
 // Prevent direct file access.
 if ( ! defined( 'ABSPATH' ) ) {

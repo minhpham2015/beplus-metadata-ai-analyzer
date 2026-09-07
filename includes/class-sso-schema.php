@@ -43,9 +43,11 @@ class SSO_Schema {
 		add_action( 'wp_head', array( $this, 'output_breadcrumb_schema' ), 21 );
 	}
 
-	/* ------------------------------------------------------------------ *
+	/*
+	------------------------------------------------------------------ *
 	 * Global schema: Organization/Person + WebSite (with SearchAction)
-	 * ------------------------------------------------------------------ */
+	 * ------------------------------------------------------------------
+	 */
 
 	/**
 	 * Build the Organization or Person schema node from Settings.
@@ -124,9 +126,11 @@ class SSO_Schema {
 		$this->print_ld_json( $data );
 	}
 
-	/* ------------------------------------------------------------------ *
+	/*
+	------------------------------------------------------------------ *
 	 * Per post type schema: Article / Product / FAQPage / LocalBusiness
-	 * ------------------------------------------------------------------ */
+	 * ------------------------------------------------------------------
+	 */
 
 	/**
 	 * Resolve the schema type to use for the current singular post, honoring
@@ -169,8 +173,8 @@ class SSO_Schema {
 			return;
 		}
 
-		$post_id     = get_queried_object_id();
-		$resolved    = $this->resolve_post_schema_type( $post_id );
+		$post_id  = get_queried_object_id();
+		$resolved = $this->resolve_post_schema_type( $post_id );
 
 		if ( ! $resolved['enabled'] || ! $resolved['type'] ) {
 			return;
@@ -403,9 +407,11 @@ class SSO_Schema {
 		return $data;
 	}
 
-	/* ------------------------------------------------------------------ *
+	/*
+	------------------------------------------------------------------ *
 	 * Additional per-post type schema builders
-	 * ------------------------------------------------------------------ */
+	 * ------------------------------------------------------------------
+	 */
 
 	/**
 	 * Build a BlogPosting schema node (more specific than Article, for blog posts).
@@ -600,10 +606,10 @@ class SSO_Schema {
 		}
 
 		$data = array(
-			'@type'           => 'Event',
-			'name'            => ! empty( $event['name'] ) ? sanitize_text_field( $event['name'] ) : get_the_title( $post_id ),
-			'url'             => get_permalink( $post_id ),
-			'eventStatus'     => 'https://schema.org/EventScheduled',
+			'@type'               => 'Event',
+			'name'                => ! empty( $event['name'] ) ? sanitize_text_field( $event['name'] ) : get_the_title( $post_id ),
+			'url'                 => get_permalink( $post_id ),
+			'eventStatus'         => 'https://schema.org/EventScheduled',
 			'eventAttendanceMode' => 'https://schema.org/OfflineEventAttendanceMode',
 		);
 
@@ -900,9 +906,11 @@ class SSO_Schema {
 		return $data;
 	}
 
-	/* ------------------------------------------------------------------ *
+	/*
+	------------------------------------------------------------------ *
 	 * Output helper
-	 * ------------------------------------------------------------------ */
+	 * ------------------------------------------------------------------
+	 */
 
 	/**
 	 * Encode and print a JSON-LD script tag, bailing out on invalid JSON so a

@@ -48,9 +48,12 @@ class SSO_Settings {
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 
 		// Flush rewrite rules when settings are saved so /llms.txt becomes immediately available.
-		add_action( 'update_option_' . self::OPTION_KEY, function() {
-			flush_rewrite_rules();
-		} );
+		add_action(
+			'update_option_' . self::OPTION_KEY,
+			function () {
+				flush_rewrite_rules();
+			}
+		);
 	}
 
 	/**
@@ -94,8 +97,8 @@ class SSO_Settings {
 				'post_types'  => array(),
 			),
 			'sitemap'     => array(
-				'enabled'             => 1,
-				'exclude_post_types'  => array(),
+				'enabled'            => 1,
+				'exclude_post_types' => array(),
 			),
 			'breadcrumbs' => array(
 				'separator'     => '&raquo;',
@@ -126,7 +129,7 @@ class SSO_Settings {
 	 * @param mixed       $default Fallback value.
 	 * @return mixed
 	 */
-	public static function get( $group, $key = null, $default = '' ) {
+	public static function get( $group, $key = null, $default = '' ) { // phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.defaultFound -- public API signature (documented in CLAUDE.md); renaming is a breaking change, not a style fix.
 		$settings = self::get_settings();
 
 		if ( ! isset( $settings[ $group ] ) ) {
@@ -362,7 +365,19 @@ class SSO_Settings {
 
 			<h2 class="nav-tab-wrapper">
 				<?php foreach ( $tabs as $tab_key => $tab_label ) : ?>
-					<a href="<?php echo esc_url( add_query_arg( array( 'page' => 'sso-settings', 'tab' => $tab_key ), admin_url( 'admin.php' ) ) ); ?>"
+					<a href="
+					<?php
+					echo esc_url(
+						add_query_arg(
+							array(
+								'page' => 'sso-settings',
+								'tab'  => $tab_key,
+							),
+							admin_url( 'admin.php' )
+						)
+					);
+					?>
+								"
 						class="nav-tab <?php echo $active_tab === $tab_key ? 'nav-tab-active' : ''; ?>">
 						<?php echo esc_html( $tab_label ); ?>
 					</a>
@@ -605,8 +620,12 @@ class SSO_Settings {
 				</tr>
 			</thead>
 			<tbody>
-				<?php foreach ( $this->get_public_post_types() as $post_type ) :
-					$config = isset( $schema['post_types'][ $post_type->name ] ) ? $schema['post_types'][ $post_type->name ] : array( 'enabled' => 0, 'type' => '' );
+				<?php
+				foreach ( $this->get_public_post_types() as $post_type ) :
+					$config = isset( $schema['post_types'][ $post_type->name ] ) ? $schema['post_types'][ $post_type->name ] : array(
+						'enabled' => 0,
+						'type'    => '',
+					);
 					?>
 					<tr>
 						<td><input type="checkbox" name="sso_settings[schema][post_types][<?php echo esc_attr( $post_type->name ); ?>][enabled]" value="1" <?php checked( ! empty( $config['enabled'] ) ); ?> /></td>

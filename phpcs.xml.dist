@@ -23,5 +23,15 @@
         <properties>
             <property name="is_theme" value="false"/>
         </properties>
+        <!-- Main plugin bootstrap file must be named after the plugin slug (WordPress
+             convention), not after the SSO_Plugin class it contains. -->
+        <exclude-pattern>beplus-metadata-ai-analyzer\.php$</exclude-pattern>
+    </rule>
+
+    <!-- Bootstrap file intentionally mixes the SSO_Plugin class with a handful of
+         one-off activation/deactivation/upgrade-hook functions; splitting 3 small
+         functions into their own file for this alone isn't worth the indirection. -->
+    <rule ref="Universal.Files.SeparateFunctionsFromOO">
+        <exclude-pattern>beplus-metadata-ai-analyzer\.php$</exclude-pattern>
     </rule>
 </ruleset>

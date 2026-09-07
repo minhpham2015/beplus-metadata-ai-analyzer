@@ -107,18 +107,18 @@ class SSO_Meta_Box {
 				'postSlug' => $slug,
 				'analyzer' => SSO_Analyzer::instance()->get_config(),
 				'i18n'     => array(
-					'chooseImage'       => __( 'Choose Image', 'beplus-metadata-ai-analyzer' ),
-					'useImage'          => __( 'Use this image', 'beplus-metadata-ai-analyzer' ),
-					'removeImage'       => __( 'Remove', 'beplus-metadata-ai-analyzer' ),
-					'question'          => __( 'Question', 'beplus-metadata-ai-analyzer' ),
-					'answer'            => __( 'Answer', 'beplus-metadata-ai-analyzer' ),
-					'remove'            => __( 'Remove', 'beplus-metadata-ai-analyzer' ),
-					'scoreGood'         => __( 'Good', 'beplus-metadata-ai-analyzer' ),
-					'scoreOk'           => __( 'OK', 'beplus-metadata-ai-analyzer' ),
-					'scorePoor'         => __( 'Poor', 'beplus-metadata-ai-analyzer' ),
-					'suggestion'        => __( 'Suggestion', 'beplus-metadata-ai-analyzer' ),
-					'apply'             => __( 'Apply', 'beplus-metadata-ai-analyzer' ),
-					'contentAnalyzed'   => __( 'Content analyzed!', 'beplus-metadata-ai-analyzer' ),
+					'chooseImage'     => __( 'Choose Image', 'beplus-metadata-ai-analyzer' ),
+					'useImage'        => __( 'Use this image', 'beplus-metadata-ai-analyzer' ),
+					'removeImage'     => __( 'Remove', 'beplus-metadata-ai-analyzer' ),
+					'question'        => __( 'Question', 'beplus-metadata-ai-analyzer' ),
+					'answer'          => __( 'Answer', 'beplus-metadata-ai-analyzer' ),
+					'remove'          => __( 'Remove', 'beplus-metadata-ai-analyzer' ),
+					'scoreGood'       => __( 'Good', 'beplus-metadata-ai-analyzer' ),
+					'scoreOk'         => __( 'OK', 'beplus-metadata-ai-analyzer' ),
+					'scorePoor'       => __( 'Poor', 'beplus-metadata-ai-analyzer' ),
+					'suggestion'      => __( 'Suggestion', 'beplus-metadata-ai-analyzer' ),
+					'apply'           => __( 'Apply', 'beplus-metadata-ai-analyzer' ),
+					'contentAnalyzed' => __( 'Content analyzed!', 'beplus-metadata-ai-analyzer' ),
 				),
 			)
 		);
@@ -140,21 +140,21 @@ class SSO_Meta_Box {
 		$nofollow         = get_post_meta( $post->ID, '_sso_nofollow', true );
 		$sitemap_exclude  = get_post_meta( $post->ID, '_sso_sitemap_exclude', true );
 
-		$og_image_id      = get_post_meta( $post->ID, '_sso_og_image', true );
-		$og_title         = get_post_meta( $post->ID, '_sso_og_title', true );
-		$og_description   = get_post_meta( $post->ID, '_sso_og_description', true );
-		$og_image_url     = $og_image_id ? wp_get_attachment_image_url( (int) $og_image_id, 'medium' ) : '';
+		$og_image_id    = get_post_meta( $post->ID, '_sso_og_image', true );
+		$og_title       = get_post_meta( $post->ID, '_sso_og_title', true );
+		$og_description = get_post_meta( $post->ID, '_sso_og_description', true );
+		$og_image_url   = $og_image_id ? wp_get_attachment_image_url( (int) $og_image_id, 'medium' ) : '';
 
-		$schema_type      = get_post_meta( $post->ID, '_sso_schema_type', true );
-		$schema_headline  = get_post_meta( $post->ID, '_sso_schema_headline', true );
-		$schema_author    = get_post_meta( $post->ID, '_sso_schema_author', true );
-		$schema_faq       = get_post_meta( $post->ID, '_sso_schema_faq', true );
-		$schema_faq       = is_array( $schema_faq ) ? $schema_faq : array();
-		$local_business   = get_post_meta( $post->ID, '_sso_schema_local_business', true );
-		$local_business   = is_array( $local_business ) ? $local_business : array();
+		$schema_type     = get_post_meta( $post->ID, '_sso_schema_type', true );
+		$schema_headline = get_post_meta( $post->ID, '_sso_schema_headline', true );
+		$schema_author   = get_post_meta( $post->ID, '_sso_schema_author', true );
+		$schema_faq      = get_post_meta( $post->ID, '_sso_schema_faq', true );
+		$schema_faq      = is_array( $schema_faq ) ? $schema_faq : array();
+		$local_business  = get_post_meta( $post->ID, '_sso_schema_local_business', true );
+		$local_business  = is_array( $local_business ) ? $local_business : array();
 
-		$type_settings    = SSO_Settings::get( 'schema', 'post_types', array() );
-		$default_type     = isset( $type_settings[ $post->post_type ]['type'] ) ? $type_settings[ $post->post_type ]['type'] : '';
+		$type_settings = SSO_Settings::get( 'schema', 'post_types', array() );
+		$default_type  = isset( $type_settings[ $post->post_type ]['type'] ) ? $type_settings[ $post->post_type ]['type'] : '';
 		?>
 		<div class="sso-meta-box">
 			<?php

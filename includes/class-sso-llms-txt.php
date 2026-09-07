@@ -1,6 +1,6 @@
 <?php
 /**
- * llms.txt generator: serves a machine-readable Markdown summary of the site
+ * Llms.txt generator: serves a machine-readable Markdown summary of the site
  * at /llms.txt, following the llmstxt.org standard so LLMs can understand
  * the site's structure and content.
  *
@@ -117,7 +117,7 @@ class SSO_Llms_Txt {
 
 		// --- Recent Posts ---
 		$lines[] = '## Recent Posts';
-		$posts = get_posts(
+		$posts   = get_posts(
 			array(
 				'numberposts' => 20,
 				'post_status' => 'publish',

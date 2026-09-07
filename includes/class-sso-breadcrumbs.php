@@ -251,7 +251,7 @@ class SSO_Breadcrumbs {
 						'height'  => array(),
 					),
 				);
-				$output .= '<li class="sso-breadcrumb-sep">' . wp_kses( $separator, $allowed_tags ) . '</li>';
+				$output      .= '<li class="sso-breadcrumb-sep">' . wp_kses( $separator, $allowed_tags ) . '</li>';
 			}
 		}
 
@@ -274,7 +274,7 @@ if ( ! function_exists( 'sso_breadcrumbs' ) ) {
 	/**
 	 * Template tag: echo the breadcrumb trail. Call from theme templates.
 	 */
-	function sso_breadcrumbs() {
+	function sso_breadcrumbs() { // phpcs:ignore Universal.Files.SeparateFunctionsFromOO.Mixed -- public template tag intentionally lives beside its class; moving it to a separate file is a public-API/file-layout change, not a style fix.
 		echo SSO_Breadcrumbs::instance()->render(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- render() escapes every dynamic piece internally.
 	}
 }
