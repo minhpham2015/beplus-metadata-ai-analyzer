@@ -10,7 +10,7 @@
  * Text Domain:       beplus-metadata-ai-analyzer
  * Domain Path:       /languages
  * Requires at least: 5.0
- * Requires PHP:      7.4
+ * Requires PHP:      8.1
  *
  * @package Beplus_Metadata_AI_Analyzer
  */
