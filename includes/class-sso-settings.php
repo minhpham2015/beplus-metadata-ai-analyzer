@@ -83,18 +83,20 @@ class SSO_Settings {
 				'enable_ai_meta'     => 1,
 			),
 			'schema'      => array(
-				'entity_type' => 'organization',
-				'name'        => get_bloginfo( 'name' ),
-				'logo'        => 0,
-				'url'         => home_url( '/' ),
-				'sameas'      => array(
+				'entity_type'    => 'organization',
+				'name'           => get_bloginfo( 'name' ),
+				'logo'           => 0,
+				'url'            => home_url( '/' ),
+				'sameas'         => array(
 					'facebook'  => '',
 					'twitter'   => '',
 					'linkedin'  => '',
 					'instagram' => '',
 					'youtube'   => '',
 				),
-				'post_types'  => array(),
+				'post_types'     => array(),
+				'template_rules' => array(),
+				'taxonomy_rules' => array(),
 			),
 			'sitemap'     => array(
 				'enabled'            => 1,
@@ -298,13 +300,49 @@ class SSO_Settings {
 					}
 				}
 
+				$template_rules = array();
+				if ( isset( $values['template_rules'] ) && is_array( $values['template_rules'] ) ) {
+					foreach ( $values['template_rules'] as $template => $config ) {
+						// Template slugs can contain '/', sanitize as a file path fragment.
+						$template_key = sanitize_text_field( wp_unslash( $template ) );
+						if ( '' === $template_key ) {
+							continue;
+						}
+						$template_rules[ $template_key ] = array(
+							'enabled' => ! empty( $config['enabled'] ) ? 1 : 0,
+							'type'    => isset( $config['type'] ) ? sanitize_key( $config['type'] ) : '',
+						);
+					}
+				}
+
+				$taxonomy_rules = array();
+				if ( isset( $values['taxonomy_rules'] ) && is_array( $values['taxonomy_rules'] ) ) {
+					foreach ( array( 'category', 'post_tag' ) as $taxonomy ) {
+						if ( empty( $values['taxonomy_rules'][ $taxonomy ] ) || ! is_array( $values['taxonomy_rules'][ $taxonomy ] ) ) {
+							continue;
+						}
+						foreach ( $values['taxonomy_rules'][ $taxonomy ] as $term_id => $config ) {
+							$term_id = absint( $term_id );
+							if ( ! $term_id ) {
+								continue;
+							}
+							$taxonomy_rules[ $taxonomy ][ $term_id ] = array(
+								'enabled' => ! empty( $config['enabled'] ) ? 1 : 0,
+								'type'    => isset( $config['type'] ) ? sanitize_key( $config['type'] ) : '',
+							);
+						}
+					}
+				}
+
 				return array(
-					'entity_type' => ( isset( $values['entity_type'] ) && 'person' === $values['entity_type'] ) ? 'person' : 'organization',
-					'name'        => isset( $values['name'] ) ? sanitize_text_field( $values['name'] ) : '',
-					'logo'        => isset( $values['logo'] ) ? absint( $values['logo'] ) : 0,
-					'url'         => isset( $values['url'] ) ? esc_url_raw( $values['url'] ) : home_url( '/' ),
-					'sameas'      => $sameas,
-					'post_types'  => $post_types,
+					'entity_type'    => ( isset( $values['entity_type'] ) && 'person' === $values['entity_type'] ) ? 'person' : 'organization',
+					'name'           => isset( $values['name'] ) ? sanitize_text_field( $values['name'] ) : '',
+					'logo'           => isset( $values['logo'] ) ? absint( $values['logo'] ) : 0,
+					'url'            => isset( $values['url'] ) ? esc_url_raw( $values['url'] ) : home_url( '/' ),
+					'sameas'         => $sameas,
+					'post_types'     => $post_types,
+					'template_rules' => $template_rules,
+					'taxonomy_rules' => $taxonomy_rules,
 				);
 
 			case 'sitemap':
@@ -339,6 +377,46 @@ class SSO_Settings {
 		$post_types = get_post_types( array( 'public' => true ), 'objects' );
 		unset( $post_types['attachment'] );
 		return $post_types;
+	}
+
+	/**
+	 * Get all registered page templates across public post types that
+	 * support templates, keyed by template file slug ('default' for the
+	 * theme's default template, which has no slug of its own).
+	 *
+	 * @return array<string,string> template_key => human readable label.
+	 */
+	private function get_page_templates_for_schema() {
+		$templates = array(
+			'default' => __( 'Default Template', 'beplus-metadata-ai-analyzer' ),
+		);
+		foreach ( wp_get_theme()->get_page_templates() as $file => $name ) {
+			$templates[ $file ] = $name;
+		}
+		return $templates;
+	}
+
+	/**
+	 * Get category and tag terms that have at least one post, for the
+	 * taxonomy schema-rule table.
+	 *
+	 * @return array{category: WP_Term[], post_tag: WP_Term[]}
+	 */
+	private function get_schema_taxonomy_terms() {
+		return array(
+			'category' => get_terms(
+				array(
+					'taxonomy'   => 'category',
+					'hide_empty' => false,
+				)
+			),
+			'post_tag' => get_terms(
+				array(
+					'taxonomy'   => 'post_tag',
+					'hide_empty' => false,
+				)
+			),
+		);
 	}
 
 	/**
@@ -642,6 +720,90 @@ class SSO_Settings {
 			</tbody>
 		</table>
 		<p class="description"><?php esc_html_e( 'Individual posts can override the schema type from the "Schema" tab of their SEO meta box.', 'beplus-metadata-ai-analyzer' ); ?></p>
+
+		<h2 class="title"><?php esc_html_e( 'Schema by Page Template', 'beplus-metadata-ai-analyzer' ); ?></h2>
+		<p class="description"><?php esc_html_e( 'Assign a schema type to all pages using a given page template. Takes priority over the Post Type default above, but is overridden by a per-post override and by a matching Category/Tag rule below only when there is no override set here.', 'beplus-metadata-ai-analyzer' ); ?></p>
+		<table class="widefat sso-schema-template-rules">
+			<thead>
+				<tr>
+					<th><?php esc_html_e( 'Enabled', 'beplus-metadata-ai-analyzer' ); ?></th>
+					<th><?php esc_html_e( 'Page Template', 'beplus-metadata-ai-analyzer' ); ?></th>
+					<th><?php esc_html_e( 'Schema Type', 'beplus-metadata-ai-analyzer' ); ?></th>
+				</tr>
+			</thead>
+			<tbody>
+				<?php
+				foreach ( $this->get_page_templates_for_schema() as $template_key => $template_label ) :
+					$config = isset( $schema['template_rules'][ $template_key ] ) ? $schema['template_rules'][ $template_key ] : array(
+						'enabled' => 0,
+						'type'    => '',
+					);
+					?>
+					<tr>
+						<td>
+							<input type="hidden" name="sso_settings[schema][template_rules][<?php echo esc_attr( $template_key ); ?>][enabled]" value="0" />
+							<input type="checkbox" name="sso_settings[schema][template_rules][<?php echo esc_attr( $template_key ); ?>][enabled]" value="1" <?php checked( ! empty( $config['enabled'] ) ); ?> />
+						</td>
+						<td><?php echo esc_html( $template_label ); ?></td>
+						<td>
+							<select name="sso_settings[schema][template_rules][<?php echo esc_attr( $template_key ); ?>][type]">
+								<?php foreach ( $type_opts as $opt_value => $opt_label ) : ?>
+									<option value="<?php echo esc_attr( $opt_value ); ?>" <?php selected( $config['type'], $opt_value ); ?>><?php echo esc_html( $opt_label ); ?></option>
+								<?php endforeach; ?>
+							</select>
+						</td>
+					</tr>
+				<?php endforeach; ?>
+			</tbody>
+		</table>
+
+		<h2 class="title"><?php esc_html_e( 'Schema by Category / Tag', 'beplus-metadata-ai-analyzer' ); ?></h2>
+		<p class="description"><?php esc_html_e( 'Assign a schema type to all posts in a category or tagged with a tag. Category rules are checked before tag rules; when a post matches more than one rule with the same enabled term, the lowest term ID wins. This tier is overridden by a per-post override and by a matching Page Template rule above.', 'beplus-metadata-ai-analyzer' ); ?></p>
+		<table class="widefat sso-schema-taxonomy-rules">
+			<thead>
+				<tr>
+					<th><?php esc_html_e( 'Enabled', 'beplus-metadata-ai-analyzer' ); ?></th>
+					<th><?php esc_html_e( 'Taxonomy', 'beplus-metadata-ai-analyzer' ); ?></th>
+					<th><?php esc_html_e( 'Term', 'beplus-metadata-ai-analyzer' ); ?></th>
+					<th><?php esc_html_e( 'Schema Type', 'beplus-metadata-ai-analyzer' ); ?></th>
+				</tr>
+			</thead>
+			<tbody>
+				<?php
+				$taxonomy_terms  = $this->get_schema_taxonomy_terms();
+				$taxonomy_labels = array(
+					'category' => __( 'Category', 'beplus-metadata-ai-analyzer' ),
+					'post_tag' => __( 'Tag', 'beplus-metadata-ai-analyzer' ),
+				);
+				foreach ( $taxonomy_terms as $taxonomy => $terms ) :
+					if ( is_wp_error( $terms ) ) {
+						continue;
+					}
+					foreach ( $terms as $term ) :
+						$config = isset( $schema['taxonomy_rules'][ $taxonomy ][ $term->term_id ] ) ? $schema['taxonomy_rules'][ $taxonomy ][ $term->term_id ] : array(
+							'enabled' => 0,
+							'type'    => '',
+						);
+						?>
+						<tr>
+							<td>
+								<input type="hidden" name="sso_settings[schema][taxonomy_rules][<?php echo esc_attr( $taxonomy ); ?>][<?php echo esc_attr( $term->term_id ); ?>][enabled]" value="0" />
+								<input type="checkbox" name="sso_settings[schema][taxonomy_rules][<?php echo esc_attr( $taxonomy ); ?>][<?php echo esc_attr( $term->term_id ); ?>][enabled]" value="1" <?php checked( ! empty( $config['enabled'] ) ); ?> />
+							</td>
+							<td><?php echo esc_html( $taxonomy_labels[ $taxonomy ] ); ?></td>
+							<td><?php echo esc_html( $term->name ); ?></td>
+							<td>
+								<select name="sso_settings[schema][taxonomy_rules][<?php echo esc_attr( $taxonomy ); ?>][<?php echo esc_attr( $term->term_id ); ?>][type]">
+									<?php foreach ( $type_opts as $opt_value => $opt_label ) : ?>
+										<option value="<?php echo esc_attr( $opt_value ); ?>" <?php selected( $config['type'], $opt_value ); ?>><?php echo esc_html( $opt_label ); ?></option>
+									<?php endforeach; ?>
+								</select>
+							</td>
+						</tr>
+					<?php endforeach; ?>
+				<?php endforeach; ?>
+			</tbody>
+		</table>
 
 		<h2 class="title"><?php esc_html_e( 'JSON-LD Preview (Organization + Website)', 'beplus-metadata-ai-analyzer' ); ?></h2>
 		<?php

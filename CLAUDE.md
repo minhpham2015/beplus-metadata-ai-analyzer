@@ -31,7 +31,23 @@ and Schema.org JSON-LD — published on WordPress.org as
   WordPress core's `/wp-sitemap.xml`.
 - `includes/class-sso-schema.php` — JSON-LD builders (Article, Product,
   FAQPage, HowTo, Event, Recipe, JobPosting, Course, Review, LocalBusiness,
-  BreadcrumbList, site-wide Organization/WebSite graph).
+  BreadcrumbList, site-wide Organization/WebSite graph). Per-post schema type
+  resolves through 4 priority tiers in `resolve_post_schema_type()` (most
+  specific wins, statically cached per post_id per request):
+  1. Per-post override (`_sso_schema_type` post meta from the meta box;
+     `none` disables schema entirely for that post).
+  2. Page Template rule (`schema.template_rules`, keyed by
+     `get_page_template_slug()`, with `'default'` representing the theme's
+     default template since WP returns `''` for it).
+  3. Taxonomy rule (`schema.taxonomy_rules`) — category terms checked before
+     tag terms; within a taxonomy, the lowest matching term_id with an
+     **enabled** rule wins (deterministic).
+  4. Per-post-type default (`schema.post_types`) — the original behavior.
+  A disabled rule at any tier falls through to the next tier, it does not
+  block resolution. Settings UI for tiers 2–3 lives in
+  `SSO_Settings::render_schema_tab()` (`get_page_templates_for_schema()` /
+  `get_schema_taxonomy_terms()` helpers); sanitized in
+  `SSO_Settings::sanitize_group('schema', ...)`.
 - `includes/class-sso-llms-txt.php` — `/llms.txt` per llmstxt.org, gated by
   `advanced.llms_txt_enabled`.
 - `includes/class-sso-opengraph.php`, `class-sso-canonical.php`,

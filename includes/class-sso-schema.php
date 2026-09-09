@@ -133,36 +133,96 @@ class SSO_Schema {
 	 */
 
 	/**
-	 * Resolve the schema type to use for the current singular post, honoring
-	 * the per-post override before falling back to the Settings default.
+	 * Resolve the schema type to use for the current singular post.
+	 *
+	 * Priority (most specific wins), each falling through only when the
+	 * previous tier has no explicit rule for this post:
+	 *   1. Per-post override (post meta `_sso_schema_type`, set in the meta box).
+	 *   2. Page Template rule (`schema.template_rules`), keyed by the
+	 *      `_wp_page_template` value — only meaningful for post types that
+	 *      support templates (normally `page`).
+	 *   3. Taxonomy rule (`schema.taxonomy_rules`), checked category terms
+	 *      first, then tags; within a taxonomy the lowest term_id with a
+	 *      configured rule wins (deterministic, not "last queried").
+	 *   4. Per-post-type default (`schema.post_types`) — the original
+	 *      behavior, unchanged.
 	 *
 	 * @param int $post_id Post ID.
 	 * @return array{enabled:bool,type:string}
 	 */
 	private function resolve_post_schema_type( $post_id ) {
-		$post_type     = get_post_type( $post_id );
-		$type_settings = SSO_Settings::get( 'schema', 'post_types', array() );
-		$enabled       = ! empty( $type_settings[ $post_type ]['enabled'] );
-		$schema_type   = isset( $type_settings[ $post_type ]['type'] ) ? $type_settings[ $post_type ]['type'] : '';
-
-		$override = get_post_meta( $post_id, '_sso_schema_type', true );
-		if ( $override ) {
-			if ( 'none' === $override ) {
-				return array(
-					'enabled' => false,
-					'type'    => '',
-				);
-			}
-			return array(
-				'enabled' => true,
-				'type'    => $override,
-			);
+		static $cache = array();
+		if ( isset( $cache[ $post_id ] ) ) {
+			return $cache[ $post_id ];
 		}
 
-		return array(
-			'enabled' => $enabled,
-			'type'    => $schema_type,
+		// Tier 1: per-post override.
+		$override = get_post_meta( $post_id, '_sso_schema_type', true );
+		if ( $override ) {
+			$resolved          = ( 'none' === $override )
+				? array(
+					'enabled' => false,
+					'type'    => '',
+				)
+				: array(
+					'enabled' => true,
+					'type'    => $override,
+				);
+			$cache[ $post_id ] = $resolved;
+			return $resolved;
+		}
+
+		// Tier 2: page template rule.
+		$template_rules = SSO_Settings::get( 'schema', 'template_rules', array() );
+		if ( ! empty( $template_rules ) ) {
+			$template = get_page_template_slug( $post_id );
+			// `default` represents "Default Template" (no slug is stored for it).
+			$template_key = $template ? $template : 'default';
+			if ( isset( $template_rules[ $template_key ] ) && ! empty( $template_rules[ $template_key ]['enabled'] ) ) {
+				$resolved          = array(
+					'enabled' => true,
+					'type'    => $template_rules[ $template_key ]['type'],
+				);
+				$cache[ $post_id ] = $resolved;
+				return $resolved;
+			}
+		}
+
+		// Tier 3: taxonomy rule — category checked before tag.
+		$taxonomy_rules = SSO_Settings::get( 'schema', 'taxonomy_rules', array() );
+		foreach ( array( 'category', 'post_tag' ) as $taxonomy ) {
+			if ( empty( $taxonomy_rules[ $taxonomy ] ) || ! is_object_in_taxonomy( get_post_type( $post_id ), $taxonomy ) ) {
+				continue;
+			}
+			$term_ids = wp_get_post_terms( $post_id, $taxonomy, array( 'fields' => 'ids' ) );
+			if ( is_wp_error( $term_ids ) || empty( $term_ids ) ) {
+				continue;
+			}
+			$matching_term_ids = array_intersect( $term_ids, array_keys( $taxonomy_rules[ $taxonomy ] ) );
+			if ( empty( $matching_term_ids ) ) {
+				continue;
+			}
+			sort( $matching_term_ids );
+			$rule = $taxonomy_rules[ $taxonomy ][ reset( $matching_term_ids ) ];
+			if ( ! empty( $rule['enabled'] ) ) {
+				$resolved          = array(
+					'enabled' => true,
+					'type'    => $rule['type'],
+				);
+				$cache[ $post_id ] = $resolved;
+				return $resolved;
+			}
+		}
+
+		// Tier 4: per-post-type default (original behavior).
+		$post_type         = get_post_type( $post_id );
+		$type_settings     = SSO_Settings::get( 'schema', 'post_types', array() );
+		$resolved          = array(
+			'enabled' => ! empty( $type_settings[ $post_type ]['enabled'] ),
+			'type'    => isset( $type_settings[ $post_type ]['type'] ) ? $type_settings[ $post_type ]['type'] : '',
 		);
+		$cache[ $post_id ] = $resolved;
+		return $resolved;
 	}
 
 	/**
