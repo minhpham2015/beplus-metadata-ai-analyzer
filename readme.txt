@@ -3,7 +3,7 @@ Contributors: bearsthemes, minhphamit
 Tags: seo, xml sitemap, open graph, schema, structured data
 Requires at least: 5.0
 Tested up to: 7.1
-Stable tag: 1.0.4
+Stable tag: 1.0.5
 Requires PHP: 8.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -95,6 +95,12 @@ This plugin is developed and maintained by BePlus, a WordPress and Shopify devel
 2. Schema settings tab with a live JSON-LD preview.
 
 == Changelog ==
+
+= 1.0.5 =
+* New: Schema type can now also be assigned by Page Template or by
+  Category/Tag, in addition to the existing per-post-type default and
+  per-post override. Category rules are checked before tag rules;
+  Page Template rules take priority over both. See Settings > Schema.
 
 = 1.0.4 =
 * New: sitemap entries now include a `<priority>` value (1.0 for the front

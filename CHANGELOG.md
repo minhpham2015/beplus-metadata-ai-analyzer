@@ -4,6 +4,27 @@ All notable changes to this project are documented here (dev-facing —
 see `readme.txt` for the user-facing WordPress.org changelog).
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.0.5] - 2026-09-09
+
+### Added
+- **Schema type by Page Template or Category/Tag.** `resolve_post_schema_type()`
+  in `class-sso-schema.php` now resolves through 4 priority tiers (most
+  specific wins, statically cached per post_id per request):
+  1. Per-post override (`_sso_schema_type` post meta — unchanged).
+  2. **New:** Page Template rule (`schema.template_rules`), keyed by
+     `get_page_template_slug()`, with `'default'` representing the theme's
+     default template (WP returns `''` for it).
+  3. **New:** Taxonomy rule (`schema.taxonomy_rules`) — category terms
+     checked before tag terms; within a taxonomy, the lowest matching
+     term_id with an *enabled* rule wins (deterministic tiebreak).
+  4. Per-post-type default (`schema.post_types` — unchanged).
+  A disabled rule at any tier falls through to the next tier rather than
+  blocking resolution. Two new tables added to Settings > Schema ("Schema
+  by Page Template", "Schema by Category / Tag"), following the existing
+  hidden-checkbox fallback pattern so a lone unchecked box can be turned
+  off. Sanitization added in `sanitize_group('schema', ...)` for both new
+  option keys (`template_rules`, `taxonomy_rules`).
+
 ## [1.0.4] - 2026-09-06
 
 ### Added
