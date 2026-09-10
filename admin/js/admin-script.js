@@ -55,6 +55,7 @@
 		initFaqRepeater();
 		initSchemaTypeToggle();
 		initSettingsFeedback();
+		initSchemaBulkAssign();
 
 		if ( 'meta-box' === ssoAdmin.context ) {
 			initSnippetPreview();
@@ -556,6 +557,85 @@
 			var label = $btn.val();
 			// Append ellipsis (U+2026) to signal activity.
 			$btn.prop( 'disabled', true ).val( label + '…' );
+		} );
+	}
+
+	// =========================================================================
+	// Schema tab bulk-assign toolbar (Post Type / Page Template / Category-Tag
+	// rule tables)
+	// =========================================================================
+
+	/**
+	 * Wire up the "Bulk assign" toolbar above each schema rule table
+	 * (`.sso-schema-post-types`, `.sso-schema-template-rules`,
+	 * `.sso-schema-taxonomy-rules`). Purely client-side: it only sets the
+	 * existing per-row <select>/checkbox values before the normal form
+	 * submit, so no new AJAX endpoint or server-side sanitization path is
+	 * needed — the rows still save through the exact same
+	 * `sso_settings[schema][...]` fields as a manual per-row edit.
+	 *
+	 * "Apply to all enabled rows" only ever touches rows whose own Enabled
+	 * checkbox is already checked, unless "Also enable every row first" is
+	 * ticked — that ordering is deliberate so a bulk assign never silently
+	 * turns on a rule the admin had intentionally left off.
+	 */
+	function initSchemaBulkAssign() {
+		if ( 'settings' !== ssoAdmin.context ) {
+			return;
+		}
+
+		$( '.sso-bulk-apply' ).on( 'click', function ( e ) {
+			e.preventDefault();
+
+			var tableClass   = $( this ).data( 'bulk-table' );
+			var $table       = $( '.' + tableClass );
+			var $typeSelect  = $( '#sso-bulk-type-' + tableClass.replace( 'sso-schema-', '' ) );
+			var $enableFirst = $( '.sso-bulk-enable-checkbox[data-bulk-table="' + tableClass + '"]' );
+
+			if ( ! $table.length || ! $typeSelect.length ) {
+				return;
+			}
+
+			var newType    = $typeSelect.val();
+			var enableAll  = $enableFirst.length && $enableFirst.is( ':checked' );
+			var appliedTo  = 0;
+
+			$table.find( 'tbody tr' ).each( function () {
+				var $row      = $( this );
+				var $checkbox = $row.find( 'input[type="checkbox"][name$="[enabled]"]' );
+				var $select   = $row.find( 'select[name$="[type]"]' );
+
+				if ( ! $checkbox.length || ! $select.length ) {
+					return; // Not a schema-rule row (defensive, shouldn't happen).
+				}
+
+				if ( enableAll && ! $checkbox.is( ':checked' ) ) {
+					$checkbox.prop( 'checked', true );
+				}
+
+				if ( $checkbox.is( ':checked' ) ) {
+					$select.val( newType );
+					appliedTo++;
+				}
+			} );
+
+			// Lightweight inline feedback next to the button — reuses the same
+			// visual language as the settings-save button state, no new CSS class.
+			var $btn      = $( this );
+			var origLabel = $btn.data( 'orig-label' ) || $btn.text();
+			$btn.data( 'orig-label', origLabel );
+			$btn.text(
+				appliedTo > 0
+					? ( ssoAdmin.i18n && ssoAdmin.i18n.bulkApplied
+						? ssoAdmin.i18n.bulkApplied.replace( '%d', appliedTo )
+						: 'Applied to ' + appliedTo + ' row(s)' )
+					: ( ssoAdmin.i18n && ssoAdmin.i18n.bulkNoneEnabled
+						? ssoAdmin.i18n.bulkNoneEnabled
+						: 'No enabled rows to update' )
+			);
+			setTimeout( function () {
+				$btn.text( origLabel );
+			}, 2000 );
 		} );
 	}
 

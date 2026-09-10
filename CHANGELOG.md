@@ -4,6 +4,22 @@ All notable changes to this project are documented here (dev-facing —
 see `readme.txt` for the user-facing WordPress.org changelog).
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Added
+- **Bulk assign for schema rules.** Each of the 3 schema rule tables in the
+  Schema tab (Post Type, Page Template, Category/Tag) now has a "Bulk
+  assign" toolbar above it: pick a schema type, click "Apply to all enabled
+  rows" to set every already-enabled row in that table to the chosen type
+  in one click, or tick "Also enable every row first" to enable + assign in
+  one pass. Purely client-side (`initSchemaBulkAssign()` in
+  `admin-script.js`) — it only sets the existing per-row `<select>`/
+  checkbox values before the normal settings form submit, so it reuses the
+  exact same `sso_settings[schema][...]` fields and `sanitize_group()` path
+  as a manual per-row edit; no new AJAX endpoint or sanitization code.
+  Deliberately never turns a rule on unless the admin explicitly asked it to
+  (the "enable every row first" checkbox is opt-in, unchecked by default).
+
 ## [1.0.5] - 2026-09-09
 
 ### Added

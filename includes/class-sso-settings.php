@@ -222,11 +222,14 @@ class SSO_Settings {
 			array(
 				'context' => 'settings',
 				'i18n'    => array(
-					'chooseImage' => __( 'Choose Image', 'beplus-metadata-ai-analyzer' ),
-					'useImage'    => __( 'Use this image', 'beplus-metadata-ai-analyzer' ),
-					'removeImage' => __( 'Remove', 'beplus-metadata-ai-analyzer' ),
-					'addRow'      => __( 'Add FAQ item', 'beplus-metadata-ai-analyzer' ),
-					'removeRow'   => __( 'Remove', 'beplus-metadata-ai-analyzer' ),
+					'chooseImage'     => __( 'Choose Image', 'beplus-metadata-ai-analyzer' ),
+					'useImage'        => __( 'Use this image', 'beplus-metadata-ai-analyzer' ),
+					'removeImage'     => __( 'Remove', 'beplus-metadata-ai-analyzer' ),
+					'addRow'          => __( 'Add FAQ item', 'beplus-metadata-ai-analyzer' ),
+					'removeRow'       => __( 'Remove', 'beplus-metadata-ai-analyzer' ),
+					/* translators: %d: number of schema rule rows the bulk assign was applied to. */
+					'bulkApplied'     => __( 'Applied to %d row(s)', 'beplus-metadata-ai-analyzer' ),
+					'bulkNoneEnabled' => __( 'No enabled rows to update', 'beplus-metadata-ai-analyzer' ),
 				),
 			)
 		);
@@ -689,6 +692,16 @@ class SSO_Settings {
 		</table>
 
 		<h2 class="title"><?php esc_html_e( 'Schema per Post Type', 'beplus-metadata-ai-analyzer' ); ?></h2>
+		<p class="sso-bulk-assign" data-bulk-target="sso-schema-post-types">
+			<label for="sso-bulk-type-post-types"><?php esc_html_e( 'Bulk assign:', 'beplus-metadata-ai-analyzer' ); ?></label>
+			<select id="sso-bulk-type-post-types" class="sso-bulk-type-select">
+				<?php foreach ( $type_opts as $opt_value => $opt_label ) : ?>
+					<option value="<?php echo esc_attr( $opt_value ); ?>"><?php echo esc_html( $opt_label ); ?></option>
+				<?php endforeach; ?>
+			</select>
+			<button type="button" class="button sso-bulk-apply" data-bulk-table="sso-schema-post-types"><?php esc_html_e( 'Apply to all enabled rows', 'beplus-metadata-ai-analyzer' ); ?></button>
+			<label class="sso-bulk-enable-all"><input type="checkbox" class="sso-bulk-enable-checkbox" data-bulk-table="sso-schema-post-types" /> <?php esc_html_e( 'Also enable every row first', 'beplus-metadata-ai-analyzer' ); ?></label>
+		</p>
 		<table class="widefat sso-schema-post-types">
 			<thead>
 				<tr>
@@ -723,6 +736,16 @@ class SSO_Settings {
 
 		<h2 class="title"><?php esc_html_e( 'Schema by Page Template', 'beplus-metadata-ai-analyzer' ); ?></h2>
 		<p class="description"><?php esc_html_e( 'Assign a schema type to all pages using a given page template. Takes priority over the Post Type default above, but is overridden by a per-post override and by a matching Category/Tag rule below only when there is no override set here.', 'beplus-metadata-ai-analyzer' ); ?></p>
+		<p class="sso-bulk-assign" data-bulk-target="sso-schema-template-rules">
+			<label for="sso-bulk-type-template-rules"><?php esc_html_e( 'Bulk assign:', 'beplus-metadata-ai-analyzer' ); ?></label>
+			<select id="sso-bulk-type-template-rules" class="sso-bulk-type-select">
+				<?php foreach ( $type_opts as $opt_value => $opt_label ) : ?>
+					<option value="<?php echo esc_attr( $opt_value ); ?>"><?php echo esc_html( $opt_label ); ?></option>
+				<?php endforeach; ?>
+			</select>
+			<button type="button" class="button sso-bulk-apply" data-bulk-table="sso-schema-template-rules"><?php esc_html_e( 'Apply to all enabled rows', 'beplus-metadata-ai-analyzer' ); ?></button>
+			<label class="sso-bulk-enable-all"><input type="checkbox" class="sso-bulk-enable-checkbox" data-bulk-table="sso-schema-template-rules" /> <?php esc_html_e( 'Also enable every row first', 'beplus-metadata-ai-analyzer' ); ?></label>
+		</p>
 		<table class="widefat sso-schema-template-rules">
 			<thead>
 				<tr>
@@ -759,6 +782,16 @@ class SSO_Settings {
 
 		<h2 class="title"><?php esc_html_e( 'Schema by Category / Tag', 'beplus-metadata-ai-analyzer' ); ?></h2>
 		<p class="description"><?php esc_html_e( 'Assign a schema type to all posts in a category or tagged with a tag. Category rules are checked before tag rules; when a post matches more than one rule with the same enabled term, the lowest term ID wins. This tier is overridden by a per-post override and by a matching Page Template rule above.', 'beplus-metadata-ai-analyzer' ); ?></p>
+		<p class="sso-bulk-assign" data-bulk-target="sso-schema-taxonomy-rules">
+			<label for="sso-bulk-type-taxonomy-rules"><?php esc_html_e( 'Bulk assign:', 'beplus-metadata-ai-analyzer' ); ?></label>
+			<select id="sso-bulk-type-taxonomy-rules" class="sso-bulk-type-select">
+				<?php foreach ( $type_opts as $opt_value => $opt_label ) : ?>
+					<option value="<?php echo esc_attr( $opt_value ); ?>"><?php echo esc_html( $opt_label ); ?></option>
+				<?php endforeach; ?>
+			</select>
+			<button type="button" class="button sso-bulk-apply" data-bulk-table="sso-schema-taxonomy-rules"><?php esc_html_e( 'Apply to all enabled rows', 'beplus-metadata-ai-analyzer' ); ?></button>
+			<label class="sso-bulk-enable-all"><input type="checkbox" class="sso-bulk-enable-checkbox" data-bulk-table="sso-schema-taxonomy-rules" /> <?php esc_html_e( 'Also enable every row first', 'beplus-metadata-ai-analyzer' ); ?></label>
+		</p>
 		<table class="widefat sso-schema-taxonomy-rules">
 			<thead>
 				<tr>
