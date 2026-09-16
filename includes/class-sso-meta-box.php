@@ -153,8 +153,16 @@ class SSO_Meta_Box {
 		$local_business  = get_post_meta( $post->ID, '_sso_schema_local_business', true );
 		$local_business  = is_array( $local_business ) ? $local_business : array();
 
-		$type_settings = SSO_Settings::get( 'schema', 'post_types', array() );
-		$default_type  = isset( $type_settings[ $post->post_type ]['type'] ) ? $type_settings[ $post->post_type ]['type'] : '';
+		$default_type = '';
+		if ( class_exists( 'SSO_Schema_CPT' ) ) {
+			$entry_id = SSO_Schema_CPT::resolve_schema_entry_id( $post->ID );
+			if ( $entry_id ) {
+				$entry_type = get_post_meta( $entry_id, '_sso_schema_type', true );
+				if ( $entry_type && 'none' !== $entry_type ) {
+					$default_type = $entry_type;
+				}
+			}
+		}
 		?>
 		<div class="sso-meta-box">
 			<?php
@@ -265,395 +273,432 @@ class SSO_Meta_Box {
 			</div>
 
 			<div class="sso-tab-panel" id="sso-tab-schema" style="display:none;" data-tab-panel="schema">
-				<p class="sso-field">
-					<label for="sso_schema_type"><?php esc_html_e( 'Schema Type', 'beplus-metadata-ai-analyzer' ); ?></label>
-					<select id="sso_schema_type" name="sso_schema_type">
+				<?php $this->render_schema_fields_only( $post->ID, true, $default_type ); ?>
+			</div>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Render the Schema-type select + all conditional field groups
+	 * (Article/FAQPage/HowTo/Event/Video/Recipe/JobPosting/Course/Review/
+	 * LocalBusiness/Product/BlogPosting/WebPage). Shared between the
+	 * per-post meta box (Schema tab) and the "Schemas" CPT's main meta box
+	 * (SSO_Schema_CPT::render_fields_box()) so the two never drift apart —
+	 * both read/write the identical `_sso_schema_*` meta key names, just on
+	 * different post IDs.
+	 *
+	 * @param int    $post_id       Post ID whose `_sso_schema_*` meta to read.
+	 * @param bool   $include_auto  Whether to show the "Auto" option (per-post
+	 *                              context only — a Schemas CPT entry has no
+	 *                              settings-default fallback to be "Auto" about).
+	 * @param string $default_type  Label to show for the "Auto" option
+	 *                              (per-post context only).
+	 */
+	public function render_schema_fields_only( $post_id, $include_auto = false, $default_type = '' ) {
+		$schema_type     = get_post_meta( $post_id, '_sso_schema_type', true );
+		$schema_headline = get_post_meta( $post_id, '_sso_schema_headline', true );
+		$schema_author   = get_post_meta( $post_id, '_sso_schema_author', true );
+		$schema_faq      = get_post_meta( $post_id, '_sso_schema_faq', true );
+		$schema_faq      = is_array( $schema_faq ) ? $schema_faq : array();
+		$local_business  = get_post_meta( $post_id, '_sso_schema_local_business', true );
+		$local_business  = is_array( $local_business ) ? $local_business : array();
+		?>
+		<p class="sso-field">
+			<label for="sso_schema_type"><?php esc_html_e( 'Schema Type', 'beplus-metadata-ai-analyzer' ); ?></label>
+			<select id="sso_schema_type" name="sso_schema_type">
+				<?php
+				$options = array();
+				if ( $include_auto ) {
+					$options[''] = sprintf(
+						/* translators: %s: schema type resolved from a Schemas entry, if any. */
+						__( 'Auto (from a matching Schemas entry: %s)', 'beplus-metadata-ai-analyzer' ),
+						$default_type ? $default_type : __( 'none', 'beplus-metadata-ai-analyzer' )
+					);
+				}
+				$options = array_merge(
+					$options,
+					array(
+						'article'       => __( 'Article', 'beplus-metadata-ai-analyzer' ),
+						'blogposting'   => __( 'BlogPosting', 'beplus-metadata-ai-analyzer' ),
+						'webpage'       => __( 'WebPage', 'beplus-metadata-ai-analyzer' ),
+						'product'       => __( 'Product', 'beplus-metadata-ai-analyzer' ),
+						'faqpage'       => __( 'FAQPage', 'beplus-metadata-ai-analyzer' ),
+						'howto'         => __( 'HowTo', 'beplus-metadata-ai-analyzer' ),
+						'event'         => __( 'Event', 'beplus-metadata-ai-analyzer' ),
+						'video'         => __( 'VideoObject', 'beplus-metadata-ai-analyzer' ),
+						'recipe'        => __( 'Recipe', 'beplus-metadata-ai-analyzer' ),
+						'jobposting'    => __( 'JobPosting', 'beplus-metadata-ai-analyzer' ),
+						'course'        => __( 'Course', 'beplus-metadata-ai-analyzer' ),
+						'review'        => __( 'Review', 'beplus-metadata-ai-analyzer' ),
+						'localbusiness' => __( 'LocalBusiness', 'beplus-metadata-ai-analyzer' ),
+					)
+				);
+				if ( $include_auto ) {
+					$options['none'] = __( 'None (disable schema)', 'beplus-metadata-ai-analyzer' );
+				}
+				foreach ( $options as $value => $label ) :
+					?>
+					<option value="<?php echo esc_attr( $value ); ?>" <?php selected( $schema_type, $value ); ?>><?php echo esc_html( $label ); ?></option>
+				<?php endforeach; ?>
+			</select>
+		</p>
+
+		<div class="sso-schema-fields" data-schema-fields="article">
+			<p class="sso-field">
+				<label for="sso_schema_headline"><?php esc_html_e( 'Headline Override', 'beplus-metadata-ai-analyzer' ); ?></label>
+				<input type="text" id="sso_schema_headline" name="sso_schema_headline" value="<?php echo esc_attr( $schema_headline ); ?>" class="widefat" />
+			</p>
+			<p class="sso-field">
+				<label for="sso_schema_author"><?php esc_html_e( 'Author Name Override', 'beplus-metadata-ai-analyzer' ); ?></label>
+				<input type="text" id="sso_schema_author" name="sso_schema_author" value="<?php echo esc_attr( $schema_author ); ?>" class="widefat" />
+			</p>
+		</div>
+
+		<div class="sso-schema-fields" data-schema-fields="faqpage" style="display:none;">
+			<label><?php esc_html_e( 'FAQ Items', 'beplus-metadata-ai-analyzer' ); ?></label>
+			<table class="widefat sso-faq-repeater" id="sso-faq-repeater">
+				<tbody>
+					<?php foreach ( $schema_faq as $item ) : ?>
+						<tr>
+							<td><input type="text" name="sso_schema_faq_question[]" value="<?php echo esc_attr( $item['question'] ?? '' ); ?>" placeholder="<?php esc_attr_e( 'Question', 'beplus-metadata-ai-analyzer' ); ?>" class="widefat" /></td>
+							<td><input type="text" name="sso_schema_faq_answer[]" value="<?php echo esc_attr( $item['answer'] ?? '' ); ?>" placeholder="<?php esc_attr_e( 'Answer', 'beplus-metadata-ai-analyzer' ); ?>" class="widefat" /></td>
+							<td><button type="button" class="button sso-faq-remove">&times;</button></td>
+						</tr>
+					<?php endforeach; ?>
+				</tbody>
+			</table>
+			<button type="button" class="button" id="sso-faq-add"><?php esc_html_e( 'Add FAQ item', 'beplus-metadata-ai-analyzer' ); ?></button>
+		</div>
+
+		<div class="sso-schema-fields" data-schema-fields="localbusiness" style="display:none;">
+			<p class="sso-field">
+				<label for="sso_lb_name"><?php esc_html_e( 'Business Name', 'beplus-metadata-ai-analyzer' ); ?></label>
+				<input type="text" id="sso_lb_name" name="sso_lb_name" value="<?php echo esc_attr( $local_business['name'] ?? '' ); ?>" class="widefat" />
+			</p>
+			<p class="sso-field">
+				<label for="sso_lb_street"><?php esc_html_e( 'Street Address', 'beplus-metadata-ai-analyzer' ); ?></label>
+				<input type="text" id="sso_lb_street" name="sso_lb_street" value="<?php echo esc_attr( $local_business['street'] ?? '' ); ?>" class="widefat" />
+			</p>
+			<p class="sso-field sso-field-inline">
+				<span><label for="sso_lb_city"><?php esc_html_e( 'City', 'beplus-metadata-ai-analyzer' ); ?></label><input type="text" id="sso_lb_city" name="sso_lb_city" value="<?php echo esc_attr( $local_business['city'] ?? '' ); ?>" /></span>
+				<span><label for="sso_lb_region"><?php esc_html_e( 'Region', 'beplus-metadata-ai-analyzer' ); ?></label><input type="text" id="sso_lb_region" name="sso_lb_region" value="<?php echo esc_attr( $local_business['region'] ?? '' ); ?>" /></span>
+				<span><label for="sso_lb_postal"><?php esc_html_e( 'Postal Code', 'beplus-metadata-ai-analyzer' ); ?></label><input type="text" id="sso_lb_postal" name="sso_lb_postal" value="<?php echo esc_attr( $local_business['postal'] ?? '' ); ?>" /></span>
+			</p>
+			<p class="sso-field sso-field-inline">
+				<span><label for="sso_lb_country"><?php esc_html_e( 'Country', 'beplus-metadata-ai-analyzer' ); ?></label><input type="text" id="sso_lb_country" name="sso_lb_country" value="<?php echo esc_attr( $local_business['country'] ?? '' ); ?>" /></span>
+				<span><label for="sso_lb_phone"><?php esc_html_e( 'Phone', 'beplus-metadata-ai-analyzer' ); ?></label><input type="text" id="sso_lb_phone" name="sso_lb_phone" value="<?php echo esc_attr( $local_business['phone'] ?? '' ); ?>" /></span>
+				<span><label for="sso_lb_price_range"><?php esc_html_e( 'Price Range', 'beplus-metadata-ai-analyzer' ); ?></label><input type="text" id="sso_lb_price_range" name="sso_lb_price_range" value="<?php echo esc_attr( $local_business['price_range'] ?? '' ); ?>" placeholder="$$" /></span>
+			</p>
+		</div>
+
+		<div class="sso-schema-fields" data-schema-fields="product" style="display:none;">
+			<p class="description"><?php esc_html_e( 'Product data (price, SKU, stock, rating) is pulled automatically from WooCommerce when available.', 'beplus-metadata-ai-analyzer' ); ?></p>
+		</div>
+
+		<?php
+		// ---- HowTo fields ----
+		$howto_meta  = get_post_meta( $post_id, '_sso_schema_howto', true );
+		$howto_meta  = is_array( $howto_meta ) ? $howto_meta : array();
+		$howto_steps = isset( $howto_meta['steps'] ) && is_array( $howto_meta['steps'] ) ? $howto_meta['steps'] : array();
+		?>
+		<div class="sso-schema-fields" data-schema-fields="howto" style="display:none;">
+			<p class="sso-field sso-field-inline">
+				<span>
+					<label for="sso_howto_total_time"><?php esc_html_e( 'Total Time (ISO 8601, e.g. PT30M)', 'beplus-metadata-ai-analyzer' ); ?></label>
+					<input type="text" id="sso_howto_total_time" name="sso_howto[total_time]" value="<?php echo esc_attr( $howto_meta['total_time'] ?? '' ); ?>" placeholder="PT30M" />
+				</span>
+				<span>
+					<label for="sso_howto_cost"><?php esc_html_e( 'Estimated Cost', 'beplus-metadata-ai-analyzer' ); ?></label>
+					<input type="text" id="sso_howto_cost" name="sso_howto[estimated_cost]" value="<?php echo esc_attr( $howto_meta['estimated_cost'] ?? '' ); ?>" placeholder="0" />
+				</span>
+				<span>
+					<label for="sso_howto_currency"><?php esc_html_e( 'Currency', 'beplus-metadata-ai-analyzer' ); ?></label>
+					<input type="text" id="sso_howto_currency" name="sso_howto[currency]" value="<?php echo esc_attr( $howto_meta['currency'] ?? 'VND' ); ?>" placeholder="VND" style="width:80px;" />
+				</span>
+			</p>
+			<label><?php esc_html_e( 'Steps', 'beplus-metadata-ai-analyzer' ); ?></label>
+			<table class="widefat sso-howto-repeater">
+				<thead><tr>
+					<th><?php esc_html_e( 'Step Name', 'beplus-metadata-ai-analyzer' ); ?></th>
+					<th><?php esc_html_e( 'Description', 'beplus-metadata-ai-analyzer' ); ?></th>
+					<th></th>
+				</tr></thead>
+				<tbody>
+					<?php foreach ( $howto_steps as $step ) : ?>
+						<tr>
+							<td><input type="text" name="sso_howto_step_name[]" value="<?php echo esc_attr( $step['name'] ?? '' ); ?>" class="widefat" /></td>
+							<td><input type="text" name="sso_howto_step_text[]" value="<?php echo esc_attr( $step['text'] ?? '' ); ?>" class="widefat" /></td>
+							<td><button type="button" class="button sso-row-remove">&times;</button></td>
+						</tr>
+					<?php endforeach; ?>
+				</tbody>
+			</table>
+			<button type="button" class="button sso-howto-add"><?php esc_html_e( '+ Add Step', 'beplus-metadata-ai-analyzer' ); ?></button>
+		</div>
+
+		<?php
+		// ---- Event fields ----
+		$event_meta = get_post_meta( $post_id, '_sso_schema_event', true );
+		$event_meta = is_array( $event_meta ) ? $event_meta : array();
+		?>
+		<div class="sso-schema-fields" data-schema-fields="event" style="display:none;">
+			<p class="sso-field">
+				<label for="sso_event_name"><?php esc_html_e( 'Event Name', 'beplus-metadata-ai-analyzer' ); ?></label>
+				<input type="text" id="sso_event_name" name="sso_event[name]" value="<?php echo esc_attr( $event_meta['name'] ?? '' ); ?>" class="widefat" />
+			</p>
+			<p class="sso-field sso-field-inline">
+				<span>
+					<label for="sso_event_start"><?php esc_html_e( 'Start Date/Time', 'beplus-metadata-ai-analyzer' ); ?></label>
+					<input type="datetime-local" id="sso_event_start" name="sso_event[start_date]" value="<?php echo esc_attr( $event_meta['start_date'] ?? '' ); ?>" />
+				</span>
+				<span>
+					<label for="sso_event_end"><?php esc_html_e( 'End Date/Time', 'beplus-metadata-ai-analyzer' ); ?></label>
+					<input type="datetime-local" id="sso_event_end" name="sso_event[end_date]" value="<?php echo esc_attr( $event_meta['end_date'] ?? '' ); ?>" />
+				</span>
+			</p>
+			<p class="sso-field sso-field-inline">
+				<span>
+					<label for="sso_event_status"><?php esc_html_e( 'Event Status', 'beplus-metadata-ai-analyzer' ); ?></label>
+					<select id="sso_event_status" name="sso_event[status]">
 						<?php
-						$options = array(
-							''              => sprintf(
-								/* translators: %s: default schema type configured in Settings. */
-								__( 'Auto (Settings default: %s)', 'beplus-metadata-ai-analyzer' ),
-								$default_type ? $default_type : __( 'None', 'beplus-metadata-ai-analyzer' )
-							),
-							'article'       => __( 'Article', 'beplus-metadata-ai-analyzer' ),
-							'blogposting'   => __( 'BlogPosting', 'beplus-metadata-ai-analyzer' ),
-							'webpage'       => __( 'WebPage', 'beplus-metadata-ai-analyzer' ),
-							'product'       => __( 'Product', 'beplus-metadata-ai-analyzer' ),
-							'faqpage'       => __( 'FAQPage', 'beplus-metadata-ai-analyzer' ),
-							'howto'         => __( 'HowTo', 'beplus-metadata-ai-analyzer' ),
-							'event'         => __( 'Event', 'beplus-metadata-ai-analyzer' ),
-							'video'         => __( 'VideoObject', 'beplus-metadata-ai-analyzer' ),
-							'recipe'        => __( 'Recipe', 'beplus-metadata-ai-analyzer' ),
-							'jobposting'    => __( 'JobPosting', 'beplus-metadata-ai-analyzer' ),
-							'course'        => __( 'Course', 'beplus-metadata-ai-analyzer' ),
-							'review'        => __( 'Review', 'beplus-metadata-ai-analyzer' ),
-							'localbusiness' => __( 'LocalBusiness', 'beplus-metadata-ai-analyzer' ),
-							'none'          => __( 'None (disable schema)', 'beplus-metadata-ai-analyzer' ),
+						$event_statuses = array(
+							'EventScheduled'   => __( 'Scheduled', 'beplus-metadata-ai-analyzer' ),
+							'EventPostponed'   => __( 'Postponed', 'beplus-metadata-ai-analyzer' ),
+							'EventCancelled'   => __( 'Cancelled', 'beplus-metadata-ai-analyzer' ),
+							'EventRescheduled' => __( 'Rescheduled', 'beplus-metadata-ai-analyzer' ),
 						);
-						foreach ( $options as $value => $label ) :
+						foreach ( $event_statuses as $val => $lbl ) :
 							?>
-							<option value="<?php echo esc_attr( $value ); ?>" <?php selected( $schema_type, $value ); ?>><?php echo esc_html( $label ); ?></option>
+							<option value="<?php echo esc_attr( $val ); ?>" <?php selected( $event_meta['status'] ?? 'EventScheduled', $val ); ?>><?php echo esc_html( $lbl ); ?></option>
 						<?php endforeach; ?>
 					</select>
-				</p>
+				</span>
+				<span>
+					<label for="sso_event_mode"><?php esc_html_e( 'Attendance Mode', 'beplus-metadata-ai-analyzer' ); ?></label>
+					<select id="sso_event_mode" name="sso_event[attendance_mode]">
+						<?php
+						$attendance_modes = array(
+							'OfflineEventAttendanceMode' => __( 'In-Person', 'beplus-metadata-ai-analyzer' ),
+							'OnlineEventAttendanceMode'  => __( 'Online', 'beplus-metadata-ai-analyzer' ),
+							'MixedEventAttendanceMode'   => __( 'Mixed', 'beplus-metadata-ai-analyzer' ),
+						);
+						foreach ( $attendance_modes as $val => $lbl ) :
+							?>
+							<option value="<?php echo esc_attr( $val ); ?>" <?php selected( $event_meta['attendance_mode'] ?? 'OfflineEventAttendanceMode', $val ); ?>><?php echo esc_html( $lbl ); ?></option>
+						<?php endforeach; ?>
+					</select>
+				</span>
+			</p>
+			<p class="sso-field">
+				<label for="sso_event_location"><?php esc_html_e( 'Venue Name', 'beplus-metadata-ai-analyzer' ); ?></label>
+				<input type="text" id="sso_event_location" name="sso_event[location_name]" value="<?php echo esc_attr( $event_meta['location_name'] ?? '' ); ?>" class="widefat" />
+			</p>
+			<p class="sso-field">
+				<label for="sso_event_address"><?php esc_html_e( 'Venue Address', 'beplus-metadata-ai-analyzer' ); ?></label>
+				<input type="text" id="sso_event_address" name="sso_event[location_address]" value="<?php echo esc_attr( $event_meta['location_address'] ?? '' ); ?>" class="widefat" />
+			</p>
+			<p class="sso-field">
+				<label for="sso_event_organizer"><?php esc_html_e( 'Organizer', 'beplus-metadata-ai-analyzer' ); ?></label>
+				<input type="text" id="sso_event_organizer" name="sso_event[organizer]" value="<?php echo esc_attr( $event_meta['organizer'] ?? '' ); ?>" class="widefat" />
+			</p>
+		</div>
 
-				<div class="sso-schema-fields" data-schema-fields="article">
-					<p class="sso-field">
-						<label for="sso_schema_headline"><?php esc_html_e( 'Headline Override', 'beplus-metadata-ai-analyzer' ); ?></label>
-						<input type="text" id="sso_schema_headline" name="sso_schema_headline" value="<?php echo esc_attr( $schema_headline ); ?>" class="widefat" />
-					</p>
-					<p class="sso-field">
-						<label for="sso_schema_author"><?php esc_html_e( 'Author Name Override', 'beplus-metadata-ai-analyzer' ); ?></label>
-						<input type="text" id="sso_schema_author" name="sso_schema_author" value="<?php echo esc_attr( $schema_author ); ?>" class="widefat" />
-					</p>
-				</div>
+		<?php
+		// ---- VideoObject fields ----
+		$video_meta = get_post_meta( $post_id, '_sso_schema_video', true );
+		$video_meta = is_array( $video_meta ) ? $video_meta : array();
+		?>
+		<div class="sso-schema-fields" data-schema-fields="video" style="display:none;">
+			<p class="sso-field">
+				<label for="sso_video_name"><?php esc_html_e( 'Video Title', 'beplus-metadata-ai-analyzer' ); ?></label>
+				<input type="text" id="sso_video_name" name="sso_video[name]" value="<?php echo esc_attr( $video_meta['name'] ?? '' ); ?>" class="widefat" />
+			</p>
+			<p class="sso-field">
+				<label for="sso_video_description"><?php esc_html_e( 'Video Description', 'beplus-metadata-ai-analyzer' ); ?></label>
+				<textarea id="sso_video_description" name="sso_video[description]" class="widefat" rows="2"><?php echo esc_textarea( $video_meta['description'] ?? '' ); ?></textarea>
+			</p>
+			<p class="sso-field">
+				<label for="sso_video_content_url"><?php esc_html_e( 'Content URL (direct video file)', 'beplus-metadata-ai-analyzer' ); ?></label>
+				<input type="url" id="sso_video_content_url" name="sso_video[content_url]" value="<?php echo esc_attr( $video_meta['content_url'] ?? '' ); ?>" class="widefat" />
+			</p>
+			<p class="sso-field">
+				<label for="sso_video_embed_url"><?php esc_html_e( 'Embed URL (YouTube/Vimeo)', 'beplus-metadata-ai-analyzer' ); ?></label>
+				<input type="url" id="sso_video_embed_url" name="sso_video[embed_url]" value="<?php echo esc_attr( $video_meta['embed_url'] ?? '' ); ?>" class="widefat" />
+			</p>
+			<p class="sso-field sso-field-inline">
+				<span>
+					<label for="sso_video_duration"><?php esc_html_e( 'Duration (ISO 8601, e.g. PT4M33S)', 'beplus-metadata-ai-analyzer' ); ?></label>
+					<input type="text" id="sso_video_duration" name="sso_video[duration]" value="<?php echo esc_attr( $video_meta['duration'] ?? '' ); ?>" placeholder="PT4M33S" />
+				</span>
+				<span>
+					<label for="sso_video_upload_date"><?php esc_html_e( 'Upload Date', 'beplus-metadata-ai-analyzer' ); ?></label>
+					<input type="date" id="sso_video_upload_date" name="sso_video[upload_date]" value="<?php echo esc_attr( $video_meta['upload_date'] ?? '' ); ?>" />
+				</span>
+			</p>
+			<p class="description"><?php esc_html_e( 'Thumbnail uses the featured image automatically. Set a direct URL only as fallback.', 'beplus-metadata-ai-analyzer' ); ?></p>
+			<p class="sso-field">
+				<label for="sso_video_thumbnail_url"><?php esc_html_e( 'Thumbnail URL (fallback)', 'beplus-metadata-ai-analyzer' ); ?></label>
+				<input type="url" id="sso_video_thumbnail_url" name="sso_video[thumbnail_url]" value="<?php echo esc_attr( $video_meta['thumbnail_url'] ?? '' ); ?>" class="widefat" />
+			</p>
+		</div>
 
-				<div class="sso-schema-fields" data-schema-fields="faqpage" style="display:none;">
-					<label><?php esc_html_e( 'FAQ Items', 'beplus-metadata-ai-analyzer' ); ?></label>
-					<table class="widefat sso-faq-repeater" id="sso-faq-repeater">
-						<tbody>
-							<?php foreach ( $schema_faq as $item ) : ?>
-								<tr>
-									<td><input type="text" name="sso_schema_faq_question[]" value="<?php echo esc_attr( $item['question'] ?? '' ); ?>" placeholder="<?php esc_attr_e( 'Question', 'beplus-metadata-ai-analyzer' ); ?>" class="widefat" /></td>
-									<td><input type="text" name="sso_schema_faq_answer[]" value="<?php echo esc_attr( $item['answer'] ?? '' ); ?>" placeholder="<?php esc_attr_e( 'Answer', 'beplus-metadata-ai-analyzer' ); ?>" class="widefat" /></td>
-									<td><button type="button" class="button sso-faq-remove">&times;</button></td>
-								</tr>
-							<?php endforeach; ?>
-						</tbody>
-					</table>
-					<button type="button" class="button" id="sso-faq-add"><?php esc_html_e( 'Add FAQ item', 'beplus-metadata-ai-analyzer' ); ?></button>
-				</div>
+		<?php
+		// ---- Recipe fields ----
+		$recipe_meta = get_post_meta( $post_id, '_sso_schema_recipe', true );
+		$recipe_meta = is_array( $recipe_meta ) ? $recipe_meta : array();
+		?>
+		<div class="sso-schema-fields" data-schema-fields="recipe" style="display:none;">
+			<p class="sso-field">
+				<label for="sso_recipe_name"><?php esc_html_e( 'Recipe Name', 'beplus-metadata-ai-analyzer' ); ?></label>
+				<input type="text" id="sso_recipe_name" name="sso_recipe[name]" value="<?php echo esc_attr( $recipe_meta['name'] ?? '' ); ?>" class="widefat" />
+			</p>
+			<p class="sso-field sso-field-inline">
+				<span>
+					<label for="sso_recipe_prep_time"><?php esc_html_e( 'Prep Time (e.g. PT15M)', 'beplus-metadata-ai-analyzer' ); ?></label>
+					<input type="text" id="sso_recipe_prep_time" name="sso_recipe[prep_time]" value="<?php echo esc_attr( $recipe_meta['prep_time'] ?? '' ); ?>" placeholder="PT15M" />
+				</span>
+				<span>
+					<label for="sso_recipe_cook_time"><?php esc_html_e( 'Cook Time (e.g. PT30M)', 'beplus-metadata-ai-analyzer' ); ?></label>
+					<input type="text" id="sso_recipe_cook_time" name="sso_recipe[cook_time]" value="<?php echo esc_attr( $recipe_meta['cook_time'] ?? '' ); ?>" placeholder="PT30M" />
+				</span>
+				<span>
+					<label for="sso_recipe_total_time"><?php esc_html_e( 'Total Time (e.g. PT45M)', 'beplus-metadata-ai-analyzer' ); ?></label>
+					<input type="text" id="sso_recipe_total_time" name="sso_recipe[total_time]" value="<?php echo esc_attr( $recipe_meta['total_time'] ?? '' ); ?>" placeholder="PT45M" />
+				</span>
+			</p>
+			<p class="sso-field sso-field-inline">
+				<span>
+					<label for="sso_recipe_yield"><?php esc_html_e( 'Yield (servings)', 'beplus-metadata-ai-analyzer' ); ?></label>
+					<input type="text" id="sso_recipe_yield" name="sso_recipe[recipe_yield]" value="<?php echo esc_attr( $recipe_meta['recipe_yield'] ?? '' ); ?>" />
+				</span>
+				<span>
+					<label for="sso_recipe_category"><?php esc_html_e( 'Category', 'beplus-metadata-ai-analyzer' ); ?></label>
+					<input type="text" id="sso_recipe_category" name="sso_recipe[recipe_category]" value="<?php echo esc_attr( $recipe_meta['recipe_category'] ?? '' ); ?>" />
+				</span>
+				<span>
+					<label for="sso_recipe_cuisine"><?php esc_html_e( 'Cuisine', 'beplus-metadata-ai-analyzer' ); ?></label>
+					<input type="text" id="sso_recipe_cuisine" name="sso_recipe[recipe_cuisine]" value="<?php echo esc_attr( $recipe_meta['recipe_cuisine'] ?? '' ); ?>" />
+				</span>
+			</p>
+			<p class="sso-field">
+				<label for="sso_recipe_ingredients"><?php esc_html_e( 'Ingredients (one per line)', 'beplus-metadata-ai-analyzer' ); ?></label>
+				<textarea id="sso_recipe_ingredients" name="sso_recipe[ingredients]" class="widefat" rows="5"><?php echo esc_textarea( $recipe_meta['ingredients'] ?? '' ); ?></textarea>
+			</p>
+			<p class="sso-field">
+				<label for="sso_recipe_instructions"><?php esc_html_e( 'Instructions (one step per line)', 'beplus-metadata-ai-analyzer' ); ?></label>
+				<textarea id="sso_recipe_instructions" name="sso_recipe[instructions]" class="widefat" rows="5"><?php echo esc_textarea( $recipe_meta['instructions'] ?? '' ); ?></textarea>
+			</p>
+		</div>
 
-				<div class="sso-schema-fields" data-schema-fields="localbusiness" style="display:none;">
-					<p class="sso-field">
-						<label for="sso_lb_name"><?php esc_html_e( 'Business Name', 'beplus-metadata-ai-analyzer' ); ?></label>
-						<input type="text" id="sso_lb_name" name="sso_lb_name" value="<?php echo esc_attr( $local_business['name'] ?? '' ); ?>" class="widefat" />
-					</p>
-					<p class="sso-field">
-						<label for="sso_lb_street"><?php esc_html_e( 'Street Address', 'beplus-metadata-ai-analyzer' ); ?></label>
-						<input type="text" id="sso_lb_street" name="sso_lb_street" value="<?php echo esc_attr( $local_business['street'] ?? '' ); ?>" class="widefat" />
-					</p>
-					<p class="sso-field sso-field-inline">
-						<span><label for="sso_lb_city"><?php esc_html_e( 'City', 'beplus-metadata-ai-analyzer' ); ?></label><input type="text" id="sso_lb_city" name="sso_lb_city" value="<?php echo esc_attr( $local_business['city'] ?? '' ); ?>" /></span>
-						<span><label for="sso_lb_region"><?php esc_html_e( 'Region', 'beplus-metadata-ai-analyzer' ); ?></label><input type="text" id="sso_lb_region" name="sso_lb_region" value="<?php echo esc_attr( $local_business['region'] ?? '' ); ?>" /></span>
-						<span><label for="sso_lb_postal"><?php esc_html_e( 'Postal Code', 'beplus-metadata-ai-analyzer' ); ?></label><input type="text" id="sso_lb_postal" name="sso_lb_postal" value="<?php echo esc_attr( $local_business['postal'] ?? '' ); ?>" /></span>
-					</p>
-					<p class="sso-field sso-field-inline">
-						<span><label for="sso_lb_country"><?php esc_html_e( 'Country', 'beplus-metadata-ai-analyzer' ); ?></label><input type="text" id="sso_lb_country" name="sso_lb_country" value="<?php echo esc_attr( $local_business['country'] ?? '' ); ?>" /></span>
-						<span><label for="sso_lb_phone"><?php esc_html_e( 'Phone', 'beplus-metadata-ai-analyzer' ); ?></label><input type="text" id="sso_lb_phone" name="sso_lb_phone" value="<?php echo esc_attr( $local_business['phone'] ?? '' ); ?>" /></span>
-						<span><label for="sso_lb_price_range"><?php esc_html_e( 'Price Range', 'beplus-metadata-ai-analyzer' ); ?></label><input type="text" id="sso_lb_price_range" name="sso_lb_price_range" value="<?php echo esc_attr( $local_business['price_range'] ?? '' ); ?>" placeholder="$$" /></span>
-					</p>
-				</div>
+		<?php
+		// ---- JobPosting fields ----
+		$job_meta = get_post_meta( $post_id, '_sso_schema_job', true );
+		$job_meta = is_array( $job_meta ) ? $job_meta : array();
+		?>
+		<div class="sso-schema-fields" data-schema-fields="jobposting" style="display:none;">
+			<p class="sso-field">
+				<label for="sso_job_title"><?php esc_html_e( 'Job Title', 'beplus-metadata-ai-analyzer' ); ?></label>
+				<input type="text" id="sso_job_title" name="sso_job[title]" value="<?php echo esc_attr( $job_meta['title'] ?? '' ); ?>" class="widefat" />
+			</p>
+			<p class="sso-field">
+				<label for="sso_job_hiring_org"><?php esc_html_e( 'Hiring Organization', 'beplus-metadata-ai-analyzer' ); ?></label>
+				<input type="text" id="sso_job_hiring_org" name="sso_job[hiring_org]" value="<?php echo esc_attr( $job_meta['hiring_org'] ?? '' ); ?>" class="widefat" />
+			</p>
+			<p class="sso-field sso-field-inline">
+				<span>
+					<label for="sso_job_location"><?php esc_html_e( 'Job Location (city)', 'beplus-metadata-ai-analyzer' ); ?></label>
+					<input type="text" id="sso_job_location" name="sso_job[location]" value="<?php echo esc_attr( $job_meta['location'] ?? '' ); ?>" />
+				</span>
+				<span>
+					<label for="sso_job_type"><?php esc_html_e( 'Employment Type', 'beplus-metadata-ai-analyzer' ); ?></label>
+					<select id="sso_job_type" name="sso_job[employment_type]">
+						<?php
+						$emp_types = array( 'FULL_TIME', 'PART_TIME', 'CONTRACTOR', 'TEMPORARY', 'INTERN', 'VOLUNTEER', 'PER_DIEM', 'OTHER' );
+						foreach ( $emp_types as $et ) :
+							?>
+							<option value="<?php echo esc_attr( $et ); ?>" <?php selected( $job_meta['employment_type'] ?? '', $et ); ?>><?php echo esc_html( str_replace( '_', ' ', $et ) ); ?></option>
+						<?php endforeach; ?>
+					</select>
+				</span>
+			</p>
+			<p class="sso-field sso-field-inline">
+				<span>
+					<label for="sso_job_salary"><?php esc_html_e( 'Base Salary', 'beplus-metadata-ai-analyzer' ); ?></label>
+					<input type="text" id="sso_job_salary" name="sso_job[salary]" value="<?php echo esc_attr( $job_meta['salary'] ?? '' ); ?>" placeholder="10000000" />
+				</span>
+				<span>
+					<label for="sso_job_currency"><?php esc_html_e( 'Currency', 'beplus-metadata-ai-analyzer' ); ?></label>
+					<input type="text" id="sso_job_currency" name="sso_job[salary_currency]" value="<?php echo esc_attr( $job_meta['salary_currency'] ?? 'VND' ); ?>" style="width:80px;" />
+				</span>
+				<span>
+					<label for="sso_job_period"><?php esc_html_e( 'Period', 'beplus-metadata-ai-analyzer' ); ?></label>
+					<select id="sso_job_period" name="sso_job[salary_period]">
+						<?php foreach ( array( 'MONTH', 'YEAR', 'WEEK', 'DAY', 'HOUR' ) as $p ) : ?>
+							<option value="<?php echo esc_attr( $p ); ?>" <?php selected( $job_meta['salary_period'] ?? 'MONTH', $p ); ?>><?php echo esc_html( $p ); ?></option>
+						<?php endforeach; ?>
+					</select>
+				</span>
+			</p>
+			<p class="sso-field">
+				<label for="sso_job_valid_through"><?php esc_html_e( 'Valid Through', 'beplus-metadata-ai-analyzer' ); ?></label>
+				<input type="date" id="sso_job_valid_through" name="sso_job[valid_through]" value="<?php echo esc_attr( $job_meta['valid_through'] ?? '' ); ?>" />
+			</p>
+		</div>
 
-				<div class="sso-schema-fields" data-schema-fields="product" style="display:none;">
-					<p class="description"><?php esc_html_e( 'Product data (price, SKU, stock, rating) is pulled automatically from WooCommerce when available.', 'beplus-metadata-ai-analyzer' ); ?></p>
-				</div>
+		<?php
+		// ---- Course fields ----
+		$course_meta = get_post_meta( $post_id, '_sso_schema_course', true );
+		$course_meta = is_array( $course_meta ) ? $course_meta : array();
+		?>
+		<div class="sso-schema-fields" data-schema-fields="course" style="display:none;">
+			<p class="sso-field">
+				<label for="sso_course_name"><?php esc_html_e( 'Course Name', 'beplus-metadata-ai-analyzer' ); ?></label>
+				<input type="text" id="sso_course_name" name="sso_course[name]" value="<?php echo esc_attr( $course_meta['name'] ?? '' ); ?>" class="widefat" />
+			</p>
+			<p class="sso-field">
+				<label for="sso_course_provider"><?php esc_html_e( 'Provider (Organization)', 'beplus-metadata-ai-analyzer' ); ?></label>
+				<input type="text" id="sso_course_provider" name="sso_course[provider]" value="<?php echo esc_attr( $course_meta['provider'] ?? '' ); ?>" class="widefat" />
+			</p>
+			<p class="sso-field">
+				<label for="sso_course_provider_url"><?php esc_html_e( 'Provider URL', 'beplus-metadata-ai-analyzer' ); ?></label>
+				<input type="url" id="sso_course_provider_url" name="sso_course[provider_url]" value="<?php echo esc_attr( $course_meta['provider_url'] ?? '' ); ?>" class="widefat" />
+			</p>
+			<p class="sso-field">
+				<label for="sso_course_url"><?php esc_html_e( 'Course URL (if different from post)', 'beplus-metadata-ai-analyzer' ); ?></label>
+				<input type="url" id="sso_course_url" name="sso_course[url]" value="<?php echo esc_attr( $course_meta['url'] ?? '' ); ?>" class="widefat" />
+			</p>
+		</div>
 
-				<?php
-				// ---- HowTo fields ----
-				$howto_meta  = get_post_meta( $post->ID, '_sso_schema_howto', true );
-				$howto_meta  = is_array( $howto_meta ) ? $howto_meta : array();
-				$howto_steps = isset( $howto_meta['steps'] ) && is_array( $howto_meta['steps'] ) ? $howto_meta['steps'] : array();
-				?>
-				<div class="sso-schema-fields" data-schema-fields="howto" style="display:none;">
-					<p class="sso-field sso-field-inline">
-						<span>
-							<label for="sso_howto_total_time"><?php esc_html_e( 'Total Time (ISO 8601, e.g. PT30M)', 'beplus-metadata-ai-analyzer' ); ?></label>
-							<input type="text" id="sso_howto_total_time" name="sso_howto[total_time]" value="<?php echo esc_attr( $howto_meta['total_time'] ?? '' ); ?>" placeholder="PT30M" />
-						</span>
-						<span>
-							<label for="sso_howto_cost"><?php esc_html_e( 'Estimated Cost', 'beplus-metadata-ai-analyzer' ); ?></label>
-							<input type="text" id="sso_howto_cost" name="sso_howto[estimated_cost]" value="<?php echo esc_attr( $howto_meta['estimated_cost'] ?? '' ); ?>" placeholder="0" />
-						</span>
-						<span>
-							<label for="sso_howto_currency"><?php esc_html_e( 'Currency', 'beplus-metadata-ai-analyzer' ); ?></label>
-							<input type="text" id="sso_howto_currency" name="sso_howto[currency]" value="<?php echo esc_attr( $howto_meta['currency'] ?? 'VND' ); ?>" placeholder="VND" style="width:80px;" />
-						</span>
-					</p>
-					<label><?php esc_html_e( 'Steps', 'beplus-metadata-ai-analyzer' ); ?></label>
-					<table class="widefat sso-howto-repeater">
-						<thead><tr>
-							<th><?php esc_html_e( 'Step Name', 'beplus-metadata-ai-analyzer' ); ?></th>
-							<th><?php esc_html_e( 'Description', 'beplus-metadata-ai-analyzer' ); ?></th>
-							<th></th>
-						</tr></thead>
-						<tbody>
-							<?php foreach ( $howto_steps as $step ) : ?>
-								<tr>
-									<td><input type="text" name="sso_howto_step_name[]" value="<?php echo esc_attr( $step['name'] ?? '' ); ?>" class="widefat" /></td>
-									<td><input type="text" name="sso_howto_step_text[]" value="<?php echo esc_attr( $step['text'] ?? '' ); ?>" class="widefat" /></td>
-									<td><button type="button" class="button sso-row-remove">&times;</button></td>
-								</tr>
-							<?php endforeach; ?>
-						</tbody>
-					</table>
-					<button type="button" class="button sso-howto-add"><?php esc_html_e( '+ Add Step', 'beplus-metadata-ai-analyzer' ); ?></button>
-				</div>
+		<?php
+		// ---- Review fields ----
+		$review_meta = get_post_meta( $post_id, '_sso_schema_review', true );
+		$review_meta = is_array( $review_meta ) ? $review_meta : array();
+		?>
+		<div class="sso-schema-fields" data-schema-fields="review" style="display:none;">
+			<p class="sso-field">
+				<label for="sso_review_item"><?php esc_html_e( 'Item Reviewed (name)', 'beplus-metadata-ai-analyzer' ); ?></label>
+				<input type="text" id="sso_review_item" name="sso_review[item_reviewed]" value="<?php echo esc_attr( $review_meta['item_reviewed'] ?? '' ); ?>" class="widefat" />
+			</p>
+			<p class="sso-field">
+				<label for="sso_review_rating"><?php esc_html_e( 'Rating (1–5)', 'beplus-metadata-ai-analyzer' ); ?></label>
+				<select id="sso_review_rating" name="sso_review[rating]">
+					<?php for ( $r = 1; $r <= 5; $r++ ) : ?>
+						<option value="<?php echo esc_attr( $r ); ?>" <?php selected( (int) ( $review_meta['rating'] ?? 5 ), $r ); ?>><?php echo esc_html( $r ); ?></option>
+					<?php endfor; ?>
+				</select>
+			</p>
+			<p class="sso-field">
+				<label for="sso_review_body"><?php esc_html_e( 'Review Body', 'beplus-metadata-ai-analyzer' ); ?></label>
+				<textarea id="sso_review_body" name="sso_review[body]" class="widefat" rows="3"><?php echo esc_textarea( $review_meta['body'] ?? '' ); ?></textarea>
+			</p>
+		</div>
 
-				<?php
-				// ---- Event fields ----
-				$event_meta = get_post_meta( $post->ID, '_sso_schema_event', true );
-				$event_meta = is_array( $event_meta ) ? $event_meta : array();
-				?>
-				<div class="sso-schema-fields" data-schema-fields="event" style="display:none;">
-					<p class="sso-field">
-						<label for="sso_event_name"><?php esc_html_e( 'Event Name', 'beplus-metadata-ai-analyzer' ); ?></label>
-						<input type="text" id="sso_event_name" name="sso_event[name]" value="<?php echo esc_attr( $event_meta['name'] ?? '' ); ?>" class="widefat" />
-					</p>
-					<p class="sso-field sso-field-inline">
-						<span>
-							<label for="sso_event_start"><?php esc_html_e( 'Start Date/Time', 'beplus-metadata-ai-analyzer' ); ?></label>
-							<input type="datetime-local" id="sso_event_start" name="sso_event[start_date]" value="<?php echo esc_attr( $event_meta['start_date'] ?? '' ); ?>" />
-						</span>
-						<span>
-							<label for="sso_event_end"><?php esc_html_e( 'End Date/Time', 'beplus-metadata-ai-analyzer' ); ?></label>
-							<input type="datetime-local" id="sso_event_end" name="sso_event[end_date]" value="<?php echo esc_attr( $event_meta['end_date'] ?? '' ); ?>" />
-						</span>
-					</p>
-					<p class="sso-field sso-field-inline">
-						<span>
-							<label for="sso_event_status"><?php esc_html_e( 'Event Status', 'beplus-metadata-ai-analyzer' ); ?></label>
-							<select id="sso_event_status" name="sso_event[status]">
-								<?php
-								$event_statuses = array(
-									'EventScheduled'   => __( 'Scheduled', 'beplus-metadata-ai-analyzer' ),
-									'EventPostponed'   => __( 'Postponed', 'beplus-metadata-ai-analyzer' ),
-									'EventCancelled'   => __( 'Cancelled', 'beplus-metadata-ai-analyzer' ),
-									'EventRescheduled' => __( 'Rescheduled', 'beplus-metadata-ai-analyzer' ),
-								);
-								foreach ( $event_statuses as $val => $lbl ) :
-									?>
-									<option value="<?php echo esc_attr( $val ); ?>" <?php selected( $event_meta['status'] ?? 'EventScheduled', $val ); ?>><?php echo esc_html( $lbl ); ?></option>
-								<?php endforeach; ?>
-							</select>
-						</span>
-						<span>
-							<label for="sso_event_mode"><?php esc_html_e( 'Attendance Mode', 'beplus-metadata-ai-analyzer' ); ?></label>
-							<select id="sso_event_mode" name="sso_event[attendance_mode]">
-								<?php
-								$attendance_modes = array(
-									'OfflineEventAttendanceMode' => __( 'In-Person', 'beplus-metadata-ai-analyzer' ),
-									'OnlineEventAttendanceMode'  => __( 'Online', 'beplus-metadata-ai-analyzer' ),
-									'MixedEventAttendanceMode'   => __( 'Mixed', 'beplus-metadata-ai-analyzer' ),
-								);
-								foreach ( $attendance_modes as $val => $lbl ) :
-									?>
-									<option value="<?php echo esc_attr( $val ); ?>" <?php selected( $event_meta['attendance_mode'] ?? 'OfflineEventAttendanceMode', $val ); ?>><?php echo esc_html( $lbl ); ?></option>
-								<?php endforeach; ?>
-							</select>
-						</span>
-					</p>
-					<p class="sso-field">
-						<label for="sso_event_location"><?php esc_html_e( 'Venue Name', 'beplus-metadata-ai-analyzer' ); ?></label>
-						<input type="text" id="sso_event_location" name="sso_event[location_name]" value="<?php echo esc_attr( $event_meta['location_name'] ?? '' ); ?>" class="widefat" />
-					</p>
-					<p class="sso-field">
-						<label for="sso_event_address"><?php esc_html_e( 'Venue Address', 'beplus-metadata-ai-analyzer' ); ?></label>
-						<input type="text" id="sso_event_address" name="sso_event[location_address]" value="<?php echo esc_attr( $event_meta['location_address'] ?? '' ); ?>" class="widefat" />
-					</p>
-					<p class="sso-field">
-						<label for="sso_event_organizer"><?php esc_html_e( 'Organizer', 'beplus-metadata-ai-analyzer' ); ?></label>
-						<input type="text" id="sso_event_organizer" name="sso_event[organizer]" value="<?php echo esc_attr( $event_meta['organizer'] ?? '' ); ?>" class="widefat" />
-					</p>
-				</div>
-
-				<?php
-				// ---- VideoObject fields ----
-				$video_meta = get_post_meta( $post->ID, '_sso_schema_video', true );
-				$video_meta = is_array( $video_meta ) ? $video_meta : array();
-				?>
-				<div class="sso-schema-fields" data-schema-fields="video" style="display:none;">
-					<p class="sso-field">
-						<label for="sso_video_name"><?php esc_html_e( 'Video Title', 'beplus-metadata-ai-analyzer' ); ?></label>
-						<input type="text" id="sso_video_name" name="sso_video[name]" value="<?php echo esc_attr( $video_meta['name'] ?? '' ); ?>" class="widefat" />
-					</p>
-					<p class="sso-field">
-						<label for="sso_video_description"><?php esc_html_e( 'Video Description', 'beplus-metadata-ai-analyzer' ); ?></label>
-						<textarea id="sso_video_description" name="sso_video[description]" class="widefat" rows="2"><?php echo esc_textarea( $video_meta['description'] ?? '' ); ?></textarea>
-					</p>
-					<p class="sso-field">
-						<label for="sso_video_content_url"><?php esc_html_e( 'Content URL (direct video file)', 'beplus-metadata-ai-analyzer' ); ?></label>
-						<input type="url" id="sso_video_content_url" name="sso_video[content_url]" value="<?php echo esc_attr( $video_meta['content_url'] ?? '' ); ?>" class="widefat" />
-					</p>
-					<p class="sso-field">
-						<label for="sso_video_embed_url"><?php esc_html_e( 'Embed URL (YouTube/Vimeo)', 'beplus-metadata-ai-analyzer' ); ?></label>
-						<input type="url" id="sso_video_embed_url" name="sso_video[embed_url]" value="<?php echo esc_attr( $video_meta['embed_url'] ?? '' ); ?>" class="widefat" />
-					</p>
-					<p class="sso-field sso-field-inline">
-						<span>
-							<label for="sso_video_duration"><?php esc_html_e( 'Duration (ISO 8601, e.g. PT4M33S)', 'beplus-metadata-ai-analyzer' ); ?></label>
-							<input type="text" id="sso_video_duration" name="sso_video[duration]" value="<?php echo esc_attr( $video_meta['duration'] ?? '' ); ?>" placeholder="PT4M33S" />
-						</span>
-						<span>
-							<label for="sso_video_upload_date"><?php esc_html_e( 'Upload Date', 'beplus-metadata-ai-analyzer' ); ?></label>
-							<input type="date" id="sso_video_upload_date" name="sso_video[upload_date]" value="<?php echo esc_attr( $video_meta['upload_date'] ?? '' ); ?>" />
-						</span>
-					</p>
-					<p class="description"><?php esc_html_e( 'Thumbnail uses the featured image automatically. Set a direct URL only as fallback.', 'beplus-metadata-ai-analyzer' ); ?></p>
-					<p class="sso-field">
-						<label for="sso_video_thumbnail_url"><?php esc_html_e( 'Thumbnail URL (fallback)', 'beplus-metadata-ai-analyzer' ); ?></label>
-						<input type="url" id="sso_video_thumbnail_url" name="sso_video[thumbnail_url]" value="<?php echo esc_attr( $video_meta['thumbnail_url'] ?? '' ); ?>" class="widefat" />
-					</p>
-				</div>
-
-				<?php
-				// ---- Recipe fields ----
-				$recipe_meta = get_post_meta( $post->ID, '_sso_schema_recipe', true );
-				$recipe_meta = is_array( $recipe_meta ) ? $recipe_meta : array();
-				?>
-				<div class="sso-schema-fields" data-schema-fields="recipe" style="display:none;">
-					<p class="sso-field">
-						<label for="sso_recipe_name"><?php esc_html_e( 'Recipe Name', 'beplus-metadata-ai-analyzer' ); ?></label>
-						<input type="text" id="sso_recipe_name" name="sso_recipe[name]" value="<?php echo esc_attr( $recipe_meta['name'] ?? '' ); ?>" class="widefat" />
-					</p>
-					<p class="sso-field sso-field-inline">
-						<span>
-							<label for="sso_recipe_prep_time"><?php esc_html_e( 'Prep Time (e.g. PT15M)', 'beplus-metadata-ai-analyzer' ); ?></label>
-							<input type="text" id="sso_recipe_prep_time" name="sso_recipe[prep_time]" value="<?php echo esc_attr( $recipe_meta['prep_time'] ?? '' ); ?>" placeholder="PT15M" />
-						</span>
-						<span>
-							<label for="sso_recipe_cook_time"><?php esc_html_e( 'Cook Time (e.g. PT30M)', 'beplus-metadata-ai-analyzer' ); ?></label>
-							<input type="text" id="sso_recipe_cook_time" name="sso_recipe[cook_time]" value="<?php echo esc_attr( $recipe_meta['cook_time'] ?? '' ); ?>" placeholder="PT30M" />
-						</span>
-						<span>
-							<label for="sso_recipe_total_time"><?php esc_html_e( 'Total Time (e.g. PT45M)', 'beplus-metadata-ai-analyzer' ); ?></label>
-							<input type="text" id="sso_recipe_total_time" name="sso_recipe[total_time]" value="<?php echo esc_attr( $recipe_meta['total_time'] ?? '' ); ?>" placeholder="PT45M" />
-						</span>
-					</p>
-					<p class="sso-field sso-field-inline">
-						<span>
-							<label for="sso_recipe_yield"><?php esc_html_e( 'Yield (servings)', 'beplus-metadata-ai-analyzer' ); ?></label>
-							<input type="text" id="sso_recipe_yield" name="sso_recipe[recipe_yield]" value="<?php echo esc_attr( $recipe_meta['recipe_yield'] ?? '' ); ?>" />
-						</span>
-						<span>
-							<label for="sso_recipe_category"><?php esc_html_e( 'Category', 'beplus-metadata-ai-analyzer' ); ?></label>
-							<input type="text" id="sso_recipe_category" name="sso_recipe[recipe_category]" value="<?php echo esc_attr( $recipe_meta['recipe_category'] ?? '' ); ?>" />
-						</span>
-						<span>
-							<label for="sso_recipe_cuisine"><?php esc_html_e( 'Cuisine', 'beplus-metadata-ai-analyzer' ); ?></label>
-							<input type="text" id="sso_recipe_cuisine" name="sso_recipe[recipe_cuisine]" value="<?php echo esc_attr( $recipe_meta['recipe_cuisine'] ?? '' ); ?>" />
-						</span>
-					</p>
-					<p class="sso-field">
-						<label for="sso_recipe_ingredients"><?php esc_html_e( 'Ingredients (one per line)', 'beplus-metadata-ai-analyzer' ); ?></label>
-						<textarea id="sso_recipe_ingredients" name="sso_recipe[ingredients]" class="widefat" rows="5"><?php echo esc_textarea( $recipe_meta['ingredients'] ?? '' ); ?></textarea>
-					</p>
-					<p class="sso-field">
-						<label for="sso_recipe_instructions"><?php esc_html_e( 'Instructions (one step per line)', 'beplus-metadata-ai-analyzer' ); ?></label>
-						<textarea id="sso_recipe_instructions" name="sso_recipe[instructions]" class="widefat" rows="5"><?php echo esc_textarea( $recipe_meta['instructions'] ?? '' ); ?></textarea>
-					</p>
-				</div>
-
-				<?php
-				// ---- JobPosting fields ----
-				$job_meta = get_post_meta( $post->ID, '_sso_schema_job', true );
-				$job_meta = is_array( $job_meta ) ? $job_meta : array();
-				?>
-				<div class="sso-schema-fields" data-schema-fields="jobposting" style="display:none;">
-					<p class="sso-field">
-						<label for="sso_job_title"><?php esc_html_e( 'Job Title', 'beplus-metadata-ai-analyzer' ); ?></label>
-						<input type="text" id="sso_job_title" name="sso_job[title]" value="<?php echo esc_attr( $job_meta['title'] ?? '' ); ?>" class="widefat" />
-					</p>
-					<p class="sso-field">
-						<label for="sso_job_hiring_org"><?php esc_html_e( 'Hiring Organization', 'beplus-metadata-ai-analyzer' ); ?></label>
-						<input type="text" id="sso_job_hiring_org" name="sso_job[hiring_org]" value="<?php echo esc_attr( $job_meta['hiring_org'] ?? '' ); ?>" class="widefat" />
-					</p>
-					<p class="sso-field sso-field-inline">
-						<span>
-							<label for="sso_job_location"><?php esc_html_e( 'Job Location (city)', 'beplus-metadata-ai-analyzer' ); ?></label>
-							<input type="text" id="sso_job_location" name="sso_job[location]" value="<?php echo esc_attr( $job_meta['location'] ?? '' ); ?>" />
-						</span>
-						<span>
-							<label for="sso_job_type"><?php esc_html_e( 'Employment Type', 'beplus-metadata-ai-analyzer' ); ?></label>
-							<select id="sso_job_type" name="sso_job[employment_type]">
-								<?php
-								$emp_types = array( 'FULL_TIME', 'PART_TIME', 'CONTRACTOR', 'TEMPORARY', 'INTERN', 'VOLUNTEER', 'PER_DIEM', 'OTHER' );
-								foreach ( $emp_types as $et ) :
-									?>
-									<option value="<?php echo esc_attr( $et ); ?>" <?php selected( $job_meta['employment_type'] ?? '', $et ); ?>><?php echo esc_html( str_replace( '_', ' ', $et ) ); ?></option>
-								<?php endforeach; ?>
-							</select>
-						</span>
-					</p>
-					<p class="sso-field sso-field-inline">
-						<span>
-							<label for="sso_job_salary"><?php esc_html_e( 'Base Salary', 'beplus-metadata-ai-analyzer' ); ?></label>
-							<input type="text" id="sso_job_salary" name="sso_job[salary]" value="<?php echo esc_attr( $job_meta['salary'] ?? '' ); ?>" placeholder="10000000" />
-						</span>
-						<span>
-							<label for="sso_job_currency"><?php esc_html_e( 'Currency', 'beplus-metadata-ai-analyzer' ); ?></label>
-							<input type="text" id="sso_job_currency" name="sso_job[salary_currency]" value="<?php echo esc_attr( $job_meta['salary_currency'] ?? 'VND' ); ?>" style="width:80px;" />
-						</span>
-						<span>
-							<label for="sso_job_period"><?php esc_html_e( 'Period', 'beplus-metadata-ai-analyzer' ); ?></label>
-							<select id="sso_job_period" name="sso_job[salary_period]">
-								<?php foreach ( array( 'MONTH', 'YEAR', 'WEEK', 'DAY', 'HOUR' ) as $p ) : ?>
-									<option value="<?php echo esc_attr( $p ); ?>" <?php selected( $job_meta['salary_period'] ?? 'MONTH', $p ); ?>><?php echo esc_html( $p ); ?></option>
-								<?php endforeach; ?>
-							</select>
-						</span>
-					</p>
-					<p class="sso-field">
-						<label for="sso_job_valid_through"><?php esc_html_e( 'Valid Through', 'beplus-metadata-ai-analyzer' ); ?></label>
-						<input type="date" id="sso_job_valid_through" name="sso_job[valid_through]" value="<?php echo esc_attr( $job_meta['valid_through'] ?? '' ); ?>" />
-					</p>
-				</div>
-
-				<?php
-				// ---- Course fields ----
-				$course_meta = get_post_meta( $post->ID, '_sso_schema_course', true );
-				$course_meta = is_array( $course_meta ) ? $course_meta : array();
-				?>
-				<div class="sso-schema-fields" data-schema-fields="course" style="display:none;">
-					<p class="sso-field">
-						<label for="sso_course_name"><?php esc_html_e( 'Course Name', 'beplus-metadata-ai-analyzer' ); ?></label>
-						<input type="text" id="sso_course_name" name="sso_course[name]" value="<?php echo esc_attr( $course_meta['name'] ?? '' ); ?>" class="widefat" />
-					</p>
-					<p class="sso-field">
-						<label for="sso_course_provider"><?php esc_html_e( 'Provider (Organization)', 'beplus-metadata-ai-analyzer' ); ?></label>
-						<input type="text" id="sso_course_provider" name="sso_course[provider]" value="<?php echo esc_attr( $course_meta['provider'] ?? '' ); ?>" class="widefat" />
-					</p>
-					<p class="sso-field">
-						<label for="sso_course_provider_url"><?php esc_html_e( 'Provider URL', 'beplus-metadata-ai-analyzer' ); ?></label>
-						<input type="url" id="sso_course_provider_url" name="sso_course[provider_url]" value="<?php echo esc_attr( $course_meta['provider_url'] ?? '' ); ?>" class="widefat" />
-					</p>
-					<p class="sso-field">
-						<label for="sso_course_url"><?php esc_html_e( 'Course URL (if different from post)', 'beplus-metadata-ai-analyzer' ); ?></label>
-						<input type="url" id="sso_course_url" name="sso_course[url]" value="<?php echo esc_attr( $course_meta['url'] ?? '' ); ?>" class="widefat" />
-					</p>
-				</div>
-
-				<?php
-				// ---- Review fields ----
-				$review_meta = get_post_meta( $post->ID, '_sso_schema_review', true );
-				$review_meta = is_array( $review_meta ) ? $review_meta : array();
-				?>
-				<div class="sso-schema-fields" data-schema-fields="review" style="display:none;">
-					<p class="sso-field">
-						<label for="sso_review_item"><?php esc_html_e( 'Item Reviewed (name)', 'beplus-metadata-ai-analyzer' ); ?></label>
-						<input type="text" id="sso_review_item" name="sso_review[item_reviewed]" value="<?php echo esc_attr( $review_meta['item_reviewed'] ?? '' ); ?>" class="widefat" />
-					</p>
-					<p class="sso-field">
-						<label for="sso_review_rating"><?php esc_html_e( 'Rating (1–5)', 'beplus-metadata-ai-analyzer' ); ?></label>
-						<select id="sso_review_rating" name="sso_review[rating]">
-							<?php for ( $r = 1; $r <= 5; $r++ ) : ?>
-								<option value="<?php echo esc_attr( $r ); ?>" <?php selected( (int) ( $review_meta['rating'] ?? 5 ), $r ); ?>><?php echo esc_html( $r ); ?></option>
-							<?php endfor; ?>
-						</select>
-					</p>
-					<p class="sso-field">
-						<label for="sso_review_body"><?php esc_html_e( 'Review Body', 'beplus-metadata-ai-analyzer' ); ?></label>
-						<textarea id="sso_review_body" name="sso_review[body]" class="widefat" rows="3"><?php echo esc_textarea( $review_meta['body'] ?? '' ); ?></textarea>
-					</p>
-				</div>
-
-				<div class="sso-schema-fields" data-schema-fields="blogposting" style="display:none;">
-					<p class="description"><?php esc_html_e( 'BlogPosting uses the same Article fields (Headline and Author) above.', 'beplus-metadata-ai-analyzer' ); ?></p>
-				</div>
-				<div class="sso-schema-fields" data-schema-fields="webpage" style="display:none;">
-					<p class="description"><?php esc_html_e( 'WebPage schema is built automatically from the post title, description and URL — no extra fields needed.', 'beplus-metadata-ai-analyzer' ); ?></p>
-				</div>
-			</div>
+		<div class="sso-schema-fields" data-schema-fields="blogposting" style="display:none;">
+			<p class="description"><?php esc_html_e( 'BlogPosting uses the same Article fields (Headline and Author) above.', 'beplus-metadata-ai-analyzer' ); ?></p>
+		</div>
+		<div class="sso-schema-fields" data-schema-fields="webpage" style="display:none;">
+			<p class="description"><?php esc_html_e( 'WebPage schema is built automatically from the post title, description and URL — no extra fields needed.', 'beplus-metadata-ai-analyzer' ); ?></p>
 		</div>
 		<?php
 	}
@@ -704,6 +749,18 @@ class SSO_Meta_Box {
 		$this->save_textarea_field( $post_id, '_sso_og_description', 'sso_og_description' );
 
 		// Schema tab.
+		$this->save_schema_fields_only( $post_id );
+	}
+
+	/**
+	 * Persist the `_sso_schema_*` meta fields (Schema type + all
+	 * per-type conditional field groups). Shared between the per-post
+	 * meta box's save() and SSO_Schema_CPT::save() so the two write the
+	 * identical meta key set, just against different post IDs.
+	 *
+	 * @param int $post_id Post ID being saved.
+	 */
+	public function save_schema_fields_only( $post_id ) {
 		if ( isset( $_POST['sso_schema_type'] ) ) {
 			$type = sanitize_key( wp_unslash( $_POST['sso_schema_type'] ) );
 			if ( $type ) {

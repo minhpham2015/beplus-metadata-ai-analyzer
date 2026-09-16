@@ -3,7 +3,7 @@ Contributors: bearsthemes, minhphamit
 Tags: seo, xml sitemap, open graph, schema, structured data
 Requires at least: 5.0
 Tested up to: 7.1
-Stable tag: 1.0.5
+Stable tag: 1.1.0
 Requires PHP: 8.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -96,6 +96,21 @@ This plugin is developed and maintained by BePlus, a WordPress and Shopify devel
 
 == Changelog ==
 
+= 1.1.0 =
+* New: "Schemas" custom post type — assign a reusable Schema.org type to a
+  specific page/post, to every post of a post type, or to the whole site
+  (new "Whole site" Assign To option) from Beplus Smart SEO > Schemas.
+* New: "Settings" submenu under Beplus Smart SEO for quicker access to the
+  main settings screen.
+* Change: removed the old Settings > Schema tables (Schema per Post Type,
+  Schema by Page Template, Schema by Category/Tag) — replaced by the
+  Schemas custom post type above. Re-create any rules you had configured
+  there as Schemas entries after updating.
+* Fix: all JSON-LD (Organization/WebSite graph, per-post schema,
+  breadcrumbs) now outputs in `<head>` instead of the page footer.
+* Fix: a "Whole site" Schemas entry now actually renders on every page,
+  including the homepage and archive pages, not only single posts/pages.
+
 = 1.0.5 =
 * New: Schema type can now also be assigned by Page Template or by
   Category/Tag, in addition to the existing per-post-type default and
@@ -151,6 +166,12 @@ This plugin is developed and maintained by BePlus, a WordPress and Shopify devel
 * Initial release.
 
 == Upgrade Notice ==
+
+= 1.1.0 =
+Replaces the old Schema per Post Type/Template/Category settings with a new
+Schemas custom post type (includes a "Whole site" option). JSON-LD now
+outputs in <head>. Re-create any old per-template/category schema rules as
+Schemas entries after updating.
 
 = 1.0.4 =
 Sitemap URLs now include priority values and a readable HTML view when
