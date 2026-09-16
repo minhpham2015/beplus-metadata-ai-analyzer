@@ -31,7 +31,57 @@ and Schema.org JSON-LD — published on WordPress.org as
   WordPress core's `/wp-sitemap.xml`.
 - `includes/class-sso-schema.php` — JSON-LD builders (Article, Product,
   FAQPage, HowTo, Event, Recipe, JobPosting, Course, Review, LocalBusiness,
-  BreadcrumbList, site-wide Organization/WebSite graph).
+  BreadcrumbList, site-wide Organization/WebSite graph). ALL schema output
+  (`output_global_schema`, `output_post_schema`, `output_breadcrumb_schema`)
+  is hooked on `wp_head` (priorities 19/20/21) — not `wp_footer` — so
+  `<script type="application/ld+json">` tags land in `<head>`.
+  `output_post_schema()` behaves differently depending on the request:
+  - **Singular views** (`is_singular()`): resolves through 2 priority tiers
+    in `resolve_post_schema_type()` (most specific wins, statically cached
+    per post_id per request):
+    1. Per-post override (`_sso_schema_type` post meta from the meta box's
+       Schema tab, set directly on the post/page; `none` disables schema
+       entirely for that post).
+    2. A `sso_schema` "Schemas" custom post type entry (see
+       `includes/class-sso-schema-cpt.php` / `SSO_Schema_CPT`) assigned to
+       this specific post/page, to every post of this post type, or as a
+       site-wide fallback ("Whole site") — resolved via
+       `SSO_Schema_CPT::resolve_schema_entry_id()` (specific-post checked
+       first, then post-type-wide, then site-wide last).
+    When tier 2 wins, `SSO_Schema::redirect_schema_meta_to_entry()` (hooked
+    on `get_post_metadata`) transparently redirects any `_sso_schema_*` meta
+    read for that post to the entry's own post ID while the schema is being
+    built — so every `build_*_schema()` method stays unchanged, reading
+    whichever post ID it's handed.
+  - **Non-singular views** (home/archive/search/404): there is no real post
+    to resolve tiers against, so ONLY a "Whole site" Schemas entry
+    (`SSO_Schema_CPT::get_site_wide_entry_id()`) can apply. The builders are
+    called with the Schemas entry's OWN (non-public) post ID as `$post_id`,
+    then `replace_recursive()` walks the resulting array and swaps any value
+    that equals the entry's own permalink/title (however deeply nested —
+    `offers.url`, `mainEntityOfPage.@id`, etc.) for the site's real home URL
+    / site name. Do not "simplify" this by only patching top-level `url`/
+    `@id`/`name` keys — several builders nest the entry's title/permalink
+    (Product `offers.url`, JobPosting `sameAs`, Article
+    `mainEntityOfPage.@id`, …).
+  `SSO_Meta_Box::render_schema_fields_only()` / `save_schema_fields_only()`
+  are the shared render/save routines for the `_sso_schema_*` field set —
+  used both by the per-post meta box's Schema tab AND by
+  `SSO_Schema_CPT::render_fields_box()` / `save()`, so the two contexts never
+  drift apart (identical meta keys, just against different post IDs).
+  **Gotcha already hit once:** `render_fields_box()` MUST call
+  `render_schema_fields_only( $post->ID, false )` — passing a truthy 2nd arg
+  (even a non-empty string) silently enables the per-post-only "Auto"
+  dropdown option inside the CPT screen, which then saves an empty
+  `_sso_schema_type` and makes the entry produce zero output with no error.
+- `includes/class-sso-schema-cpt.php` — the `sso_schema` "Schemas" CPT
+  (admin-only, no public archive/single template). Each entry has an
+  "Assign To" box: specific posts/pages (multi-select), every post of one
+  post type, or "Whole site" (`_sso_schema_target_mode = 'site'`).
+  `resolve_schema_entry_id( $post_id )` is the per-post lookup (specific →
+  post-type → site, static cached); `get_site_wide_entry_id()` is the
+  post-independent lookup used on non-singular views. Both used by
+  `SSO_Schema` and `SSO_Meta_Box`.
 - `includes/class-sso-llms-txt.php` — `/llms.txt` per llmstxt.org, gated by
   `advanced.llms_txt_enabled`.
 - `includes/class-sso-opengraph.php`, `class-sso-canonical.php`,

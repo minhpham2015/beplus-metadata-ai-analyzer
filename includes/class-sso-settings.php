@@ -83,18 +83,17 @@ class SSO_Settings {
 				'enable_ai_meta'     => 1,
 			),
 			'schema'      => array(
-				'entity_type' => 'organization',
-				'name'        => get_bloginfo( 'name' ),
-				'logo'        => 0,
-				'url'         => home_url( '/' ),
-				'sameas'      => array(
+				'entity_type'    => 'organization',
+				'name'           => get_bloginfo( 'name' ),
+				'logo'           => 0,
+				'url'            => home_url( '/' ),
+				'sameas'         => array(
 					'facebook'  => '',
 					'twitter'   => '',
 					'linkedin'  => '',
 					'instagram' => '',
 					'youtube'   => '',
 				),
-				'post_types'  => array(),
 			),
 			'sitemap'     => array(
 				'enabled'            => 1,
@@ -178,6 +177,18 @@ class SSO_Settings {
 			'dashicons-chart-area',
 			80
 		);
+
+		// Re-label the auto-created first submenu (same slug as the parent)
+		// from "Beplus Smart SEO" to "Settings" so the menu reads like:
+		// Beplus Smart SEO > Settings, Schemas, ...
+		add_submenu_page(
+			'sso-settings',
+			__( 'Settings', 'beplus-metadata-ai-analyzer' ),
+			__( 'Settings', 'beplus-metadata-ai-analyzer' ),
+			'manage_options',
+			'sso-settings',
+			array( $this, 'render_settings_page' )
+		);
 	}
 
 	/**
@@ -220,11 +231,14 @@ class SSO_Settings {
 			array(
 				'context' => 'settings',
 				'i18n'    => array(
-					'chooseImage' => __( 'Choose Image', 'beplus-metadata-ai-analyzer' ),
-					'useImage'    => __( 'Use this image', 'beplus-metadata-ai-analyzer' ),
-					'removeImage' => __( 'Remove', 'beplus-metadata-ai-analyzer' ),
-					'addRow'      => __( 'Add FAQ item', 'beplus-metadata-ai-analyzer' ),
-					'removeRow'   => __( 'Remove', 'beplus-metadata-ai-analyzer' ),
+					'chooseImage'     => __( 'Choose Image', 'beplus-metadata-ai-analyzer' ),
+					'useImage'        => __( 'Use this image', 'beplus-metadata-ai-analyzer' ),
+					'removeImage'     => __( 'Remove', 'beplus-metadata-ai-analyzer' ),
+					'addRow'          => __( 'Add FAQ item', 'beplus-metadata-ai-analyzer' ),
+					'removeRow'       => __( 'Remove', 'beplus-metadata-ai-analyzer' ),
+					/* translators: %d: number of schema rule rows the bulk assign was applied to. */
+					'bulkApplied'     => __( 'Applied to %d row(s)', 'beplus-metadata-ai-analyzer' ),
+					'bulkNoneEnabled' => __( 'No enabled rows to update', 'beplus-metadata-ai-analyzer' ),
 				),
 			)
 		);
@@ -281,16 +295,6 @@ class SSO_Settings {
 				);
 
 			case 'schema':
-				$post_types = array();
-				if ( isset( $values['post_types'] ) && is_array( $values['post_types'] ) ) {
-					foreach ( $values['post_types'] as $post_type => $config ) {
-						$post_types[ sanitize_key( $post_type ) ] = array(
-							'enabled' => ! empty( $config['enabled'] ) ? 1 : 0,
-							'type'    => isset( $config['type'] ) ? sanitize_key( $config['type'] ) : '',
-						);
-					}
-				}
-
 				$sameas = array();
 				if ( isset( $values['sameas'] ) && is_array( $values['sameas'] ) ) {
 					foreach ( $values['sameas'] as $network => $url ) {
@@ -304,7 +308,6 @@ class SSO_Settings {
 					'logo'        => isset( $values['logo'] ) ? absint( $values['logo'] ) : 0,
 					'url'         => isset( $values['url'] ) ? esc_url_raw( $values['url'] ) : home_url( '/' ),
 					'sameas'      => $sameas,
-					'post_types'  => $post_types,
 				);
 
 			case 'sitemap':
@@ -340,6 +343,7 @@ class SSO_Settings {
 		unset( $post_types['attachment'] );
 		return $post_types;
 	}
+
 
 	/**
 	 * Render the settings page shell + tab navigation.
@@ -545,24 +549,8 @@ class SSO_Settings {
 	 * Schema tab: Organization/Person + per post type toggles + live JSON-LD preview.
 	 */
 	private function render_schema_tab() {
-		$schema    = self::get( 'schema' );
-		$logo_url  = $schema['logo'] ? wp_get_attachment_image_url( (int) $schema['logo'], 'medium' ) : '';
-		$type_opts = array(
-			''              => __( 'None', 'beplus-metadata-ai-analyzer' ),
-			'article'       => __( 'Article', 'beplus-metadata-ai-analyzer' ),
-			'blogposting'   => __( 'BlogPosting', 'beplus-metadata-ai-analyzer' ),
-			'webpage'       => __( 'WebPage', 'beplus-metadata-ai-analyzer' ),
-			'product'       => __( 'Product', 'beplus-metadata-ai-analyzer' ),
-			'faqpage'       => __( 'FAQPage', 'beplus-metadata-ai-analyzer' ),
-			'howto'         => __( 'HowTo', 'beplus-metadata-ai-analyzer' ),
-			'event'         => __( 'Event', 'beplus-metadata-ai-analyzer' ),
-			'video'         => __( 'VideoObject', 'beplus-metadata-ai-analyzer' ),
-			'recipe'        => __( 'Recipe', 'beplus-metadata-ai-analyzer' ),
-			'jobposting'    => __( 'JobPosting', 'beplus-metadata-ai-analyzer' ),
-			'course'        => __( 'Course', 'beplus-metadata-ai-analyzer' ),
-			'review'        => __( 'Review', 'beplus-metadata-ai-analyzer' ),
-			'localbusiness' => __( 'LocalBusiness', 'beplus-metadata-ai-analyzer' ),
-		);
+		$schema   = self::get( 'schema' );
+		$logo_url = $schema['logo'] ? wp_get_attachment_image_url( (int) $schema['logo'], 'medium' ) : '';
 		?>
 		<h2 class="title"><?php esc_html_e( 'Organization / Person', 'beplus-metadata-ai-analyzer' ); ?></h2>
 		<table class="form-table" role="presentation">
@@ -610,38 +598,19 @@ class SSO_Settings {
 			</tr>
 		</table>
 
-		<h2 class="title"><?php esc_html_e( 'Schema per Post Type', 'beplus-metadata-ai-analyzer' ); ?></h2>
-		<table class="widefat sso-schema-post-types">
-			<thead>
-				<tr>
-					<th><?php esc_html_e( 'Enabled', 'beplus-metadata-ai-analyzer' ); ?></th>
-					<th><?php esc_html_e( 'Post Type', 'beplus-metadata-ai-analyzer' ); ?></th>
-					<th><?php esc_html_e( 'Schema Type', 'beplus-metadata-ai-analyzer' ); ?></th>
-				</tr>
-			</thead>
-			<tbody>
-				<?php
-				foreach ( $this->get_public_post_types() as $post_type ) :
-					$config = isset( $schema['post_types'][ $post_type->name ] ) ? $schema['post_types'][ $post_type->name ] : array(
-						'enabled' => 0,
-						'type'    => '',
-					);
-					?>
-					<tr>
-						<td><input type="checkbox" name="sso_settings[schema][post_types][<?php echo esc_attr( $post_type->name ); ?>][enabled]" value="1" <?php checked( ! empty( $config['enabled'] ) ); ?> /></td>
-						<td><?php echo esc_html( $post_type->label ); ?></td>
-						<td>
-							<select name="sso_settings[schema][post_types][<?php echo esc_attr( $post_type->name ); ?>][type]">
-								<?php foreach ( $type_opts as $opt_value => $opt_label ) : ?>
-									<option value="<?php echo esc_attr( $opt_value ); ?>" <?php selected( $config['type'], $opt_value ); ?>><?php echo esc_html( $opt_label ); ?></option>
-								<?php endforeach; ?>
-							</select>
-						</td>
-					</tr>
-				<?php endforeach; ?>
-			</tbody>
-		</table>
-		<p class="description"><?php esc_html_e( 'Individual posts can override the schema type from the "Schema" tab of their SEO meta box.', 'beplus-metadata-ai-analyzer' ); ?></p>
+		<h2 class="title"><?php esc_html_e( 'Schemas', 'beplus-metadata-ai-analyzer' ); ?></h2>
+		<p class="description">
+			<?php
+			printf(
+				/* translators: %s: link to the Schemas admin list. */
+				wp_kses(
+					__( 'Assign schema types to specific pages/posts or to every post of a post type using the <a href="%s">Schemas</a> custom post type. Individual posts can still override the schema type from the "Schema" tab of their own SEO meta box.', 'beplus-metadata-ai-analyzer' ),
+					array( 'a' => array( 'href' => array() ) )
+				),
+				esc_url( admin_url( 'edit.php?post_type=sso_schema' ) )
+			);
+			?>
+		</p>
 
 		<h2 class="title"><?php esc_html_e( 'JSON-LD Preview (Organization + Website)', 'beplus-metadata-ai-analyzer' ); ?></h2>
 		<?php

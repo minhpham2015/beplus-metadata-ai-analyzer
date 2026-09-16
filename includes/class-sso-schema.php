@@ -38,9 +38,10 @@ class SSO_Schema {
 	 * Constructor.
 	 */
 	private function __construct() {
-		add_action( 'wp_footer', array( $this, 'output_global_schema' ) );
+		add_action( 'wp_head', array( $this, 'output_global_schema' ), 19 );
 		add_action( 'wp_head', array( $this, 'output_post_schema' ), 20 );
 		add_action( 'wp_head', array( $this, 'output_breadcrumb_schema' ), 21 );
+		add_filter( 'get_post_metadata', array( $this, 'redirect_schema_meta_to_entry' ), 10, 4 );
 	}
 
 	/*
@@ -133,51 +134,165 @@ class SSO_Schema {
 	 */
 
 	/**
-	 * Resolve the schema type to use for the current singular post, honoring
-	 * the per-post override before falling back to the Settings default.
+	 * Resolve the schema type to use for the current singular post.
+	 *
+	 * Priority (most specific wins), each falling through only when the
+	 * previous tier has no explicit rule for this post:
+	 *   1. Per-post override (post meta `_sso_schema_type`, set in the meta
+	 *      box's Schema tab directly on the post/page itself).
+	 *   2. A "Schemas" CPT entry (see SSO_Schema_CPT) assigned either to
+	 *      this specific post/page, or to every post of this post type.
+	 *      Replaces the old Settings-tab tiers (Schema per Post Type /
+	 *      Schema by Page Template / Schema by Category-Tag).
+	 *
+	 * When tier 2 wins, `entry_id` is returned so output_post_schema() can
+	 * redirect `_sso_schema_*` meta reads to the entry's own post ID (the
+	 * builders below read schema field meta keyed by whichever post ID
+	 * they're given).
 	 *
 	 * @param int $post_id Post ID.
-	 * @return array{enabled:bool,type:string}
+	 * @return array{enabled:bool,type:string,entry_id:int}
 	 */
 	private function resolve_post_schema_type( $post_id ) {
-		$post_type     = get_post_type( $post_id );
-		$type_settings = SSO_Settings::get( 'schema', 'post_types', array() );
-		$enabled       = ! empty( $type_settings[ $post_type ]['enabled'] );
-		$schema_type   = isset( $type_settings[ $post_type ]['type'] ) ? $type_settings[ $post_type ]['type'] : '';
-
-		$override = get_post_meta( $post_id, '_sso_schema_type', true );
-		if ( $override ) {
-			if ( 'none' === $override ) {
-				return array(
-					'enabled' => false,
-					'type'    => '',
-				);
-			}
-			return array(
-				'enabled' => true,
-				'type'    => $override,
-			);
+		static $cache = array();
+		if ( isset( $cache[ $post_id ] ) ) {
+			return $cache[ $post_id ];
 		}
 
-		return array(
-			'enabled' => $enabled,
-			'type'    => $schema_type,
+		// Tier 1: per-post override, set directly in the post's own Schema tab.
+		$override = get_post_meta( $post_id, '_sso_schema_type', true );
+		if ( $override ) {
+			$resolved          = ( 'none' === $override )
+				? array(
+					'enabled'  => false,
+					'type'     => '',
+					'entry_id' => 0,
+				)
+				: array(
+					'enabled'  => true,
+					'type'     => $override,
+					'entry_id' => 0,
+				);
+			$cache[ $post_id ] = $resolved;
+			return $resolved;
+		}
+
+		// Tier 2: a "Schemas" CPT entry assigned to this post or its post type.
+		if ( class_exists( 'SSO_Schema_CPT' ) ) {
+			$entry_id = SSO_Schema_CPT::resolve_schema_entry_id( $post_id );
+			if ( $entry_id ) {
+				$entry_type = get_post_meta( $entry_id, '_sso_schema_type', true );
+				if ( $entry_type && 'none' !== $entry_type ) {
+					$resolved          = array(
+						'enabled'  => true,
+						'type'     => $entry_type,
+						'entry_id' => $entry_id,
+					);
+					$cache[ $post_id ] = $resolved;
+					return $resolved;
+				}
+			}
+		}
+
+		$resolved          = array(
+			'enabled'  => false,
+			'type'     => '',
+			'entry_id' => 0,
 		);
+		$cache[ $post_id ] = $resolved;
+		return $resolved;
 	}
 
 	/**
-	 * Output the post-specific JSON-LD schema on singular views.
+	 * While a Schemas CPT entry is supplying the schema data for a post,
+	 * redirect any `_sso_schema_*` meta read on that post to the entry's
+	 * own post ID instead — lets every `build_*_schema()` method below stay
+	 * unchanged (they already read `_sso_schema_*` keyed by whatever post ID
+	 * they're handed).
+	 *
+	 * @param mixed  $value    Short-circuit value (null = no override yet).
+	 * @param int    $object_id Post ID the core is fetching meta for.
+	 * @param string $meta_key  Meta key being fetched.
+	 * @param bool   $single    Whether a single value was requested.
+	 * @return mixed
+	 */
+	public function redirect_schema_meta_to_entry( $value, $object_id, $meta_key, $single ) {
+		if ( (int) $object_id !== (int) $this->schema_redirect_post_id ) {
+			return $value;
+		}
+		if ( 0 !== strpos( (string) $meta_key, '_sso_schema_' ) ) {
+			return $value;
+		}
+		remove_filter( 'get_post_metadata', array( $this, 'redirect_schema_meta_to_entry' ), 10 );
+		$redirected = get_post_meta( $this->schema_redirect_entry_id, $meta_key, $single );
+		add_filter( 'get_post_metadata', array( $this, 'redirect_schema_meta_to_entry' ), 10, 4 );
+		return $redirected;
+	}
+
+	/**
+	 * Post ID currently being redirected (set right before a build_*_schema()
+	 * call that needs entry-sourced meta, cleared right after).
+	 *
+	 * @var int
+	 */
+	private $schema_redirect_post_id = 0;
+
+	/**
+	 * Schemas CPT entry ID currently supplying redirected meta.
+	 *
+	 * @var int
+	 */
+	private $schema_redirect_entry_id = 0;
+
+	/**
+	 * Output the post-specific JSON-LD schema.
+	 *
+	 * On singular views this resolves per the normal 3-tier priority
+	 * (per-post override → specific-post/post-type Schemas entry → site-wide
+	 * Schemas entry), reading fields against the REAL post ID so url/name
+	 * naturally reflect that page.
+	 *
+	 * On non-singular views (home, archives, search) there is no post to
+	 * resolve against, so only a "Whole site" Schemas entry can apply —
+	 * built directly from the entry's own fields, with url/@id normalized
+	 * to the site's home URL and a blank name/title falling back to the
+	 * site name instead of the entry's internal post title.
 	 */
 	public function output_post_schema() {
-		if ( is_admin() || ! is_singular() ) {
+		if ( is_admin() ) {
 			return;
 		}
 
-		$post_id  = get_queried_object_id();
-		$resolved = $this->resolve_post_schema_type( $post_id );
+		$is_site_wide_only = false;
+
+		if ( is_singular() ) {
+			$post_id  = get_queried_object_id();
+			$resolved = $this->resolve_post_schema_type( $post_id );
+		} else {
+			$entry_id = class_exists( 'SSO_Schema_CPT' ) ? SSO_Schema_CPT::get_site_wide_entry_id() : 0;
+			if ( ! $entry_id ) {
+				return;
+			}
+			$entry_type = get_post_meta( $entry_id, '_sso_schema_type', true );
+			if ( ! $entry_type || 'none' === $entry_type ) {
+				return;
+			}
+			$post_id            = $entry_id;
+			$is_site_wide_only  = true;
+			$resolved           = array(
+				'enabled'  => true,
+				'type'     => $entry_type,
+				'entry_id' => $entry_id,
+			);
+		}
 
 		if ( ! $resolved['enabled'] || ! $resolved['type'] ) {
 			return;
+		}
+
+		if ( ! empty( $resolved['entry_id'] ) && ! $is_site_wide_only ) {
+			$this->schema_redirect_post_id  = $post_id;
+			$this->schema_redirect_entry_id = $resolved['entry_id'];
 		}
 
 		$data = null;
@@ -224,6 +339,27 @@ class SSO_Schema {
 				break;
 		}
 
+		$this->schema_redirect_post_id  = 0;
+		$this->schema_redirect_entry_id = 0;
+
+		// On non-singular "Whole site" output, the builders above read the
+		// Schemas entry's OWN post ID (there is no real front-end page for
+		// it — sso_schema is admin-only/non-public) — recursively replace
+		// any value that equals the entry's own permalink/title (however
+		// deeply nested: offers.url, sameAs, mainEntityOfPage.@id, etc.)
+		// with the site's home URL / site name instead.
+		if ( $is_site_wide_only && is_array( $data ) ) {
+			$entry_permalink = get_permalink( $post_id );
+			$entry_title     = get_the_title( $post_id );
+			$data            = $this->replace_recursive(
+				$data,
+				array(
+					$entry_permalink => home_url( '/' ),
+					$entry_title     => get_bloginfo( 'name' ),
+				)
+			);
+		}
+
 		$data = apply_filters( 'sso_schema_post_data', $data, $post_id, $resolved['type'] );
 
 		if ( ! $data ) {
@@ -231,6 +367,27 @@ class SSO_Schema {
 		}
 
 		$this->print_ld_json( array_merge( array( '@context' => 'https://schema.org' ), $data ) );
+	}
+
+	/**
+	 * Recursively replace exact-match scalar values in an array (used to
+	 * swap a Schemas entry's internal permalink/title for the site's real
+	 * home URL/name when that entry is being output as a site-wide fallback
+	 * rather than for its own — non-public — post).
+	 *
+	 * @param array $data         Array to walk (mutated copy returned).
+	 * @param array $replacements Map of old value => new value.
+	 * @return array
+	 */
+	private function replace_recursive( $data, $replacements ) {
+		foreach ( $data as $key => $value ) {
+			if ( is_array( $value ) ) {
+				$data[ $key ] = $this->replace_recursive( $value, $replacements );
+			} elseif ( is_string( $value ) && '' !== $value && array_key_exists( $value, $replacements ) ) {
+				$data[ $key ] = $replacements[ $value ];
+			}
+		}
+		return $data;
 	}
 
 	/**

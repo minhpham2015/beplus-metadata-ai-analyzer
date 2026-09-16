@@ -4,6 +4,89 @@ All notable changes to this project are documented here (dev-facing —
 see `readme.txt` for the user-facing WordPress.org changelog).
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+## [1.1.0] - 2026-09-16
+
+### Added
+- **"Schemas" custom post type** (`sso_schema`, admin-only, no public
+  archive/single template) — replaces the old Settings > Schema tables
+  (Schema per Post Type / by Page Template / by Category-Tag, all removed).
+  Each entry has an "Assign To" box: specific pages/posts (multi-select),
+  every post of one post type, or **"Whole site"** (new) as a site-wide
+  fallback. See `includes/class-sso-schema-cpt.php`.
+- **"Settings" submenu** under the Beplus Smart SEO admin menu for quicker
+  access to the main settings screen (`SSO_Settings::add_settings_page()`).
+- **Bulk assign for schema rules.** Each of the 3 schema rule tables in the
+  Schema tab (Post Type, Page Template, Category/Tag) now has a "Bulk
+  assign" toolbar above it: pick a schema type, click "Apply to all enabled
+  rows" to set every already-enabled row in that table to the chosen type
+  in one click, or tick "Also enable every row first" to enable + assign in
+  one pass. Purely client-side (`initSchemaBulkAssign()` in
+  `admin-script.js`) — it only sets the existing per-row `<select>`/
+  checkbox values before the normal settings form submit, so it reuses the
+  exact same `sso_settings[schema][...]` fields and `sanitize_group()` path
+  as a manual per-row edit; no new AJAX endpoint or sanitization code.
+  Deliberately never turns a rule on unless the admin explicitly asked it to
+  (the "enable every row first" checkbox is opt-in, unchecked by default).
+  (Note: this bulk-assign UI is now dead code for the 3 removed tables above
+  — kept only insofar as it still applies to nothing; scheduled for removal
+  in a future cleanup pass since the tables themselves no longer exist.)
+
+### Changed
+- `resolve_post_schema_type()` in `class-sso-schema.php` now resolves
+  through 2 priority tiers instead of 4 (most specific wins, statically
+  cached per post_id per request):
+  1. Per-post override (`_sso_schema_type` post meta — unchanged).
+  2. A Schemas CPT entry: specific-post assignment checked first, then
+     post-type-wide, then the new site-wide ("Whole site") fallback last.
+- `SSO_Meta_Box::render_schema_fields_only()` / `save_schema_fields_only()`
+  are now shared between the per-post meta box's Schema tab AND
+  `SSO_Schema_CPT::render_fields_box()` / `save()` so the two never drift
+  apart (identical `_sso_schema_*` meta keys, different post IDs).
+- **All JSON-LD output moved from `wp_footer` to `wp_head`**
+  (`output_global_schema` priority 19, `output_post_schema` priority 20,
+  `output_breadcrumb_schema` priority 21) — `<script type="application/
+  ld+json">` tags now land in `<head>` instead of the page footer.
+
+### Fixed
+- `SSO_Schema_CPT::render_fields_box()` was passing a truthy (non-bool)
+  2nd argument to `render_schema_fields_only()`, which silently enabled the
+  per-post-only "Auto" dropdown option inside the CPT screen. A new entry
+  left on that default option saved an EMPTY `_sso_schema_type`, so the
+  entry produced zero JSON-LD output with no visible error — this is what
+  the "Whole site" entry appeared to do nothing when first tested.
+- A "Whole site" Schemas entry previously never rendered anywhere, because
+  `output_post_schema()` bailed out entirely on any non-`is_singular()`
+  request (home, archive, search, 404) — exactly the pages "whole site" is
+  supposed to cover. It now falls back to
+  `SSO_Schema_CPT::get_site_wide_entry_id()` on those views and builds the
+  schema from the entry's own fields, recursively rewriting any nested
+  value that equals the entry's internal (non-public) permalink/title —
+  `offers.url`, `mainEntityOfPage.@id`, `sameAs`, etc. — to the site's real
+  home URL / site name (`replace_recursive()`).
+
+## [1.0.5] - 2026-09-09
+
+### Added
+- **Schema type by Page Template or Category/Tag.** `resolve_post_schema_type()`
+  in `class-sso-schema.php` now resolves through 4 priority tiers (most
+  specific wins, statically cached per post_id per request):
+  1. Per-post override (`_sso_schema_type` post meta — unchanged).
+  2. **New:** Page Template rule (`schema.template_rules`), keyed by
+     `get_page_template_slug()`, with `'default'` representing the theme's
+     default template (WP returns `''` for it).
+  3. **New:** Taxonomy rule (`schema.taxonomy_rules`) — category terms
+     checked before tag terms; within a taxonomy, the lowest matching
+     term_id with an *enabled* rule wins (deterministic tiebreak).
+  4. Per-post-type default (`schema.post_types` — unchanged).
+  A disabled rule at any tier falls through to the next tier rather than
+  blocking resolution. Two new tables added to Settings > Schema ("Schema
+  by Page Template", "Schema by Category / Tag"), following the existing
+  hidden-checkbox fallback pattern so a lone unchecked box can be turned
+  off. Sanitization added in `sanitize_group('schema', ...)` for both new
+  option keys (`template_rules`, `taxonomy_rules`).
+
 ## [1.0.4] - 2026-09-06
 
 ### Added
