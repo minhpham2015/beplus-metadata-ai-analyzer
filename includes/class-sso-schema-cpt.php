@@ -75,22 +75,22 @@ class SSO_Schema_CPT {
 					'not_found_in_trash' => __( 'No schemas found in Trash.', 'beplus-metadata-ai-analyzer' ),
 					'all_items'          => __( 'Schemas', 'beplus-metadata-ai-analyzer' ),
 				),
-				'public'               => false,
-				'show_ui'              => true,
-				'show_in_menu'         => 'sso-settings',
-				'show_in_admin_bar'    => false,
-				'show_in_nav_menus'    => false,
-				'show_in_rest'         => false,
-				'exclude_from_search'  => true,
-				'publicly_queryable'   => false,
-				'has_archive'          => false,
-				'rewrite'              => false,
-				'query_var'            => false,
-				'capability_type'      => 'post',
-				'map_meta_cap'         => true,
-				'hierarchical'         => false,
-				'supports'             => array( 'title' ),
-				'menu_icon'            => 'dashicons-editor-code',
+				'public'              => false,
+				'show_ui'             => true,
+				'show_in_menu'        => 'sso-settings',
+				'show_in_admin_bar'   => false,
+				'show_in_nav_menus'   => false,
+				'show_in_rest'        => false,
+				'exclude_from_search' => true,
+				'publicly_queryable'  => false,
+				'has_archive'         => false,
+				'rewrite'             => false,
+				'query_var'           => false,
+				'capability_type'     => 'post',
+				'map_meta_cap'        => true,
+				'hierarchical'        => false,
+				'supports'            => array( 'title' ),
+				'menu_icon'           => 'dashicons-editor-code',
 			)
 		);
 	}
@@ -462,7 +462,7 @@ class SSO_Schema_CPT {
 		}
 
 		// Tier: whole-site fallback — used only when nothing more specific matched.
-		$site_wide = get_posts(
+		$site_wide         = get_posts(
 			array(
 				'post_type'      => self::POST_TYPE,
 				'post_status'    => 'publish',
@@ -509,7 +509,7 @@ class SSO_Schema_CPT {
 				),
 			)
 		);
-		$cache = $site_wide ? (int) $site_wide[0] : 0;
+		$cache     = $site_wide ? (int) $site_wide[0] : 0;
 		return $cache;
 	}
 }

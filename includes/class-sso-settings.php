@@ -83,11 +83,11 @@ class SSO_Settings {
 				'enable_ai_meta'     => 1,
 			),
 			'schema'      => array(
-				'entity_type'    => 'organization',
-				'name'           => get_bloginfo( 'name' ),
-				'logo'           => 0,
-				'url'            => home_url( '/' ),
-				'sameas'         => array(
+				'entity_type' => 'organization',
+				'name'        => get_bloginfo( 'name' ),
+				'logo'        => 0,
+				'url'         => home_url( '/' ),
+				'sameas'      => array(
 					'facebook'  => '',
 					'twitter'   => '',
 					'linkedin'  => '',
@@ -602,8 +602,8 @@ class SSO_Settings {
 		<p class="description">
 			<?php
 			printf(
-				/* translators: %s: link to the Schemas admin list. */
 				wp_kses(
+					/* translators: %s: link to the Schemas admin list. */
 					__( 'Assign schema types to specific pages/posts or to every post of a post type using the <a href="%s">Schemas</a> custom post type. Individual posts can still override the schema type from the "Schema" tab of their own SEO meta box.', 'beplus-metadata-ai-analyzer' ),
 					array( 'a' => array( 'href' => array() ) )
 				),
