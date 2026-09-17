@@ -1,0 +1,25 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Constant SSO_PLUGIN_URL not found\.$#'
+			identifier: constant.notFound
+			count: 2
+			path: includes/class-sso-meta-box.php
+
+		-
+			message: '#^Constant SSO_PLUGIN_URL not found\.$#'
+			identifier: constant.notFound
+			count: 2
+			path: includes/class-sso-schema-cpt.php
+
+		-
+			message: '#^Function get_woocommerce_currency not found\.$#'
+			identifier: function.notFound
+			count: 1
+			path: includes/class-sso-schema.php
+
+		-
+			message: '#^Constant SSO_PLUGIN_URL not found\.$#'
+			identifier: constant.notFound
+			count: 2
+			path: includes/class-sso-settings.php
