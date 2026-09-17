@@ -761,7 +761,11 @@ class SSO_Meta_Box {
 	 * @param int $post_id Post ID being saved.
 	 */
 	public function save_schema_fields_only( $post_id ) {
+		// Nonce already verified by the caller (save() or
+		// SSO_Schema_CPT::save()) before this shared routine is invoked.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
 		if ( isset( $_POST['sso_schema_type'] ) ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing
 			$type = sanitize_key( wp_unslash( $_POST['sso_schema_type'] ) );
 			if ( $type ) {
 				update_post_meta( $post_id, '_sso_schema_type', $type );
@@ -772,10 +776,13 @@ class SSO_Meta_Box {
 		$this->save_text_field( $post_id, '_sso_schema_headline', 'sso_schema_headline' );
 		$this->save_text_field( $post_id, '_sso_schema_author', 'sso_schema_author' );
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
 		if ( isset( $_POST['sso_schema_faq_question'] ) && isset( $_POST['sso_schema_faq_answer'] ) ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing
 			$questions = array_map( 'sanitize_text_field', wp_unslash( (array) $_POST['sso_schema_faq_question'] ) );
-			$answers   = array_map( 'wp_kses_post', wp_unslash( (array) $_POST['sso_schema_faq_answer'] ) );
-			$faq       = array();
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing
+			$answers = array_map( 'wp_kses_post', wp_unslash( (array) $_POST['sso_schema_faq_answer'] ) );
+			$faq     = array();
 			foreach ( $questions as $index => $question ) {
 				$answer = isset( $answers[ $index ] ) ? $answers[ $index ] : '';
 				if ( '' === trim( $question ) || '' === trim( $answer ) ) {
@@ -797,7 +804,9 @@ class SSO_Meta_Box {
 		$lb_data   = array();
 		foreach ( $lb_fields as $field ) {
 			$post_key = 'sso_lb_' . $field;
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing
 			if ( isset( $_POST[ $post_key ] ) ) {
+				// phpcs:ignore WordPress.Security.NonceVerification.Missing
 				$value = sanitize_text_field( wp_unslash( $_POST[ $post_key ] ) );
 				if ( '' !== $value ) {
 					$lb_data[ $field ] = $value;
@@ -811,19 +820,15 @@ class SSO_Meta_Box {
 		}
 
 		// HowTo schema fields.
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce already verified.
-		if ( isset( $_POST['sso_howto'] ) && is_array( $_POST['sso_howto'] ) ) {
-			// phpcs:ignore WordPress.Security.NonceVerification.Missing
-			$howto_raw  = wp_unslash( $_POST['sso_howto'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		if ( isset( $_POST['sso_howto'] ) && is_array( $_POST['sso_howto'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			$howto_raw  = wp_unslash( $_POST['sso_howto'] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 			$howto_data = array(
 				'total_time'     => sanitize_text_field( $howto_raw['total_time'] ?? '' ),
 				'estimated_cost' => sanitize_text_field( $howto_raw['estimated_cost'] ?? '' ),
 				'currency'       => sanitize_text_field( $howto_raw['currency'] ?? 'VND' ),
 			);
-			// phpcs:ignore WordPress.Security.NonceVerification.Missing
-			$step_names = isset( $_POST['sso_howto_step_name'] ) ? array_map( 'sanitize_text_field', wp_unslash( (array) $_POST['sso_howto_step_name'] ) ) : array();
-			// phpcs:ignore WordPress.Security.NonceVerification.Missing
-			$step_texts = isset( $_POST['sso_howto_step_text'] ) ? array_map( 'sanitize_text_field', wp_unslash( (array) $_POST['sso_howto_step_text'] ) ) : array();
+			$step_names = isset( $_POST['sso_howto_step_name'] ) ? array_map( 'sanitize_text_field', wp_unslash( (array) $_POST['sso_howto_step_name'] ) ) : array(); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			$step_texts = isset( $_POST['sso_howto_step_text'] ) ? array_map( 'sanitize_text_field', wp_unslash( (array) $_POST['sso_howto_step_text'] ) ) : array(); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 			$steps      = array();
 			foreach ( $step_names as $i => $sname ) {
 				if ( '' === trim( $sname ) ) {
@@ -839,10 +844,8 @@ class SSO_Meta_Box {
 		}
 
 		// Event schema fields.
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing
-		if ( isset( $_POST['sso_event'] ) && is_array( $_POST['sso_event'] ) ) {
-			// phpcs:ignore WordPress.Security.NonceVerification.Missing
-			$event_raw  = wp_unslash( $_POST['sso_event'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		if ( isset( $_POST['sso_event'] ) && is_array( $_POST['sso_event'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			$event_raw  = wp_unslash( $_POST['sso_event'] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 			$event_data = array_map( 'sanitize_text_field', $event_raw );
 			if ( array_filter( $event_data ) ) {
 				update_post_meta( $post_id, '_sso_schema_event', $event_data );
@@ -852,10 +855,8 @@ class SSO_Meta_Box {
 		}
 
 		// VideoObject schema fields.
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing
-		if ( isset( $_POST['sso_video'] ) && is_array( $_POST['sso_video'] ) ) {
-			// phpcs:ignore WordPress.Security.NonceVerification.Missing
-			$video_raw  = wp_unslash( $_POST['sso_video'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		if ( isset( $_POST['sso_video'] ) && is_array( $_POST['sso_video'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			$video_raw  = wp_unslash( $_POST['sso_video'] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 			$video_data = array();
 			foreach ( $video_raw as $key => $value ) {
 				if ( in_array( $key, array( 'content_url', 'embed_url', 'thumbnail_url' ), true ) ) {
@@ -874,10 +875,8 @@ class SSO_Meta_Box {
 		}
 
 		// Recipe schema fields.
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing
-		if ( isset( $_POST['sso_recipe'] ) && is_array( $_POST['sso_recipe'] ) ) {
-			// phpcs:ignore WordPress.Security.NonceVerification.Missing
-			$recipe_raw  = wp_unslash( $_POST['sso_recipe'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		if ( isset( $_POST['sso_recipe'] ) && is_array( $_POST['sso_recipe'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			$recipe_raw  = wp_unslash( $_POST['sso_recipe'] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 			$recipe_data = array();
 			foreach ( $recipe_raw as $key => $value ) {
 				$recipe_data[ $key ] = in_array( $key, array( 'ingredients', 'instructions' ), true )
@@ -892,10 +891,8 @@ class SSO_Meta_Box {
 		}
 
 		// JobPosting schema fields.
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing
-		if ( isset( $_POST['sso_job'] ) && is_array( $_POST['sso_job'] ) ) {
-			// phpcs:ignore WordPress.Security.NonceVerification.Missing
-			$job_raw  = wp_unslash( $_POST['sso_job'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		if ( isset( $_POST['sso_job'] ) && is_array( $_POST['sso_job'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			$job_raw  = wp_unslash( $_POST['sso_job'] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 			$job_data = array_map( 'sanitize_text_field', $job_raw );
 			if ( array_filter( $job_data ) ) {
 				update_post_meta( $post_id, '_sso_schema_job', $job_data );
@@ -905,10 +902,8 @@ class SSO_Meta_Box {
 		}
 
 		// Course schema fields.
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing
-		if ( isset( $_POST['sso_course'] ) && is_array( $_POST['sso_course'] ) ) {
-			// phpcs:ignore WordPress.Security.NonceVerification.Missing
-			$course_raw  = wp_unslash( $_POST['sso_course'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		if ( isset( $_POST['sso_course'] ) && is_array( $_POST['sso_course'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			$course_raw  = wp_unslash( $_POST['sso_course'] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 			$course_data = array();
 			foreach ( $course_raw as $key => $value ) {
 				$course_data[ $key ] = in_array( $key, array( 'provider_url', 'url' ), true )
@@ -923,10 +918,8 @@ class SSO_Meta_Box {
 		}
 
 		// Review schema fields.
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing
-		if ( isset( $_POST['sso_review'] ) && is_array( $_POST['sso_review'] ) ) {
-			// phpcs:ignore WordPress.Security.NonceVerification.Missing
-			$review_raw  = wp_unslash( $_POST['sso_review'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		if ( isset( $_POST['sso_review'] ) && is_array( $_POST['sso_review'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			$review_raw  = wp_unslash( $_POST['sso_review'] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 			$review_data = array(
 				'item_reviewed' => sanitize_text_field( $review_raw['item_reviewed'] ?? '' ),
 				'rating'        => absint( $review_raw['rating'] ?? 5 ),

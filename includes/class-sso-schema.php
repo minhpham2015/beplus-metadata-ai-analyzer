@@ -277,9 +277,9 @@ class SSO_Schema {
 			if ( ! $entry_type || 'none' === $entry_type ) {
 				return;
 			}
-			$post_id            = $entry_id;
-			$is_site_wide_only  = true;
-			$resolved           = array(
+			$post_id           = $entry_id;
+			$is_site_wide_only = true;
+			$resolved          = array(
 				'enabled'  => true,
 				'type'     => $entry_type,
 				'entry_id' => $entry_id,
