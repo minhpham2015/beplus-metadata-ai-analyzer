@@ -189,6 +189,11 @@ This plugin is developed and maintained by BePlus, a WordPress and Shopify devel
 
 == Upgrade Notice ==
 
+= 1.1.2 =
+Fixes the "Assign To > Specific pages/posts" search box on Schemas entries,
+which never returned results since 1.1.0. No action needed — existing
+assignments are unaffected.
+
 = 1.1.0 =
 Replaces the old Schema per Post Type/Template/Category settings with a new
 Schemas custom post type (includes a "Whole site" option). JSON-LD now

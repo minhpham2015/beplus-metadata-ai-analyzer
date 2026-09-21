@@ -6,6 +6,31 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-09-21
+
+### Fixed
+- Schemas CPT "Specific pages/posts" search box never returned any
+  results — the field depended on the `select2` library, which was
+  never actually enqueued/bundled by the plugin, and its backing AJAX
+  endpoint (`sso_search_target_posts`) had never been implemented.
+  Replaced with a dependency-free plain-JS search (debounced AJAX,
+  click-to-add, remove-selected button) and implemented the missing
+  `wp_ajax_sso_search_target_posts` handler (nonce + `edit_posts`
+  capability check, searches published posts/pages by title, max 20
+  results). No change to how assignments are stored.
+
+## [1.1.1] - 2026-09-21
+
+### Fixed
+- Schemas CPT "specific page/post" assignment (`Assign To > Specific
+  pages/posts`) never actually resolved to the assigned entry, since
+  the feature was introduced in 1.1.0 — `resolve_schema_entry_id()`
+  used a `meta_query` LIKE pattern (`"<id>"`, quoted-string form) that
+  never matches how WordPress serializes an integer array
+  (`i:<id>;`, no quotes), so it silently fell through to the
+  post-type or whole-site tier instead. "Every post of a post type"
+  and "Whole site" assignments were unaffected.
+
 ## [1.1.0] - 2026-09-16
 
 ### Added
