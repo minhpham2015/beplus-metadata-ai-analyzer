@@ -421,7 +421,7 @@ class SSO_Schema_CPT {
 				'meta_query'     => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- small internal CPT, no realistic scale concern.
 					array(
 						'key'     => '_sso_schema_target_posts',
-						'value'   => '"' . $post_id . '"',
+						'value'   => 'i:' . (int) $post_id . ';',
 						'compare' => 'LIKE',
 					),
 				),

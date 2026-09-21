@@ -3,7 +3,7 @@ Contributors: bearsthemes, minhphamit
 Tags: seo, xml sitemap, open graph, schema, structured data
 Requires at least: 5.0
 Tested up to: 7.1
-Stable tag: 1.1.0
+Stable tag: 1.1.1
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -95,6 +95,16 @@ This plugin is developed and maintained by BePlus, a WordPress and Shopify devel
 2. Schema settings tab with a live JSON-LD preview.
 
 == Changelog ==
+
+= 1.1.1 =
+* Fix: Schemas CPT "specific page/post" assignment (Assign To > Specific
+  pages/posts) never actually matched, since the entry was introduced in
+  1.1.0 — the internal lookup compared against a quoted-string pattern
+  that never matches how WordPress serializes an integer post ID array,
+  so the schema silently fell back to the post-type or whole-site tier
+  instead. "Every post of a post type" and "Whole site" assignments were
+  not affected. No admin-facing change; existing assignments now resolve
+  correctly without needing to be re-saved.
 
 = 1.1.0 =
 * New: "Schemas" custom post type — assign a reusable Schema.org type to a
