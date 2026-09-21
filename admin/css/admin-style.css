@@ -199,3 +199,32 @@
 .sso-settings-wrap .title {
 	margin-top: 30px;
 }
+
+.sso-schema-search-results {
+	position: relative;
+	margin: 0;
+	list-style: none;
+	max-height: 220px;
+	overflow-y: auto;
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-top: none;
+	border-radius: 0 0 4px 4px;
+}
+
+.sso-schema-search-results li.sso-schema-search-item {
+	padding: 6px 10px;
+	cursor: pointer;
+	font-size: 13px;
+}
+
+.sso-schema-search-results li.sso-schema-search-item:hover,
+.sso-schema-search-results li.sso-schema-search-item:focus {
+	background: #f0f0f1;
+}
+
+.sso-schema-search-results li.sso-schema-search-empty {
+	padding: 6px 10px;
+	font-size: 13px;
+	color: #666;
+}
