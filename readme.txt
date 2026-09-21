@@ -3,7 +3,7 @@ Contributors: bearsthemes, minhphamit
 Tags: seo, xml sitemap, open graph, schema, structured data
 Requires at least: 5.0
 Tested up to: 7.1
-Stable tag: 1.1.1
+Stable tag: 1.1.2
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -95,6 +95,18 @@ This plugin is developed and maintained by BePlus, a WordPress and Shopify devel
 2. Schema settings tab with a live JSON-LD preview.
 
 == Changelog ==
+
+= 1.1.2 =
+* Fix: the "Specific pages/posts" search box on a Schemas entry (Assign
+  To > Specific pages/posts) never returned any results — the field
+  silently degraded to a plain unstyled multi-select with no way to
+  search, because the search UI depended on the `select2` library which
+  was never actually loaded/bundled by the plugin, and its backing AJAX
+  search handler (`sso_search_target_posts`) had never been implemented.
+  Replaced with a lightweight, dependency-free search box (plain
+  JS + AJAX, no select2), and implemented the missing search endpoint.
+  Existing assignments are unaffected; this only restores the ability to
+  search and add new pages/posts from the UI.
 
 = 1.1.1 =
 * Fix: Schemas CPT "specific page/post" assignment (Assign To > Specific

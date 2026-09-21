@@ -51,6 +51,46 @@ class SSO_Schema_CPT {
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 		add_filter( 'manage_' . self::POST_TYPE . '_posts_columns', array( $this, 'add_columns' ) );
 		add_action( 'manage_' . self::POST_TYPE . '_posts_custom_column', array( $this, 'render_column' ), 10, 2 );
+		add_action( 'wp_ajax_sso_search_target_posts', array( $this, 'ajax_search_target_posts' ) );
+	}
+
+	/**
+	 * AJAX handler backing the "Specific pages/posts" search box: returns
+	 * up to 20 published posts/pages (of the assignable post types) whose
+	 * title contains the search term, as `{id, text}` pairs.
+	 */
+	public function ajax_search_target_posts() {
+		check_ajax_referer( 'sso_search_target_posts', 'nonce' );
+
+		if ( ! current_user_can( 'edit_posts' ) ) {
+			wp_send_json_error( array(), 403 );
+		}
+
+		$term = isset( $_GET['q'] ) ? sanitize_text_field( wp_unslash( $_GET['q'] ) ) : '';
+		if ( strlen( $term ) < 2 ) {
+			wp_send_json_success( array() );
+		}
+
+		$posts = get_posts(
+			array(
+				'post_type'      => array_keys( $this->get_target_post_types() ),
+				'post_status'    => 'publish',
+				's'              => $term,
+				'posts_per_page' => 20,
+				'orderby'        => 'relevance',
+			)
+		);
+
+		$results = array();
+		foreach ( $posts as $post ) {
+			$type_object = get_post_type_object( $post->post_type );
+			$results[]   = array(
+				'id'   => $post->ID,
+				'text' => $post->post_title . ' (' . ( $type_object ? $type_object->labels->singular_name : $post->post_type ) . ')',
+			);
+		}
+
+		wp_send_json_success( $results );
 	}
 
 	/**
@@ -187,7 +227,10 @@ class SSO_Schema_CPT {
 			</label>
 		</p>
 		<div id="sso-schema-target-posts" style="<?php echo 'posts' === $target_mode ? '' : 'display:none;'; ?>">
-			<select id="sso_schema_target_posts_select" name="sso_schema_target_posts[]" multiple="multiple" class="widefat" style="min-height:120px;">
+			<input type="text" id="sso_schema_target_posts_search" class="widefat" autocomplete="off"
+				placeholder="<?php esc_attr_e( 'Start typing a title to search…', 'beplus-metadata-ai-analyzer' ); ?>" />
+			<ul id="sso_schema_target_posts_results" class="sso-schema-search-results" style="display:none;"></ul>
+			<select id="sso_schema_target_posts_select" name="sso_schema_target_posts[]" multiple="multiple" class="widefat" style="min-height:120px;margin-top:6px;">
 				<?php
 				$selected_posts = array();
 				if ( $target_posts ) {
@@ -210,7 +253,12 @@ class SSO_Schema_CPT {
 				endforeach;
 				?>
 			</select>
-			<p class="description"><?php esc_html_e( 'Start typing a title to search and add pages or posts.', 'beplus-metadata-ai-analyzer' ); ?></p>
+			<p class="description"><?php esc_html_e( 'Start typing a title to search and add pages or posts. Click a selected item, then press Remove, to unassign it.', 'beplus-metadata-ai-analyzer' ); ?></p>
+			<p>
+				<button type="button" id="sso_schema_target_posts_remove" class="button">
+					<?php esc_html_e( 'Remove selected', 'beplus-metadata-ai-analyzer' ); ?>
+				</button>
+			</p>
 		</div>
 		<p>
 			<label>
@@ -244,27 +292,67 @@ class SSO_Schema_CPT {
 					$( '#sso-schema-target-posts' ).toggle( 'posts' === mode );
 					$( '#sso-schema-target-post-type' ).toggle( 'post_type' === mode );
 				} );
-				if ( $.fn.select2 ) {
-					$( '#sso_schema_target_posts_select' ).select2( {
-						width: '100%',
-						ajax: {
+
+				var $search  = $( '#sso_schema_target_posts_search' );
+				var $results = $( '#sso_schema_target_posts_results' );
+				var $select  = $( '#sso_schema_target_posts_select' );
+				var searchTimer;
+
+				$search.on( 'input', function () {
+					var term = $.trim( $search.val() );
+					clearTimeout( searchTimer );
+					if ( term.length < 2 ) {
+						$results.hide().empty();
+						return;
+					}
+					searchTimer = setTimeout( function () {
+						$.ajax( {
 							url: ajaxurl,
 							dataType: 'json',
-							delay: 300,
-							data: function ( params ) {
-								return {
-									action: 'sso_search_target_posts',
-									q: params.term,
-									nonce: '<?php echo esc_js( wp_create_nonce( 'sso_search_target_posts' ) ); ?>',
-								};
+							data: {
+								action: 'sso_search_target_posts',
+								q: term,
+								nonce: '<?php echo esc_js( wp_create_nonce( 'sso_search_target_posts' ) ); ?>',
 							},
-							processResults: function ( data ) {
-								return { results: data.data || [] };
-							},
-						},
-						minimumInputLength: 2,
-					} );
-				}
+						} ).done( function ( response ) {
+							var items = ( response && response.success && response.data ) ? response.data : [];
+							$results.empty();
+							if ( ! items.length ) {
+								$results.append( $( '<li class="sso-schema-search-empty"></li>' ).text( '<?php echo esc_js( __( 'No matches.', 'beplus-metadata-ai-analyzer' ) ); ?>' ) );
+							} else {
+								$.each( items, function ( i, item ) {
+									var $li = $( '<li class="sso-schema-search-item" tabindex="0"></li>' )
+										.text( item.text )
+										.data( 'id', item.id )
+										.data( 'text', item.text );
+									$results.append( $li );
+								} );
+							}
+							$results.show();
+						} );
+					}, 300 );
+				} );
+
+				$results.on( 'click', 'li.sso-schema-search-item', function () {
+					var id   = $( this ).data( 'id' );
+					var text = $( this ).data( 'text' );
+					if ( ! $select.find( 'option[value="' + id + '"]' ).length ) {
+						$select.append( $( '<option selected="selected"></option>' ).attr( 'value', id ).text( text ) );
+					}
+					$search.val( '' );
+					$results.hide().empty();
+				} );
+
+				// Close the results dropdown when clicking elsewhere.
+				$( document ).on( 'click', function ( e ) {
+					if ( ! $( e.target ).closest( '#sso-schema-target-posts' ).length ) {
+						$results.hide();
+					}
+				} );
+
+				$( '#sso_schema_target_posts_remove' ).on( 'click', function () {
+					$select.find( 'option:selected' ).remove();
+				} );
 			} );
 		} )( jQuery );
 		</script>
