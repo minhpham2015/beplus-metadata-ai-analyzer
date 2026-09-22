@@ -94,3 +94,37 @@ jobs:
             echo "::error::Version mismatch — readme.txt says $README_VER, plugin header says $HEADER_VER"
             exit 1
           fi
+
+  wordpress-compatibility:
+    name: WordPress ${{ matrix.wordpress }} Compatibility
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        wordpress: ['7.1.1']
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: wordpress_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install WP-CLI
+        run: |
+          curl -fsSLo wp-cli.phar https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+          chmod +x wp-cli.phar
+      - name: Activate plugin on WordPress ${{ matrix.wordpress }}
+        run: |
+          mkdir -p /tmp/wp-compat
+          php wp-cli.phar core download --version=${{ matrix.wordpress }} --path=/tmp/wp-compat
+          php wp-cli.phar config create --path=/tmp/wp-compat --dbname=wordpress_test --dbuser=root --dbpass=root --dbhost=127.0.0.1
+          php wp-cli.phar core install --path=/tmp/wp-compat --url=http://localhost --title=Test --admin_user=admin --admin_password=password --admin_email=admin@example.com --skip-email
+          ln -s "$GITHUB_WORKSPACE" /tmp/wp-compat/wp-content/plugins/beplus-metadata-ai-analyzer
+          php wp-cli.phar plugin activate beplus-metadata-ai-analyzer --path=/tmp/wp-compat

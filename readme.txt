@@ -189,6 +189,10 @@ This plugin is developed and maintained by BePlus, a WordPress and Shopify devel
 
 == Upgrade Notice ==
 
+= 1.1.2 =
+Fixes the Schemas Assign To search. This version requires PHP 8.2 or newer;
+confirm your server PHP version before updating. Existing assignments remain intact.
+
 = 1.1.0 =
 Replaces the old Schema per Post Type/Template/Category settings with a new
 Schemas custom post type (includes a "Whole site" option). JSON-LD now

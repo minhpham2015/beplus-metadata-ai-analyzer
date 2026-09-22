@@ -6,6 +6,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+- Assign To search now explains its two-character minimum, caches identical
+  per-user searches for 60 seconds, and limits uncached searches to 10 per
+  user per minute while retaining nonce and capability checks.
+- CI now explicitly activates the plugin against installable WordPress 7.1.1.
+
 ## [1.1.0] - 2026-09-16
 
 ### Added
