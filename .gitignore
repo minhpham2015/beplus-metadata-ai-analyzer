@@ -7,3 +7,4 @@ vendor/
 *.zip
 /build/
 composer.lock
+.phpunit.result.cache
