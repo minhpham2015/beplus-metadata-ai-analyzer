@@ -71,6 +71,21 @@ class SSO_Schema_CPT {
 			wp_send_json_success( array() );
 		}
 
+		$user_id   = get_current_user_id();
+		$cache_key = 'search_' . $user_id . '_' . md5( strtolower( $term ) );
+		$results   = wp_cache_get( $cache_key, 'sso_schema_search' );
+		if ( false !== $results ) {
+			wp_send_json_success( $results );
+		}
+
+		$rate_key = 'rate_' . $user_id;
+		$requests = wp_cache_get( $rate_key, 'sso_schema_search' );
+		$requests = is_int( $requests ) ? $requests : 0;
+		if ( $requests >= 10 ) {
+			wp_send_json_error( array( 'message' => __( 'Too many searches. Please wait a minute and try again.', 'beplus-metadata-ai-analyzer' ) ), 429 );
+		}
+		wp_cache_set( $rate_key, $requests + 1, 'sso_schema_search', 60 );
+
 		$posts = get_posts(
 			array(
 				'post_type'      => array_keys( $this->get_target_post_types() ),
@@ -90,6 +105,7 @@ class SSO_Schema_CPT {
 			);
 		}
 
+		wp_cache_set( $cache_key, $results, 'sso_schema_search', 60 );
 		wp_send_json_success( $results );
 	}
 
@@ -302,7 +318,7 @@ class SSO_Schema_CPT {
 					var term = $.trim( $search.val() );
 					clearTimeout( searchTimer );
 					if ( term.length < 2 ) {
-						$results.hide().empty();
+						$results.empty().append( $( '<li class="sso-schema-search-empty"></li>' ).text( '<?php echo esc_js( __( 'Enter at least 2 characters.', 'beplus-metadata-ai-analyzer' ) ); ?>' ) ).show();
 						return;
 					}
 					searchTimer = setTimeout( function () {
