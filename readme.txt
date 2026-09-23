@@ -3,7 +3,7 @@ Contributors: bearsthemes, minhphamit
 Tags: seo, xml sitemap, open graph, schema, structured data
 Requires at least: 5.0
 Tested up to: 7.1
-Stable tag: 1.1.2
+Stable tag: 1.1.3
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -95,6 +95,17 @@ This plugin is developed and maintained by BePlus, a WordPress and Shopify devel
 2. Schema settings tab with a live JSON-LD preview.
 
 == Changelog ==
+
+= 1.1.3 =
+* Improvement: the Schemas "Specific pages/posts" search box now shows a
+  clear "Enter at least 2 characters" hint instead of silently doing
+  nothing when fewer than 2 characters are typed.
+* Improvement: identical searches by the same admin are now cached for 60
+  seconds, and each admin is limited to 10 new (uncached) searches per
+  minute, reducing database load from rapid typing. Existing nonce and
+  capability checks are unchanged.
+* Dev: CI now activates the plugin against an installable WordPress 7.1.1
+  to catch activation-time errors earlier.
 
 = 1.1.2 =
 * Fix: the "Specific pages/posts" search box on a Schemas entry (Assign
@@ -188,6 +199,10 @@ This plugin is developed and maintained by BePlus, a WordPress and Shopify devel
 * Initial release.
 
 == Upgrade Notice ==
+
+= 1.1.3 =
+Improves the Schemas Assign To search: caching, rate limiting, and a
+clearer minimum-character hint. No action needed.
 
 = 1.1.2 =
 Fixes the Schemas Assign To search. This version requires PHP 8.2 or newer;

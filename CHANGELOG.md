@@ -6,6 +6,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.1.3] - 2026-09-23
+
 ### Changed
 - Assign To search now explains its two-character minimum, caches identical
   per-user searches for 60 seconds, and limits uncached searches to 10 per
