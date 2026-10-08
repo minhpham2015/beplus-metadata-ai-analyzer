@@ -721,9 +721,8 @@ class SSO_Meta_Box {
 			return;
 		}
 
-		$post_type = get_post_type( $post_id );
-		$cap       = 'page' === $post_type ? 'edit_page' : 'edit_post';
-		if ( ! current_user_can( $cap, $post_id ) ) {
+		// `edit_post` maps to the right per-post-type capability (pages, CPTs).
+		if ( ! current_user_can( 'edit_post', $post_id ) ) {
 			return;
 		}
 
@@ -820,116 +819,147 @@ class SSO_Meta_Box {
 		}
 
 		// HowTo schema fields.
-		if ( isset( $_POST['sso_howto'] ) && is_array( $_POST['sso_howto'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
-			$howto_raw  = wp_unslash( $_POST['sso_howto'] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-			$howto_data = array(
-				'total_time'     => sanitize_text_field( $howto_raw['total_time'] ?? '' ),
-				'estimated_cost' => sanitize_text_field( $howto_raw['estimated_cost'] ?? '' ),
-				'currency'       => sanitize_text_field( $howto_raw['currency'] ?? 'VND' ),
-			);
-			$step_names = isset( $_POST['sso_howto_step_name'] ) ? array_map( 'sanitize_text_field', wp_unslash( (array) $_POST['sso_howto_step_name'] ) ) : array(); // phpcs:ignore WordPress.Security.NonceVerification.Missing
-			$step_texts = isset( $_POST['sso_howto_step_text'] ) ? array_map( 'sanitize_text_field', wp_unslash( (array) $_POST['sso_howto_step_text'] ) ) : array(); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$howto = $this->get_posted_array( 'sso_howto' );
+		if ( null !== $howto ) {
+			$step_names = (array) $this->get_posted_array( 'sso_howto_step_name' );
+			$step_texts = (array) $this->get_posted_array( 'sso_howto_step_text' );
 			$steps      = array();
-			foreach ( $step_names as $i => $sname ) {
-				if ( '' === trim( $sname ) ) {
+			foreach ( $step_names as $i => $step_name ) {
+				$step_name = self::sanitize_value( $step_name );
+				if ( '' === trim( $step_name ) ) {
 					continue;
 				}
 				$steps[] = array(
-					'name' => $sname,
-					'text' => $step_texts[ $i ] ?? '',
+					'name' => $step_name,
+					'text' => self::sanitize_value( $step_texts[ $i ] ?? '' ),
 				);
 			}
-			$howto_data['steps'] = $steps;
-			update_post_meta( $post_id, '_sso_schema_howto', $howto_data );
+			update_post_meta(
+				$post_id,
+				'_sso_schema_howto',
+				array(
+					'total_time'     => self::sanitize_value( $howto['total_time'] ?? '' ),
+					'estimated_cost' => self::sanitize_value( $howto['estimated_cost'] ?? '' ),
+					'currency'       => self::sanitize_value( $howto['currency'] ?? 'VND' ),
+					'steps'          => $steps,
+				)
+			);
 		}
 
-		// Event schema fields.
-		if ( isset( $_POST['sso_event'] ) && is_array( $_POST['sso_event'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
-			$event_raw  = wp_unslash( $_POST['sso_event'] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-			$event_data = array_map( 'sanitize_text_field', $event_raw );
-			if ( array_filter( $event_data ) ) {
-				update_post_meta( $post_id, '_sso_schema_event', $event_data );
-			} else {
-				delete_post_meta( $post_id, '_sso_schema_event' );
-			}
-		}
-
-		// VideoObject schema fields.
-		if ( isset( $_POST['sso_video'] ) && is_array( $_POST['sso_video'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
-			$video_raw  = wp_unslash( $_POST['sso_video'] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-			$video_data = array();
-			foreach ( $video_raw as $key => $value ) {
-				if ( in_array( $key, array( 'content_url', 'embed_url', 'thumbnail_url' ), true ) ) {
-					$video_data[ $key ] = esc_url_raw( $value );
-				} elseif ( 'description' === $key ) {
-					$video_data[ $key ] = sanitize_textarea_field( $value );
-				} else {
-					$video_data[ $key ] = sanitize_text_field( $value );
-				}
-			}
-			if ( array_filter( $video_data ) ) {
-				update_post_meta( $post_id, '_sso_schema_video', $video_data );
-			} else {
-				delete_post_meta( $post_id, '_sso_schema_video' );
-			}
-		}
-
-		// Recipe schema fields.
-		if ( isset( $_POST['sso_recipe'] ) && is_array( $_POST['sso_recipe'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
-			$recipe_raw  = wp_unslash( $_POST['sso_recipe'] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-			$recipe_data = array();
-			foreach ( $recipe_raw as $key => $value ) {
-				$recipe_data[ $key ] = in_array( $key, array( 'ingredients', 'instructions' ), true )
-					? sanitize_textarea_field( $value )
-					: sanitize_text_field( $value );
-			}
-			if ( array_filter( $recipe_data ) ) {
-				update_post_meta( $post_id, '_sso_schema_recipe', $recipe_data );
-			} else {
-				delete_post_meta( $post_id, '_sso_schema_recipe' );
-			}
-		}
-
-		// JobPosting schema fields.
-		if ( isset( $_POST['sso_job'] ) && is_array( $_POST['sso_job'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
-			$job_raw  = wp_unslash( $_POST['sso_job'] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-			$job_data = array_map( 'sanitize_text_field', $job_raw );
-			if ( array_filter( $job_data ) ) {
-				update_post_meta( $post_id, '_sso_schema_job', $job_data );
-			} else {
-				delete_post_meta( $post_id, '_sso_schema_job' );
-			}
-		}
-
-		// Course schema fields.
-		if ( isset( $_POST['sso_course'] ) && is_array( $_POST['sso_course'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
-			$course_raw  = wp_unslash( $_POST['sso_course'] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-			$course_data = array();
-			foreach ( $course_raw as $key => $value ) {
-				$course_data[ $key ] = in_array( $key, array( 'provider_url', 'url' ), true )
-					? esc_url_raw( $value )
-					: sanitize_text_field( $value );
-			}
-			if ( array_filter( $course_data ) ) {
-				update_post_meta( $post_id, '_sso_schema_course', $course_data );
-			} else {
-				delete_post_meta( $post_id, '_sso_schema_course' );
-			}
+		// Flat key/value schema groups: [ meta key => [ $_POST key, per-field types ] ].
+		// Fields not listed in the types map are plain text.
+		$groups = array(
+			'_sso_schema_event'  => array( 'sso_event', array() ),
+			'_sso_schema_video'  => array(
+				'sso_video',
+				array(
+					'content_url'   => 'url',
+					'embed_url'     => 'url',
+					'thumbnail_url' => 'url',
+					'description'   => 'textarea',
+				),
+			),
+			'_sso_schema_recipe' => array(
+				'sso_recipe',
+				array(
+					'ingredients'  => 'textarea',
+					'instructions' => 'textarea',
+				),
+			),
+			'_sso_schema_job'    => array( 'sso_job', array() ),
+			'_sso_schema_course' => array(
+				'sso_course',
+				array(
+					'provider_url' => 'url',
+					'url'          => 'url',
+				),
+			),
+		);
+		foreach ( $groups as $meta_key => $group ) {
+			$this->save_schema_group( $post_id, $meta_key, $group[0], $group[1] );
 		}
 
 		// Review schema fields.
-		if ( isset( $_POST['sso_review'] ) && is_array( $_POST['sso_review'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
-			$review_raw  = wp_unslash( $_POST['sso_review'] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		$review = $this->get_posted_array( 'sso_review' );
+		if ( null !== $review ) {
 			$review_data = array(
-				'item_reviewed' => sanitize_text_field( $review_raw['item_reviewed'] ?? '' ),
-				'rating'        => absint( $review_raw['rating'] ?? 5 ),
-				'body'          => sanitize_textarea_field( $review_raw['body'] ?? '' ),
+				'item_reviewed' => self::sanitize_value( $review['item_reviewed'] ?? '' ),
+				'rating'        => absint( is_scalar( $review['rating'] ?? 5 ) ? ( $review['rating'] ?? 5 ) : 5 ),
+				'body'          => self::sanitize_value( $review['body'] ?? '', 'textarea' ),
 			);
 			if ( $review_data['item_reviewed'] || $review_data['body'] ) {
 				update_post_meta( $post_id, '_sso_schema_review', $review_data );
 			} else {
 				delete_post_meta( $post_id, '_sso_schema_review' );
 			}
+		}
+	}
+
+	/**
+	 * Read a posted array field (already wp_unslash()ed), or null when absent
+	 * or not an array. Callers MUST sanitize each value via sanitize_value().
+	 *
+	 * @param string $post_key $_POST key.
+	 * @return array|null
+	 */
+	private function get_posted_array( $post_key ) {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified by the caller; every value is sanitized in sanitize_value().
+		if ( ! isset( $_POST[ $post_key ] ) || ! is_array( $_POST[ $post_key ] ) ) {
+			return null;
+		}
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- see above.
+		return wp_unslash( $_POST[ $post_key ] );
+	}
+
+	/**
+	 * Sanitize one posted value by type. Non-scalars (e.g. a tampered nested
+	 * array) become an empty string instead of triggering a TypeError.
+	 *
+	 * @param mixed  $value Raw value.
+	 * @param string $type  'text' (default), 'textarea' or 'url'.
+	 * @return string
+	 */
+	private static function sanitize_value( $value, $type = 'text' ) {
+		if ( ! is_scalar( $value ) ) {
+			return '';
+		}
+		$value = (string) $value;
+		switch ( $type ) {
+			case 'url':
+				return esc_url_raw( $value );
+			case 'textarea':
+				return sanitize_textarea_field( $value );
+			default:
+				return sanitize_text_field( $value );
+		}
+	}
+
+	/**
+	 * Save a posted key/value array as one meta entry, deleting it when every
+	 * field is empty.
+	 *
+	 * @param int    $post_id  Post ID.
+	 * @param string $meta_key Meta key.
+	 * @param string $post_key $_POST key holding the array.
+	 * @param array  $types    Map of field name => 'url'|'textarea' (default text).
+	 */
+	private function save_schema_group( $post_id, $meta_key, $post_key, $types ) {
+		$raw = $this->get_posted_array( $post_key );
+		if ( null === $raw ) {
+			return;
+		}
+		$data = array();
+		foreach ( $raw as $key => $value ) {
+			$key = sanitize_key( $key );
+			if ( '' === $key ) {
+				continue;
+			}
+			$data[ $key ] = self::sanitize_value( $value, $types[ $key ] ?? 'text' );
+		}
+		if ( array_filter( $data ) ) {
+			update_post_meta( $post_id, $meta_key, $data );
+		} else {
+			delete_post_meta( $post_id, $meta_key );
 		}
 	}
 

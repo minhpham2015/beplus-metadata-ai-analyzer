@@ -6,6 +6,31 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.1.4] - 2026-10-08
+
+### Fixed
+- `uninstall.php` now removes the Schemas CPT assignment meta
+  (`_sso_schema_target_mode/_posts/_post_type`), every `sso_schema` entry, and
+  the real sitemap transients (`sso_sitemap_urls`, `sso_sitemap_xml_{N}`);
+  it uses core `delete_post_meta_by_key()` instead of raw `$wpdb`.
+- Assign To search rate limit now uses transients, so it also works without a
+  persistent object cache.
+- Assign To search only returns posts the current user can `edit_post`;
+  the meta box uses `edit_post` for every post type (no page special case).
+- Translation template renamed to `languages/beplus-metadata-ai-analyzer.pot`
+  to match the plugin slug / text domain.
+
+### Added
+- Advanced > Output: option to hide the "Beplus Metadata AI Analyzer" HTML
+  comment in the page head (on by default).
+- PHPUnit tests for schema tier resolution, nested value replacement and
+  meta box value sanitizing.
+
+### Changed
+- Meta box schema saving refactored: shared helpers for the Event, Video,
+  Recipe, Job and Course groups; tampered nested arrays are ignored instead
+  of raising a TypeError.
+
 ## [1.1.3] - 2026-09-23
 
 ### Changed

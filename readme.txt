@@ -3,7 +3,7 @@ Contributors: bearsthemes, minhphamit
 Tags: seo, xml sitemap, open graph, schema, structured data
 Requires at least: 5.0
 Tested up to: 7.1
-Stable tag: 1.1.3
+Stable tag: 1.1.4
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -95,6 +95,12 @@ This plugin is developed and maintained by BePlus, a WordPress and Shopify devel
 2. Schema settings tab with a live JSON-LD preview.
 
 == Changelog ==
+
+= 1.1.4 =
+* Fix: uninstall now removes all Schemas assignment data, Schemas entries and sitemap caches.
+* Fix: Schemas "Assign To" search rate limit works without an object cache and only lists posts you can edit.
+* New: Advanced tab option to hide the plugin's HTML comment in the page head.
+* Improved: more robust saving of schema fields in the post editor.
 
 = 1.1.3 =
 * Improvement: the Schemas "Specific pages/posts" search box now shows a
@@ -199,6 +205,9 @@ This plugin is developed and maintained by BePlus, a WordPress and Shopify devel
 * Initial release.
 
 == Upgrade Notice ==
+
+= 1.1.4 =
+Cleaner uninstall, safer Schemas search, and an option to hide the head HTML comment.
 
 = 1.1.3 =
 Improves the Schemas Assign To search: caching, rate limiting, and a

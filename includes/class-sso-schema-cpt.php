@@ -73,18 +73,20 @@ class SSO_Schema_CPT {
 
 		$user_id   = get_current_user_id();
 		$cache_key = 'search_' . $user_id . '_' . md5( strtolower( $term ) );
-		$results   = wp_cache_get( $cache_key, 'sso_schema_search' );
+		$results   = get_transient( 'sso_' . $cache_key );
 		if ( false !== $results ) {
 			wp_send_json_success( $results );
 		}
 
 		$rate_key = 'rate_' . $user_id;
-		$requests = wp_cache_get( $rate_key, 'sso_schema_search' );
-		$requests = is_int( $requests ) ? $requests : 0;
+		// Transients (not wp_cache_*) so the limit also holds on sites without a
+		// persistent object cache, where wp_cache_* only lives for one request.
+		$requests = get_transient( 'sso_' . $rate_key );
+		$requests = is_numeric( $requests ) ? (int) $requests : 0;
 		if ( $requests >= 10 ) {
 			wp_send_json_error( array( 'message' => __( 'Too many searches. Please wait a minute and try again.', 'beplus-metadata-ai-analyzer' ) ), 429 );
 		}
-		wp_cache_set( $rate_key, $requests + 1, 'sso_schema_search', 60 );
+		set_transient( 'sso_' . $rate_key, $requests + 1, MINUTE_IN_SECONDS );
 
 		$posts = get_posts(
 			array(
@@ -98,6 +100,11 @@ class SSO_Schema_CPT {
 
 		$results = array();
 		foreach ( $posts as $post ) {
+			// Same capability the save handlers use, so search never offers a post
+			// the current user could not edit themselves.
+			if ( ! current_user_can( 'edit_post', $post->ID ) ) {
+				continue;
+			}
 			$type_object = get_post_type_object( $post->post_type );
 			$results[]   = array(
 				'id'   => $post->ID,
@@ -105,7 +112,7 @@ class SSO_Schema_CPT {
 			);
 		}
 
-		wp_cache_set( $cache_key, $results, 'sso_schema_search', 60 );
+		set_transient( 'sso_' . $cache_key, $results, MINUTE_IN_SECONDS );
 		wp_send_json_success( $results );
 	}
 
