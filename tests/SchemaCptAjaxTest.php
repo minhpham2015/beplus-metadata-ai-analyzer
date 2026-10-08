@@ -10,6 +10,8 @@ final class SchemaCptAjaxTest extends TestCase {
 		$GLOBALS['sso_test']['posts_calls']   = 0;
 		$GLOBALS['sso_test']['cache']         = array();
 		$GLOBALS['sso_test']['now']           = 1000;
+		$GLOBALS['sso_test']['posts_result']  = null;
+		$GLOBALS['sso_test']['meta']          = array();
 		$_GET                                = array( 'q' => 'alpha' );
 	}
 

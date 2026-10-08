@@ -105,7 +105,8 @@ class SSO_Settings {
 				'show_category' => 1,
 			),
 			'advanced'    => array(
-				'llms_txt_enabled' => 0,
+				'llms_txt_enabled'  => 0,
+				'show_head_comment' => 1,
 			),
 		);
 	}
@@ -325,7 +326,9 @@ class SSO_Settings {
 
 			case 'advanced':
 				return array(
-					'llms_txt_enabled' => ! empty( $values['llms_txt_enabled'] ) ? 1 : 0,
+					'llms_txt_enabled'  => ! empty( $values['llms_txt_enabled'] ) ? 1 : 0,
+					// Defaults to on when the field is absent (e.g. programmatic updates).
+					'show_head_comment' => isset( $values['show_head_comment'] ) ? ( ! empty( $values['show_head_comment'] ) ? 1 : 0 ) : 1,
 				);
 
 			default:
@@ -708,6 +711,19 @@ class SSO_Settings {
 				<td>
 					<textarea id="sso_llms_custom_content" name="sso_llms_custom_content" class="large-text" rows="6"><?php echo esc_textarea( get_option( 'sso_llms_custom_content', '' ) ); ?></textarea>
 					<p class="description"><?php esc_html_e( 'Optional Markdown appended under "Additional Information" in the llms.txt file. Useful for adding custom context about your organisation or content focus.', 'beplus-metadata-ai-analyzer' ); ?></p>
+				</td>
+			</tr>
+		</table>
+		<h2 class="title"><?php esc_html_e( 'Output', 'beplus-metadata-ai-analyzer' ); ?></h2>
+		<table class="form-table" role="presentation">
+			<tr>
+				<th scope="row"><?php esc_html_e( 'HTML comment', 'beplus-metadata-ai-analyzer' ); ?></th>
+				<td>
+					<label>
+						<input type="hidden" name="sso_settings[advanced][show_head_comment]" value="0" />
+						<input type="checkbox" name="sso_settings[advanced][show_head_comment]" value="1" <?php checked( ! empty( $advanced['show_head_comment'] ) ); ?> />
+						<?php esc_html_e( 'Wrap the plugin\'s output in the page head with a "Beplus Metadata AI Analyzer" HTML comment', 'beplus-metadata-ai-analyzer' ); ?>
+					</label>
 				</td>
 			</tr>
 		</table>

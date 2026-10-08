@@ -1,10 +1,10 @@
-# BePlus Smart SEO Google & AI
+# Beplus Metadata AI Analyzer
 # Copyright (C) 2024 BePlus
 # This file is distributed under the GPL v2 or later.
 # https://beplusthemes.com
 msgid ""
 msgstr ""
-"Project-Id-Version: BePlus Smart SEO Google & AI 1.0.0\n"
+"Project-Id-Version: Beplus Metadata AI Analyzer 1.1.4\n"
 "Report-Msgid-Bugs-To: https://beplusthemes.com\n"
 "POT-Creation-Date: 2024-01-01 00:00:00+00:00\n"
 "MIME-Version: 1.0\n"
@@ -14,7 +14,7 @@ msgstr ""
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "X-Generator: WP-CLI\n"
-"X-Domain: beplus-smart-seo-google-ai\n"
+"X-Domain: beplus-metadata-ai-analyzer\n"
 
 #. Plugin Name of the plugin/theme
 msgid "BePlus Smart SEO Google & AI"

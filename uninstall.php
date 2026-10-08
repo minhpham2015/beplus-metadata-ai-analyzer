@@ -14,8 +14,6 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 	exit;
 }
 
-global $wpdb;
-
 // Remove plugin options.
 delete_option( 'sso_settings' );
 delete_site_option( 'sso_settings' ); // In case the plugin was network-activated.
@@ -24,9 +22,14 @@ delete_site_option( 'sso_version' );
 delete_option( 'sso_llms_custom_content' );
 delete_site_option( 'sso_llms_custom_content' );
 
-// Remove transients created by the plugin.
-delete_transient( 'sso_sitemap_xml' );
+// Remove transients created by the plugin. The sitemap caches the shared URL
+// list plus one XML transient per page (`sso_sitemap_xml_{N}`, N = 0 for the
+// index / single sitemap, 1..MAX_CACHED_PAGES for chunks).
+delete_transient( 'sso_sitemap_urls' );
 delete_transient( 'sso_google_ping_last' );
+for ( $sso_page = 0; $sso_page <= 500; $sso_page++ ) {
+	delete_transient( 'sso_sitemap_xml_' . $sso_page );
+}
 
 // Remove every post meta key the plugin ever writes.
 $meta_keys = array(
@@ -52,13 +55,29 @@ $meta_keys = array(
 	'_sso_schema_job',
 	'_sso_schema_course',
 	'_sso_schema_review',
+	// "Schemas" CPT assignment keys.
+	'_sso_schema_target_mode',
+	'_sso_schema_target_posts',
+	'_sso_schema_target_post_type',
 	'_sso_seo_score',
 	'_sso_seo_score_calculated',
 );
 
 foreach ( $meta_keys as $meta_key ) {
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- one-off cleanup on uninstall, no caching layer needed.
-	$wpdb->delete( $wpdb->postmeta, array( 'meta_key' => $meta_key ) );
+	delete_post_meta_by_key( $meta_key );
+}
+
+// Remove every "Schemas" CPT entry (any status, including trash) with its meta.
+$sso_schema_entries = get_posts(
+	array(
+		'post_type'      => 'sso_schema',
+		'post_status'    => 'any',
+		'posts_per_page' => -1,
+		'fields'         => 'ids',
+	)
+);
+foreach ( $sso_schema_entries as $sso_schema_entry_id ) {
+	wp_delete_post( $sso_schema_entry_id, true );
 }
 
 // Flush any rewrite rules left behind for the virtual /sitemap.xml endpoint.

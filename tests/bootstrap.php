@@ -7,6 +7,8 @@ $GLOBALS['sso_test'] = array(
 	'posts_calls'   => 0,
 	'cache'         => array(),
 	'now'           => 1000,
+	'posts_result'  => null, // Override for get_posts() (null = default single "Alpha" post).
+	'meta'          => array(), // [ post_id => [ meta_key => value ] ] for get_post_meta().
 );
 
 class SSO_Test_Json_Response extends RuntimeException {
@@ -39,20 +41,31 @@ function get_post_types() {
 }
 function get_posts() {
 	++$GLOBALS['sso_test']['posts_calls'];
+	if ( null !== $GLOBALS['sso_test']['posts_result'] ) {
+		return $GLOBALS['sso_test']['posts_result'];
+	}
 	return array( (object) array( 'ID' => 42, 'post_title' => 'Alpha', 'post_type' => 'post' ) );
 }
 function get_post_type_object() { return (object) array( 'labels' => (object) array( 'singular_name' => 'Post' ) ); }
-function wp_cache_get( $key, $group, $force = false, &$found = null ) {
-	$full  = $group . ':' . $key;
-	$found = isset( $GLOBALS['sso_test']['cache'][ $full ] ) && $GLOBALS['sso_test']['cache'][ $full ]['expires'] > $GLOBALS['sso_test']['now'];
-	return $found ? $GLOBALS['sso_test']['cache'][ $full ]['value'] : false;
+function get_transient( $key ) {
+	$entry = $GLOBALS['sso_test']['cache'][ $key ] ?? null;
+	return ( $entry && $entry['expires'] > $GLOBALS['sso_test']['now'] ) ? $entry['value'] : false;
 }
-function wp_cache_set( $key, $value, $group, $ttl ) {
-	$GLOBALS['sso_test']['cache'][ $group . ':' . $key ] = array( 'value' => $value, 'expires' => $GLOBALS['sso_test']['now'] + $ttl );
+function set_transient( $key, $value, $ttl ) {
+	$GLOBALS['sso_test']['cache'][ $key ] = array( 'value' => $value, 'expires' => $GLOBALS['sso_test']['now'] + $ttl );
 	return true;
 }
+function get_post_meta( $post_id, $key ) { return $GLOBALS['sso_test']['meta'][ $post_id ][ $key ] ?? ''; }
+function get_post_type() { return 'post'; }
+function esc_url_raw( $value ) { return trim( $value ); }
+function sanitize_textarea_field( $value ) { return trim( strip_tags( $value ) ); }
 
 if ( ! defined( 'ABSPATH' ) ) {
 	define( 'ABSPATH', __DIR__ . '/' );
 }
+if ( ! defined( 'MINUTE_IN_SECONDS' ) ) {
+	define( 'MINUTE_IN_SECONDS', 60 );
+}
 require_once dirname( __DIR__ ) . '/includes/class-sso-schema-cpt.php';
+require_once dirname( __DIR__ ) . '/includes/class-sso-schema.php';
+require_once dirname( __DIR__ ) . '/includes/class-sso-meta-box.php';
