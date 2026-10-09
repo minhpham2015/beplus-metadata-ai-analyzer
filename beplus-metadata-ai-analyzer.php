@@ -5,6 +5,7 @@
  * Version:           1.1.4
  * Author:                  Minh BePlus
  * Author URI:              https://beplusthemes.com/
+ * Support URI:      https://beplusthemes.com/contact/
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       beplus-metadata-ai-analyzer

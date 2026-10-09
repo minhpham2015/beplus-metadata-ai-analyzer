@@ -27,8 +27,47 @@ delete_site_option( 'sso_llms_custom_content' );
 // index / single sitemap, 1..MAX_CACHED_PAGES for chunks).
 delete_transient( 'sso_sitemap_urls' );
 delete_transient( 'sso_google_ping_last' );
+// Pre-pagination releases used this un-suffixed sitemap cache key.
+delete_transient( 'sso_sitemap_xml' );
 for ( $sso_page = 0; $sso_page <= 500; $sso_page++ ) {
 	delete_transient( 'sso_sitemap_xml_' . $sso_page );
+}
+
+// Search-result and rate-limit transient names contain dynamic user/query hashes,
+// so remove only rows beginning with the plugin-owned prefixes.
+global $wpdb;
+$sso_transient_patterns = array(
+	$wpdb->esc_like( '_transient_sso_search_' ) . '%',
+	$wpdb->esc_like( '_transient_timeout_sso_search_' ) . '%',
+	$wpdb->esc_like( '_transient_sso_rate_' ) . '%',
+	$wpdb->esc_like( '_transient_timeout_sso_rate_' ) . '%',
+);
+$wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Uninstall must remove dynamic option names.
+	$wpdb->prepare(
+		"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s OR option_name LIKE %s OR option_name LIKE %s",
+		$sso_transient_patterns[0],
+		$sso_transient_patterns[1],
+		$sso_transient_patterns[2],
+		$sso_transient_patterns[3]
+	)
+);
+
+if ( is_multisite() ) {
+	$sso_site_transient_patterns = array(
+		$wpdb->esc_like( '_site_transient_sso_search_' ) . '%',
+		$wpdb->esc_like( '_site_transient_timeout_sso_search_' ) . '%',
+		$wpdb->esc_like( '_site_transient_sso_rate_' ) . '%',
+		$wpdb->esc_like( '_site_transient_timeout_sso_rate_' ) . '%',
+	);
+	$wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Uninstall must remove dynamic site-option names.
+		$wpdb->prepare(
+			"DELETE FROM {$wpdb->sitemeta} WHERE meta_key LIKE %s OR meta_key LIKE %s OR meta_key LIKE %s OR meta_key LIKE %s",
+			$sso_site_transient_patterns[0],
+			$sso_site_transient_patterns[1],
+			$sso_site_transient_patterns[2],
+			$sso_site_transient_patterns[3]
+		)
+	);
 }
 
 // Remove every post meta key the plugin ever writes.
@@ -71,7 +110,7 @@ foreach ( $meta_keys as $meta_key ) {
 $sso_schema_entries = get_posts(
 	array(
 		'post_type'      => 'sso_schema',
-		'post_status'    => 'any',
+		'post_status'    => array( 'publish', 'draft', 'trash', 'pending', 'private', 'future', 'auto-draft', 'inherit' ),
 		'posts_per_page' => -1,
 		'fields'         => 'ids',
 	)

@@ -29,6 +29,9 @@ class SSO_Schema_CPT {
 	 */
 	const POST_TYPE = 'sso_schema';
 
+	/** Maximum database pages scanned by one AJAX search (100 candidates). */
+	const SEARCH_MAX_PAGES = 5;
+
 	/**
 	 * Get the singleton instance.
 	 *
@@ -88,29 +91,39 @@ class SSO_Schema_CPT {
 		}
 		set_transient( 'sso_' . $rate_key, $requests + 1, MINUTE_IN_SECONDS );
 
-		$posts = get_posts(
-			array(
-				'post_type'      => array_keys( $this->get_target_post_types() ),
-				'post_status'    => 'publish',
-				's'              => $term,
-				'posts_per_page' => 20,
-				'orderby'        => 'relevance',
-			)
-		);
-
 		$results = array();
-		foreach ( $posts as $post ) {
-			// Same capability the save handlers use, so search never offers a post
-			// the current user could not edit themselves.
-			if ( ! current_user_can( 'edit_post', $post->ID ) ) {
-				continue;
-			}
-			$type_object = get_post_type_object( $post->post_type );
-			$results[]   = array(
-				'id'   => $post->ID,
-				'text' => $post->post_title . ' (' . ( $type_object ? $type_object->labels->singular_name : $post->post_type ) . ')',
+		$page    = 1;
+		do {
+			$posts = get_posts(
+				array(
+					'post_type'      => array_keys( $this->get_target_post_types() ),
+					'post_status'    => 'publish',
+					's'              => $term,
+					'posts_per_page' => 20,
+					'paged'          => $page,
+					'orderby'        => 'relevance',
+				)
 			);
-		}
+
+			foreach ( $posts as $post ) {
+				// Same capability the save handlers use, so search never offers a post
+				// the current user could not edit themselves.
+				if ( ! current_user_can( 'edit_post', $post->ID ) ) {
+					continue;
+				}
+				$type_object = get_post_type_object( $post->post_type );
+				$results[]   = array(
+					'id'   => $post->ID,
+					'text' => $post->post_title . ' (' . ( $type_object ? $type_object->labels->singular_name : $post->post_type ) . ')',
+				);
+				if ( 20 === count( $results ) ) {
+					break;
+				}
+			}
+			$post_count   = count( $posts );
+			$result_count = count( $results );
+			++$page;
+		} while ( 20 === $post_count && 20 > $result_count && $page <= self::SEARCH_MAX_PAGES );
 
 		set_transient( 'sso_' . $cache_key, $results, MINUTE_IN_SECONDS );
 		wp_send_json_success( $results );

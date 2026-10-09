@@ -11,6 +11,8 @@ final class SchemaCptAjaxTest extends TestCase {
 		$GLOBALS['sso_test']['cache']         = array();
 		$GLOBALS['sso_test']['now']           = 1000;
 		$GLOBALS['sso_test']['posts_result']  = null;
+		$GLOBALS['sso_test']['posts_args']    = array();
+		$GLOBALS['sso_test']['editable_ids']  = null;
 		$GLOBALS['sso_test']['meta']          = array();
 		$_GET                                = array( 'q' => 'alpha' );
 	}
@@ -61,5 +63,52 @@ final class SchemaCptAjaxTest extends TestCase {
 	public function test_assign_search_explains_two_character_minimum(): void {
 		$source = file_get_contents( dirname( __DIR__ ) . '/includes/class-sso-schema-cpt.php' );
 		$this->assertStringContainsString( 'Enter at least 2 characters.', $source );
+	}
+
+	public function test_search_returns_twenty_authorized_results_when_unauthorized_matches_come_first(): void {
+		$posts = array();
+		for ( $id = 1; $id <= 45; $id++ ) {
+			$posts[] = (object) array( 'ID' => $id, 'post_title' => 'Alpha ' . $id, 'post_type' => 'post' );
+		}
+		$GLOBALS['sso_test']['posts_result'] = $posts;
+		$GLOBALS['sso_test']['editable_ids'] = range( 21, 45 );
+
+		$response = $this->request();
+
+		$this->assertTrue( $response->success );
+		$this->assertCount( 20, $response->data );
+		$this->assertSame( range( 21, 40 ), array_column( $response->data, 'id' ) );
+	}
+
+	public function test_search_queries_in_bounded_pages(): void {
+		$posts = array();
+		for ( $id = 1; $id <= 25; $id++ ) {
+			$posts[] = (object) array( 'ID' => $id, 'post_title' => 'Alpha ' . $id, 'post_type' => 'post' );
+		}
+		$GLOBALS['sso_test']['posts_result'] = $posts;
+		$GLOBALS['sso_test']['editable_ids'] = range( 21, 25 );
+
+		$this->request();
+
+		$this->assertGreaterThan( 1, $GLOBALS['sso_test']['posts_calls'] );
+		foreach ( $GLOBALS['sso_test']['posts_args'] as $args ) {
+			$this->assertSame( 20, $args['posts_per_page'] );
+		}
+	}
+
+	public function test_search_stops_after_scanning_one_hundred_unauthorized_candidates(): void {
+		$posts = array();
+		for ( $id = 1; $id <= 101; $id++ ) {
+			$posts[] = (object) array( 'ID' => $id, 'post_title' => 'Alpha ' . $id, 'post_type' => 'post' );
+		}
+		$GLOBALS['sso_test']['posts_result'] = $posts;
+		$GLOBALS['sso_test']['editable_ids'] = array();
+
+		$response = $this->request();
+
+		$this->assertTrue( $response->success );
+		$this->assertSame( array(), $response->data );
+		$this->assertSame( 5, $GLOBALS['sso_test']['posts_calls'] );
+		$this->assertSame( range( 1, 5 ), array_column( $GLOBALS['sso_test']['posts_args'], 'paged' ) );
 	}
 }
