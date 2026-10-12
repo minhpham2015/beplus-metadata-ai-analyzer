@@ -1,9 +1,9 @@
 === Beplus Metadata AI Analyzer ===
 Contributors: bearsthemes, minhphamit
 Tags: seo, xml sitemap, open graph, schema, structured data
-Requires at least: 5.0
+Requires at least: 5.7
 Tested up to: 7.1
-Stable tag: 1.1.4
+Stable tag: 1.1.5
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -18,8 +18,8 @@ bloat:
 
 * **Meta Tags Management** – custom meta title & description per post with a
   live Google search snippet preview and character counters.
-* **XML Sitemap** – a virtual sitemap served at `/sitemap.xml`, automatically
-  pinged to Google on publish/update.
+* **XML Sitemap** – a virtual sitemap served at `/sitemap.xml`, cached and
+  refreshed automatically when content changes.
 * **Open Graph & Twitter Cards** – og:title, og:description, og:image, og:locale,
   article:published_time, twitter:card and friends, with a dedicated OG image
   field and sensible fallbacks (featured image, then site default, then logo).
@@ -95,6 +95,12 @@ This plugin is developed and maintained by BePlus, a WordPress and Shopify devel
 2. Schema settings tab with a live JSON-LD preview.
 
 == Changelog ==
+
+= 1.1.5 =
+* Fix: saving a post no longer runs hundreds of transient deletes; revisions and autosaves are skipped.
+* Fix: a single robots meta tag is now output (merged into WordPress core's), so it no longer conflicts with "Discourage search engines".
+* Fix: password-protected posts are excluded from the sitemap and llms.txt.
+* Removed: Google sitemap ping (Google retired the endpoint). The plugin no longer makes external requests.
 
 = 1.1.4 =
 * Fix: uninstall now removes all Schemas assignment data, Schemas entries and sitemap caches.
@@ -206,6 +212,9 @@ This plugin is developed and maintained by BePlus, a WordPress and Shopify devel
 
 == Upgrade Notice ==
 
+= 1.1.5 =
+Faster post saves, a single non-conflicting robots meta tag, and password-protected posts no longer appear in the sitemap or llms.txt. Requires WordPress 5.7+.
+
 = 1.1.4 =
 Cleaner uninstall, safer Schemas search, and an option to hide the head HTML comment.
 
@@ -245,14 +254,4 @@ Initial release.
 
 == External Services ==
 
-This plugin makes the following external requests:
-
-= Google Sitemap Ping =
-When a post is published or updated, the plugin optionally pings Google to notify it of the updated sitemap. This request is sent to:
-
-    https://www.google.com/ping?sitemap=<your-sitemap-url>
-
-This ping is rate-limited to at most once every five minutes. No personal data is sent — only your public sitemap URL. Pinging can be disabled by turning off the XML sitemap in **Settings > Metadata AI Analyzer > Sitemap**.
-
-* Google's Privacy Policy: https://policies.google.com/privacy
-* Google's Terms of Service: https://policies.google.com/terms
+This plugin does not make any external requests.

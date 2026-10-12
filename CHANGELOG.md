@@ -6,6 +6,23 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.1.5] - 2026-10-12
+
+### Fixed
+- Sitemap cache invalidation no longer deletes 500 transients on every
+  `save_post`; it skips revisions/autosaves and only clears chunks that were
+  cached (`sso_sitemap_max_cached_page` option).
+- Robots: noindex/nofollow are merged into core's `wp_robots` tag instead of
+  printing a second `<meta name="robots">` that could conflict with core.
+- Password-protected posts are excluded from the sitemap and `/llms.txt`.
+
+### Removed
+- Google sitemap ping (endpoint retired by Google); readme "External
+  Services" section updated.
+
+### Changed
+- Minimum WordPress version raised to 5.7 (`wp_robots` filter).
+
 ## [1.1.4] - 2026-10-08
 
 ### Fixed

@@ -26,7 +26,8 @@ delete_site_option( 'sso_llms_custom_content' );
 // list plus one XML transient per page (`sso_sitemap_xml_{N}`, N = 0 for the
 // index / single sitemap, 1..MAX_CACHED_PAGES for chunks).
 delete_transient( 'sso_sitemap_urls' );
-delete_transient( 'sso_google_ping_last' );
+delete_transient( 'sso_google_ping_last' ); // Legacy (ping removed in 1.1.5).
+delete_option( 'sso_sitemap_max_cached_page' );
 for ( $sso_page = 0; $sso_page <= 500; $sso_page++ ) {
 	delete_transient( 'sso_sitemap_xml_' . $sso_page );
 }
