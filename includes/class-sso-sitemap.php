@@ -431,8 +431,8 @@ XSL;
 	}
 
 	/**
-	 * save_post callback: skip revisions and autosaves, which can't change
-	 * the sitemap, then clear the cache.
+	 * Clear the cache on save_post, skipping revisions and autosaves, which can't change
+	 * the sitemap.
 	 *
 	 * @param int     $post_id Post ID.
 	 * @param WP_Post $post    Post object.
