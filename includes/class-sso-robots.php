@@ -37,7 +37,7 @@ class SSO_Robots {
 	 * Constructor.
 	 */
 	private function __construct() {
-		add_action( 'wp_head', array( $this, 'output' ), 1 );
+		add_filter( 'wp_robots', array( $this, 'filter_robots' ) );
 	}
 
 	/**
@@ -85,20 +85,31 @@ class SSO_Robots {
 	}
 
 	/**
-	 * Output the <meta name="robots"> tag.
+	 * Merge our noindex/nofollow directives into the single robots meta tag
+	 * WordPress core prints (wp_robots_render), instead of printing a second,
+	 * possibly conflicting tag. Core's own directives (e.g. noindex when
+	 * "Discourage search engines" is on, max-image-preview) are preserved.
+	 *
+	 * @param array $robots Directives => value/bool.
+	 * @return array
 	 */
-	public function output() {
+	public function filter_robots( $robots ) {
 		if ( is_admin() ) {
-			return;
+			return $robots;
 		}
 
 		$flags = $this->resolve_flags();
 		$flags = apply_filters( 'sso_robots_flags', $flags );
 
-		$parts   = array();
-		$parts[] = ! empty( $flags['noindex'] ) ? 'noindex' : 'index';
-		$parts[] = ! empty( $flags['nofollow'] ) ? 'nofollow' : 'follow';
+		if ( ! empty( $flags['noindex'] ) ) {
+			$robots['noindex'] = true;
+			unset( $robots['index'] );
+		}
+		if ( ! empty( $flags['nofollow'] ) ) {
+			$robots['nofollow'] = true;
+			unset( $robots['follow'] );
+		}
 
-		echo '<meta name="robots" content="' . esc_attr( implode( ',', $parts ) ) . '" />' . "\n";
+		return $robots;
 	}
 }

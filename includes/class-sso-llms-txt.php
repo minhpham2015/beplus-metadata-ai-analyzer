@@ -119,10 +119,11 @@ class SSO_Llms_Txt {
 		$lines[] = '## Recent Posts';
 		$posts   = get_posts(
 			array(
-				'numberposts' => 20,
-				'post_status' => 'publish',
-				'orderby'     => 'date',
-				'order'       => 'DESC',
+				'numberposts'  => 20,
+				'post_status'  => 'publish',
+				'has_password' => false,
+				'orderby'      => 'date',
+				'order'        => 'DESC',
 			)
 		);
 		foreach ( $posts as $post ) {
@@ -142,6 +143,9 @@ class SSO_Llms_Txt {
 			)
 		);
 		foreach ( $pages as $page ) {
+			if ( post_password_required( $page ) || ! empty( $page->post_password ) ) {
+				continue;
+			}
 			$meta_desc = get_post_meta( $page->ID, '_sso_meta_description', true );
 			if ( $meta_desc ) {
 				$lines[] = sprintf( '- [%s](%s): %s', $page->post_title, get_permalink( $page ), $meta_desc );
