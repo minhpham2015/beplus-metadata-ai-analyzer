@@ -25,7 +25,9 @@ bloat:
   field and sensible fallbacks (featured image, then site default, then logo).
 * **AI/LLM Meta Tags** – Dublin Core (DC.*), Citation meta (citation_title, etc.),
   AI-specific tags (llm:summary, llm:topics), and robots max-snippet hints —
-  all optional and individually toggleable from Settings.
+  note that no major search engine documents reading the DC.*, citation_* or
+  llm:* tags; they are experimental, citation_* is limited to posts
+  (filter `sso_citation_post_types`), and all are optional and individually toggleable from Settings.
 * **llms.txt Generator** – serves a machine-readable Markdown summary of your
   site at `/llms.txt` following the llmstxt.org standard, so LLMs can
   understand your site structure and content.

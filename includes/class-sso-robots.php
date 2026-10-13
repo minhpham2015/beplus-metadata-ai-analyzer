@@ -63,6 +63,12 @@ class SSO_Robots {
 			}
 
 			$nofollow = (bool) $meta_nofollow;
+		} elseif ( is_home() && ! is_front_page() && (int) get_option( 'page_for_posts' ) ) {
+			$posts_page    = (int) get_option( 'page_for_posts' );
+			$meta_noindex  = get_post_meta( $posts_page, '_sso_noindex', true );
+			$meta_nofollow = get_post_meta( $posts_page, '_sso_nofollow', true );
+			$noindex       = ( '' !== $meta_noindex ) ? (bool) $meta_noindex : false;
+			$nofollow      = (bool) $meta_nofollow;
 		} elseif ( is_search() ) {
 			$noindex = (bool) SSO_Settings::get( 'general', 'noindex_search', 1 );
 		} elseif ( is_category() || is_tag() || is_tax() ) {
@@ -104,6 +110,10 @@ class SSO_Robots {
 		if ( ! empty( $flags['noindex'] ) ) {
 			$robots['noindex'] = true;
 			unset( $robots['index'] );
+		} else {
+			// Rich-snippet hints; merged here so only one robots tag is ever printed.
+			$robots['max-snippet']       = -1;
+			$robots['max-video-preview'] = -1;
 		}
 		if ( ! empty( $flags['nofollow'] ) ) {
 			$robots['nofollow'] = true;

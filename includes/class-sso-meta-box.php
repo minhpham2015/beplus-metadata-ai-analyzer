@@ -1043,14 +1043,80 @@ class SSO_Meta_Box {
 	}
 
 	/**
+	 * Post ID whose SEO meta applies to the current request: the queried
+	 * post on singular views, or the assigned "Posts page" on the blog index.
+	 *
+	 * @return int 0 when no post-level meta applies.
+	 */
+	public static function get_context_post_id() {
+		if ( is_singular() ) {
+			return (int) get_queried_object_id();
+		}
+		if ( is_home() && ! is_front_page() ) {
+			return (int) get_option( 'page_for_posts' );
+		}
+		return 0;
+	}
+
+	/**
+	 * Resolve the meta description for a post: custom value, then a
+	 * length-limited excerpt (cut at a word boundary, max 160 chars).
+	 *
+	 * @param int $post_id Post ID.
+	 * @return string
+	 */
+	public static function get_description( $post_id ) {
+		$description = get_post_meta( $post_id, '_sso_meta_description', true );
+		if ( $description ) {
+			return $description;
+		}
+
+		$text = trim( preg_replace( '/\s+/', ' ', wp_strip_all_tags( get_the_excerpt( $post_id ) ) ) );
+		if ( mb_strlen( $text ) > 160 ) {
+			$text = mb_substr( $text, 0, 160 );
+			$pos  = mb_strrpos( $text, ' ' );
+			if ( false !== $pos && $pos > 80 ) {
+				$text = mb_substr( $text, 0, $pos );
+			}
+			$text = rtrim( $text, ' ,.;:-' ) . '…';
+		}
+		return $text;
+	}
+
+	/**
+	 * Description for non-post views (front page of posts, taxonomy and author archives).
+	 *
+	 * @return string
+	 */
+	private function get_archive_description() {
+		$text = '';
+		if ( is_front_page() ) {
+			$text = get_bloginfo( 'description' );
+		} elseif ( is_category() || is_tag() || is_tax() ) {
+			$text = term_description();
+		} elseif ( is_author() ) {
+			$text = get_the_author_meta( 'description', get_queried_object_id() );
+		} elseif ( is_post_type_archive() ) {
+			$obj  = get_queried_object();
+			$text = ( $obj && ! empty( $obj->description ) ) ? $obj->description : '';
+		}
+		$text = trim( preg_replace( '/\s+/', ' ', wp_strip_all_tags( (string) $text ) ) );
+		if ( mb_strlen( $text ) > 160 ) {
+			$text = rtrim( mb_substr( $text, 0, 159 ), ' ,.;:-' ) . '…';
+		}
+		return (string) apply_filters( 'sso_archive_meta_description', $text );
+	}
+
+	/**
 	 * Override wp_title/document title with the custom meta title, when set.
 	 *
 	 * @param string $title Default title.
 	 * @return string
 	 */
 	public function filter_document_title( $title ) {
-		if ( is_singular() ) {
-			$custom = get_post_meta( get_queried_object_id(), '_sso_meta_title', true );
+		$post_id = self::get_context_post_id();
+		if ( $post_id ) {
+			$custom = get_post_meta( $post_id, '_sso_meta_title', true );
 			if ( $custom ) {
 				return $custom;
 			}
@@ -1059,18 +1125,19 @@ class SSO_Meta_Box {
 	}
 
 	/**
-	 * Output <meta name="description"> for singular content.
+	 * Output <meta name="description"> for singular content, the posts page,
+	 * the home page and archives.
 	 */
 	public function output_meta_description() {
-		if ( is_admin() || ! is_singular() ) {
+		if ( is_admin() ) {
 			return;
 		}
 
-		$post_id     = get_queried_object_id();
-		$description = get_post_meta( $post_id, '_sso_meta_description', true );
-
-		if ( ! $description ) {
-			$description = wp_trim_words( wp_strip_all_tags( get_the_excerpt( $post_id ) ), 30, '' );
+		$post_id = self::get_context_post_id();
+		if ( $post_id ) {
+			$description = self::get_description( $post_id );
+		} else {
+			$description = $this->get_archive_description();
 		}
 
 		if ( $description ) {

@@ -6,6 +6,30 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+- `article:author` now outputs the author's profile URL (Facebook's expected format).
+- `citation_*` tags only on opted-in post types (filter `sso_citation_post_types`, default `post`) and never on archives.
+- Sitemap: featured images emitted as `<image:image>`; `xhtml:link` hreflang
+  alternates supported via the `sso_sitemap_urls` filter (`alternates` key);
+  `<priority>` can be dropped with `sso_sitemap_include_priority`; thumbnail
+  lookups are batched into one meta query.
+- OG titles for author and post-type archives.
+
+### Fixed
+- Removed the second `<meta name="robots">` printed by Open Graph; `max-snippet`
+  and `max-video-preview` are now merged into core's `wp_robots` tag.
+- Canonical: paginated front page, posts page; invalid (non-absolute) manual
+  overrides are ignored. `og:url` now matches the canonical URL.
+- Sitemap: taxonomy archives set to noindex are excluded; home URL and
+  post-type archives are included.
+
+### Added
+- Meta description on the home page, taxonomy, author and post-type archives.
+- Custom title/description/robots of the assigned "Posts page" apply on the blog index.
+- Excerpt-based descriptions are limited to 160 chars at a word boundary and
+  shared by meta description, Open Graph and `llm:summary`.
+- `og:image:width/height/alt`; taxonomy archives get their own OG title/description.
+
 ## [1.1.5] - 2026-10-12
 
 ### Fixed

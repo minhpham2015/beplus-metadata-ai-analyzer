@@ -329,7 +329,7 @@ XSL;
 	private function build_urlset_xml( $items ) {
 		$xml  = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
 		$xml .= $this->stylesheet_pi();
-		$xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
+		$xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1" xmlns:xhtml="http://www.w3.org/1999/xhtml">' . "\n";
 
 		foreach ( $items as $item ) {
 			$xml .= "	<url>\n";
@@ -337,8 +337,24 @@ XSL;
 			if ( ! empty( $item['lastmod'] ) ) {
 				$xml .= '		<lastmod>' . esc_html( $item['lastmod'] ) . "</lastmod>\n";
 			}
-			if ( ! empty( $item['priority'] ) ) {
+			/**
+			 * Filter whether <priority> is emitted. Google ignores it; disable to slim the file.
+			 *
+			 * @param bool $include Default true.
+			 */
+			if ( ! empty( $item['priority'] ) && apply_filters( 'sso_sitemap_include_priority', true ) ) {
 				$xml .= '		<priority>' . esc_html( $item['priority'] ) . "</priority>\n";
+			}
+			// Multilingual: ['hreflang' => 'url'], supplied by integrations via `sso_sitemap_urls`.
+			if ( ! empty( $item['alternates'] ) && is_array( $item['alternates'] ) ) {
+				foreach ( $item['alternates'] as $lang => $alt_url ) {
+					$xml .= '		<xhtml:link rel="alternate" hreflang="' . esc_attr( $lang ) . '" href="' . esc_url( $alt_url ) . '" />' . "\n";
+				}
+			}
+			if ( ! empty( $item['images'] ) && is_array( $item['images'] ) ) {
+				foreach ( $item['images'] as $image_url ) {
+					$xml .= '		<image:image><image:loc>' . esc_url( $image_url ) . "</image:loc></image:image>\n";
+				}
 			}
 			$xml .= "	</url>\n";
 		}
@@ -537,17 +553,55 @@ XSL;
 				)
 			);
 
+			// One query for all thumbnail IDs instead of one per post.
+			update_meta_cache( 'post', $query->posts );
+
 			foreach ( $query->posts as $post_id ) {
-				$urls[] = array(
+				$item  = array(
 					'loc'      => get_permalink( $post_id ),
 					'lastmod'  => get_the_modified_date( 'c', $post_id ),
 					'priority' => $this->calc_priority( $post_id, $post_type ),
 				);
+				$thumb = get_post_thumbnail_id( $post_id );
+				$img   = $thumb ? wp_get_attachment_url( $thumb ) : '';
+				if ( $img ) {
+					$item['images'] = array( $img );
+				}
+				$urls[] = $item;
 			}
 		}
 
-		$taxonomies = get_taxonomies( array( 'public' => true ), 'names' );
+		// Home URL, when the front page is the blog index (no static page entry exists then).
+		if ( 'page' !== get_option( 'show_on_front' ) ) {
+			$urls[] = array(
+				'loc'      => home_url( '/' ),
+				'lastmod'  => '',
+				'priority' => '1.0',
+			);
+		}
+
+		// Post type archives (e.g. a CPT with has_archive), unless excluded or noindexed.
+		foreach ( $post_types as $post_type ) {
+			if ( 'post' === $post_type || ! empty( $exclude_post_types[ $post_type ] ) || ! empty( $noindex_post_types[ $post_type ] ) ) {
+				continue;
+			}
+			$archive = get_post_type_archive_link( $post_type );
+			if ( $archive ) {
+				$urls[] = array(
+					'loc'      => $archive,
+					'lastmod'  => '',
+					'priority' => '0.6',
+				);
+			}
+		}
+
+		$noindex_archives = SSO_Settings::get( 'general', 'noindex_archives', array() );
+		$taxonomies       = get_taxonomies( array( 'public' => true ), 'names' );
 		foreach ( $taxonomies as $taxonomy ) {
+			// Mirror SSO_Robots: taxonomy archives set to noindex must not be advertised.
+			if ( ! empty( $noindex_archives[ $taxonomy ] ) ) {
+				continue;
+			}
 			$terms = get_terms(
 				array(
 					'taxonomy'   => $taxonomy,
