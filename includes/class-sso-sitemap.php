@@ -100,8 +100,35 @@ class SSO_Sitemap {
 		// Invalidate cache when plugin settings change.
 		add_action( 'updated_option', array( $this, 'on_option_updated' ), 10, 1 );
 
+		// Taxonomy and reading-settings changes alter the URL list too.
+		add_action( 'created_term', array( $this, 'clear_sitemap_cache' ) );
+		add_action( 'edited_term', array( $this, 'clear_sitemap_cache' ) );
+		add_action( 'delete_term', array( $this, 'clear_sitemap_cache' ) );
+
+		// Core's /wp-sitemap.xml would be a second, competing sitemap.
+		add_filter( 'wp_sitemaps_enabled', array( $this, 'maybe_disable_core_sitemap' ) );
+
 		// Point robots.txt at our sitemap instead of WordPress core's wp-sitemap.xml.
 		add_filter( 'robots_txt', array( $this, 'filter_robots_txt' ), 10, 1 );
+	}
+
+	/**
+	 * Turn off WordPress core's sitemap while ours is enabled, so crawlers only find one.
+	 *
+	 * @param bool $enabled Whether core sitemaps are enabled.
+	 * @return bool
+	 */
+	public function maybe_disable_core_sitemap( $enabled ) {
+		if ( ! (bool) SSO_Settings::get( 'sitemap', 'enabled', 1 ) ) {
+			return $enabled;
+		}
+
+		/**
+		 * Filter whether the core wp-sitemap.xml is disabled while the plugin sitemap is on.
+		 *
+		 * @param bool $disable Default true.
+		 */
+		return apply_filters( 'sso_disable_core_sitemap', true ) ? false : $enabled;
 	}
 
 	/**
@@ -480,9 +507,39 @@ XSL;
 	 * @param string $option Updated option name.
 	 */
 	public function on_option_updated( $option ) {
-		if ( SSO_Settings::OPTION_KEY === $option ) {
+		if ( in_array( $option, array( SSO_Settings::OPTION_KEY, 'show_on_front', 'page_on_front', 'page_for_posts' ), true ) ) {
 			$this->clear_sitemap_cache();
 		}
+	}
+
+	/**
+	 * Whether a published post would appear in the sitemap. Mirrors get_urls() so
+	 * other outputs (llms.txt) never advertise content the sitemap hides.
+	 *
+	 * @param WP_Post $post Post object.
+	 * @return bool
+	 */
+	public static function is_post_listable( $post ) {
+		if ( ! $post instanceof WP_Post || 'publish' !== $post->post_status || ! empty( $post->post_password ) ) {
+			return false;
+		}
+
+		$exclude_post_types = SSO_Settings::get( 'sitemap', 'exclude_post_types', array() );
+		if ( ! empty( $exclude_post_types[ $post->post_type ] ) ) {
+			return false;
+		}
+
+		if ( metadata_exists( 'post', $post->ID, '_sso_sitemap_exclude' ) ) {
+			return false;
+		}
+
+		$meta_noindex = get_post_meta( $post->ID, '_sso_noindex', true );
+		if ( '' !== $meta_noindex ) {
+			return ! (bool) $meta_noindex;
+		}
+
+		$noindex_post_types = SSO_Settings::get( 'general', 'noindex_post_types', array() );
+		return empty( $noindex_post_types[ $post->post_type ] );
 	}
 
 	/**
@@ -597,7 +654,17 @@ XSL;
 
 		$noindex_archives = SSO_Settings::get( 'general', 'noindex_archives', array() );
 		$taxonomies       = get_taxonomies( array( 'public' => true ), 'names' );
+
+		/**
+		 * Filter taxonomies kept out of the sitemap. Post formats are thin archives by default.
+		 *
+		 * @param string[] $excluded Taxonomy names.
+		 */
+		$excluded_taxonomies = (array) apply_filters( 'sso_sitemap_exclude_taxonomies', array( 'post_format' ) );
 		foreach ( $taxonomies as $taxonomy ) {
+			if ( in_array( $taxonomy, $excluded_taxonomies, true ) ) {
+				continue;
+			}
 			// Mirror SSO_Robots: taxonomy archives set to noindex must not be advertised.
 			if ( ! empty( $noindex_archives[ $taxonomy ] ) ) {
 				continue;

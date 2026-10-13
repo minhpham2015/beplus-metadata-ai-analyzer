@@ -44,6 +44,7 @@ class SSO_Meta_Box {
 
 		// Document title / meta description output (feature #1 of the spec).
 		add_filter( 'pre_get_document_title', array( $this, 'filter_document_title' ), 20 );
+		add_filter( 'wp_title', array( $this, 'filter_wp_title' ), 20 );
 		add_action( 'wp_head', array( $this, 'output_meta_description' ), 4 );
 	}
 
@@ -1073,12 +1074,13 @@ class SSO_Meta_Box {
 
 		$text = trim( preg_replace( '/\s+/', ' ', wp_strip_all_tags( get_the_excerpt( $post_id ) ) ) );
 		if ( mb_strlen( $text ) > 160 ) {
-			$text = mb_substr( $text, 0, 160 );
-			$pos  = mb_strrpos( $text, ' ' );
-			if ( false !== $pos && $pos > 80 ) {
-				$text = mb_substr( $text, 0, $pos );
+			// Cut at 160, then drop the trailing partial word (no mb_strrpos: mbstring may be absent).
+			$cut = mb_substr( $text, 0, 160 );
+			$cut = preg_replace( '/\s+\S*$/u', '', $cut );
+			if ( mb_strlen( $cut ) < 80 ) {
+				$cut = mb_substr( $text, 0, 159 );
 			}
-			$text = rtrim( $text, ' ,.;:-' ) . '…';
+			$text = rtrim( $cut, ' ,.;:-' ) . '…';
 		}
 		return $text;
 	}
@@ -1114,14 +1116,50 @@ class SSO_Meta_Box {
 	 * @return string
 	 */
 	public function filter_document_title( $title ) {
-		$post_id = self::get_context_post_id();
-		if ( $post_id ) {
-			$custom = get_post_meta( $post_id, '_sso_meta_title', true );
-			if ( $custom ) {
-				return $custom;
-			}
+		$custom = $this->get_custom_title();
+		return $custom ? $custom : $title;
+	}
+
+	/**
+	 * Fallback for themes without add_theme_support( 'title-tag' ), which print
+	 * wp_title() and never reach pre_get_document_title.
+	 *
+	 * @param string $title Default wp_title() value.
+	 * @return string
+	 */
+	public function filter_wp_title( $title ) {
+		if ( is_admin() || current_theme_supports( 'title-tag' ) ) {
+			return $title;
 		}
-		return $title;
+		$custom = $this->get_custom_title();
+		return $custom ? $custom : $title;
+	}
+
+	/**
+	 * Custom SEO title for the current request (with "Page N" on paged views), or ''.
+	 *
+	 * @return string
+	 */
+	private function get_custom_title() {
+		$post_id = self::get_context_post_id();
+		if ( ! $post_id ) {
+			return '';
+		}
+
+		$custom = get_post_meta( $post_id, '_sso_meta_title', true );
+		if ( ! $custom ) {
+			return '';
+		}
+
+		// A custom title bypasses core's "Page N" part, so add it back for paged views.
+		$page = self::get_current_page_number();
+		if ( $page >= 2 ) {
+			/** This filter is documented in wp-includes/general-template.php */
+			$sep    = apply_filters( 'document_title_separator', '-' );
+			$custom = $custom . ' ' . $sep . ' ' . self::page_label( $page );
+		}
+
+		return $custom;
 	}
 
 	/**
@@ -1129,7 +1167,7 @@ class SSO_Meta_Box {
 	 * the home page and archives.
 	 */
 	public function output_meta_description() {
-		if ( is_admin() ) {
+		if ( is_admin() || SSO_Compat::should_defer() ) {
 			return;
 		}
 
@@ -1140,8 +1178,34 @@ class SSO_Meta_Box {
 			$description = $this->get_archive_description();
 		}
 
+		// Keep paged views from sharing an identical description with page 1.
+		$page = self::get_current_page_number();
+		if ( $description && $page >= 2 ) {
+			$description .= ' – ' . self::page_label( $page );
+		}
+
 		if ( $description ) {
 			echo '<meta name="description" content="' . esc_attr( $description ) . '" />' . "\n";
 		}
+	}
+
+	/**
+	 * Current pagination number (archives use "paged", multi-page posts use "page").
+	 *
+	 * @return int 1 when not paginated.
+	 */
+	public static function get_current_page_number() {
+		return max( 1, (int) get_query_var( 'paged' ), (int) get_query_var( 'page' ) );
+	}
+
+	/**
+	 * Translated "Page N" label.
+	 *
+	 * @param int $page Page number.
+	 * @return string
+	 */
+	public static function page_label( $page ) {
+		/* translators: %s: page number. */
+		return sprintf( __( 'Page %s', 'beplus-metadata-ai-analyzer' ), number_format_i18n( $page ) );
 	}
 }

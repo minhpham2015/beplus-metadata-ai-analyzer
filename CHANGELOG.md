@@ -6,6 +6,49 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+- `max-snippet` / `max-video-preview` were passed to `wp_robots` as integers, so core
+  printed them as bare directives without `:-1`; now strings.
+- Excerpt trimming no longer calls `mb_strrpos()` (fatal on hosts without mbstring).
+- Custom SEO titles now work on themes without `title-tag` support via a
+  `wp_title` fallback; a notice on the settings page explains the limitation.
+- Sitemap and llms.txt caches are cleared on term create/edit/delete and when
+  `show_on_front`, `page_on_front` or `page_for_posts` change.
+- Core `/wp-sitemap.xml` is disabled while the plugin sitemap is on
+  (filter `sso_disable_core_sitemap`).
+
+### Added
+- Detects Yoast SEO, Rank Math, All in One SEO and SEOPress. When one is active
+  the plugin stops printing canonical, meta description, Open Graph and schema
+  tags to avoid duplicates (filter `sso_defer_to_other_seo_plugin`), and shows
+  a notice on its settings page.
+
+### Changed
+- WebSite schema no longer includes the sitelinks `SearchAction` (retired by
+  Google in 2024); re-enable with the `sso_schema_include_search_action` filter.
+- Breadcrumbs use the post's primary category (Yoast / Rank Math, or the
+  `sso_breadcrumb_primary_category` filter), else the deepest category.
+- Paged views get "Page N" appended to the custom title, meta description and
+  OG title, so they no longer duplicate page 1.
+- Open Graph on a static Posts page uses that page's own title/description/image.
+- `og:type` is `product` for products (filter `sso_og_type`); `twitter:creator`
+  is output from the author's `twitter` user meta.
+- Sitemap omits `post_format` archives by default (filter
+  `sso_sitemap_exclude_taxonomies`).
+
+### Fixed
+- Product schema no longer emits `price: "0"` for products without a price;
+  `offers` is omitted, and the Product node is skipped entirely when there is
+  neither an offer nor a rating (including when WooCommerce is inactive).
+- llms.txt no longer lists noindexed, sitemap-excluded or password-protected
+  content (shares `SSO_Sitemap::is_post_listable()` with the sitemap).
+
+### Changed
+- llms.txt now includes every public custom post type, caches its output for
+  12h (cleared on post/settings changes) and escapes link text.
+- Article/BlogPosting/Product schema fall back to the default OG image, then
+  the schema logo, when a post has no featured image; Article author has a `url`.
+
 ### Changed
 - `article:author` now outputs the author's profile URL (Facebook's expected format).
 - `citation_*` tags only on opted-in post types (filter `sso_citation_post_types`, default `post`) and never on archives.

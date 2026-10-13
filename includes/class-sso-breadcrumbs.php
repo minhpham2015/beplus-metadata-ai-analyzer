@@ -41,6 +41,38 @@ class SSO_Breadcrumbs {
 	}
 
 	/**
+	 * Pick the category used in a post's breadcrumb: the primary category set by
+	 * Yoast SEO / Rank Math if present, otherwise the deepest assigned category
+	 * (ties resolved by first), instead of an arbitrary first one.
+	 *
+	 * @param int       $post_id    Post ID.
+	 * @param WP_Term[] $categories Categories assigned to the post.
+	 * @return WP_Term
+	 */
+	private function get_primary_category( $post_id, $categories ) {
+		$primary_id = (int) get_post_meta( $post_id, '_yoast_wpseo_primary_category', true );
+		if ( ! $primary_id ) {
+			$primary_id = (int) get_post_meta( $post_id, 'rank_math_primary_category', true );
+		}
+		$primary_id = (int) apply_filters( 'sso_breadcrumb_primary_category', $primary_id, $post_id );
+
+		$best       = $categories[0];
+		$best_depth = -1;
+		foreach ( $categories as $category ) {
+			if ( $primary_id && (int) $category->term_id === $primary_id ) {
+				return $category;
+			}
+			$depth = count( get_ancestors( $category->term_id, 'category' ) );
+			if ( $depth > $best_depth ) {
+				$best       = $category;
+				$best_depth = $depth;
+			}
+		}
+
+		return $best;
+	}
+
+	/**
 	 * Build the breadcrumb trail for the current request.
 	 *
 	 * @return array[] List of ['text' => string, 'url' => string] items, in order.
@@ -64,7 +96,7 @@ class SSO_Breadcrumbs {
 				// Standard post: Home > [Parent Cat >] Category > Post Title.
 				$categories = get_the_category( $post->ID );
 				if ( ! empty( $categories ) ) {
-					$cat       = $categories[0];
+					$cat       = $this->get_primary_category( $post->ID, $categories );
 					$ancestors = array_reverse( get_ancestors( $cat->term_id, 'category' ) );
 					foreach ( $ancestors as $ancestor_id ) {
 						$term = get_term( $ancestor_id, 'category' );
