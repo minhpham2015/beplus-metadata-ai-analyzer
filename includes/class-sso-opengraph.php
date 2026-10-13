@@ -87,13 +87,13 @@ class SSO_OpenGraph {
 			return;
 		}
 
-		$social    = SSO_Settings::get( 'social' );
-		$image_id  = 0;
-		$post_id   = 0;
-		$post_type = '';
-		$date_pub  = '';
-		$date_mod  = '';
-		$author    = '';
+		$social     = SSO_Settings::get( 'social' );
+		$image_id   = 0;
+		$post_id    = 0;
+		$post_type  = '';
+		$date_pub   = '';
+		$date_mod   = '';
+		$author     = '';
 		$author_url = '';
 
 		if ( is_singular() ) {
@@ -113,16 +113,17 @@ class SSO_OpenGraph {
 				$description = SSO_Meta_Box::get_description( $post_id );
 			}
 
-			$url      = SSO_Canonical::instance()->get_url();
+			$url = SSO_Canonical::instance()->get_url();
 			if ( ! $url ) {
 				$url = get_permalink( $post_id );
 			}
-			$type     = ( 'page' === $post_type ) ? 'website' : 'article';
-			$image_id = $this->get_image_id( $post_id );
-			$date_pub = get_the_date( 'c', $post_id );
-			$date_mod = get_the_modified_date( 'c', $post_id );
-			$author_id = (int) get_post_field( 'post_author', $post_id );
-			$author    = get_the_author_meta( 'display_name', $author_id );
+
+			$type       = ( 'page' === $post_type ) ? 'website' : 'article';
+			$image_id   = $this->get_image_id( $post_id );
+			$date_pub   = get_the_date( 'c', $post_id );
+			$date_mod   = get_the_modified_date( 'c', $post_id );
+			$author_id  = (int) get_post_field( 'post_author', $post_id );
+			$author     = get_the_author_meta( 'display_name', $author_id );
 			$author_url = get_author_posts_url( $author_id );
 		} else {
 			$title       = get_bloginfo( 'name' );

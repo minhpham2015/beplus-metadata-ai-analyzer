@@ -1078,7 +1078,7 @@ class SSO_Meta_Box {
 			if ( false !== $pos && $pos > 80 ) {
 				$text = mb_substr( $text, 0, $pos );
 			}
-			$text = rtrim( $text, " ,.;:-" ) . '…';
+			$text = rtrim( $text, ' ,.;:-' ) . '…';
 		}
 		return $text;
 	}
@@ -1102,7 +1102,7 @@ class SSO_Meta_Box {
 		}
 		$text = trim( preg_replace( '/\s+/', ' ', wp_strip_all_tags( (string) $text ) ) );
 		if ( mb_strlen( $text ) > 160 ) {
-			$text = rtrim( mb_substr( $text, 0, 159 ), " ,.;:-" ) . '…';
+			$text = rtrim( mb_substr( $text, 0, 159 ), ' ,.;:-' ) . '…';
 		}
 		return (string) apply_filters( 'sso_archive_meta_description', $text );
 	}

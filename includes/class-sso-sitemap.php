@@ -557,13 +557,13 @@ XSL;
 			update_meta_cache( 'post', $query->posts );
 
 			foreach ( $query->posts as $post_id ) {
-				$item   = array(
+				$item = array(
 					'loc'      => get_permalink( $post_id ),
 					'lastmod'  => get_the_modified_date( 'c', $post_id ),
 					'priority' => $this->calc_priority( $post_id, $post_type ),
 				);
-				$thumb  = get_post_thumbnail_id( $post_id );
-				$img    = $thumb ? wp_get_attachment_url( $thumb ) : '';
+				$thumb = get_post_thumbnail_id( $post_id );
+				$img   = $thumb ? wp_get_attachment_url( $thumb ) : '';
 				if ( $img ) {
 					$item['images'] = array( $img );
 				}
