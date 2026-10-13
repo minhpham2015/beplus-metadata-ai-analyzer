@@ -94,6 +94,7 @@ class SSO_OpenGraph {
 		$date_pub  = '';
 		$date_mod  = '';
 		$author    = '';
+		$author_url = '';
 
 		if ( is_singular() ) {
 			$post_id   = get_queried_object_id();
@@ -120,7 +121,9 @@ class SSO_OpenGraph {
 			$image_id = $this->get_image_id( $post_id );
 			$date_pub = get_the_date( 'c', $post_id );
 			$date_mod = get_the_modified_date( 'c', $post_id );
-			$author   = get_the_author_meta( 'display_name', (int) get_post_field( 'post_author', $post_id ) );
+			$author_id = (int) get_post_field( 'post_author', $post_id );
+			$author    = get_the_author_meta( 'display_name', $author_id );
+			$author_url = get_author_posts_url( $author_id );
 		} else {
 			$title       = get_bloginfo( 'name' );
 			$description = get_bloginfo( 'description' );
@@ -128,6 +131,11 @@ class SSO_OpenGraph {
 			$type        = 'website';
 			$image_id    = $this->get_default_image_id();
 			$term        = ( is_category() || is_tag() || is_tax() ) ? get_queried_object() : null;
+			if ( is_author() ) {
+				$title = get_the_author_meta( 'display_name', get_queried_object_id() ) . ' – ' . $title;
+			} elseif ( is_post_type_archive() ) {
+				$title = post_type_archive_title( '', false ) . ' – ' . $title;
+			}
 			if ( $term && ! empty( $term->name ) ) {
 				$title = $term->name . ' – ' . $title;
 				$desc  = trim( wp_strip_all_tags( term_description() ) );
@@ -174,8 +182,9 @@ class SSO_OpenGraph {
 			if ( $date_mod ) {
 				echo '<meta property="article:modified_time" content="' . esc_attr( $date_mod ) . '" />' . "\n";
 			}
-			if ( $author ) {
-				echo '<meta property="article:author" content="' . esc_attr( $author ) . '" />' . "\n";
+			if ( $author_url ) {
+				// Facebook expects a profile/author URL here, not a display name.
+				echo '<meta property="article:author" content="' . esc_url( $author_url ) . '" />' . "\n";
 			}
 		}
 
@@ -206,7 +215,9 @@ class SSO_OpenGraph {
 		}
 
 		// -- Citation / Scholarly (Google Scholar, AI) --
-		if ( ! empty( $social['enable_citation'] ) ) {
+		// Scholarly metadata only on opted-in post types (default: posts), never on archives.
+		$citation_types = (array) apply_filters( 'sso_citation_post_types', array( 'post' ) );
+		if ( ! empty( $social['enable_citation'] ) && $post_id && in_array( $post_type, $citation_types, true ) ) {
 			echo '<meta name="citation_title" content="' . esc_attr( $title ) . '" />' . "\n";
 			if ( $author ) {
 				echo '<meta name="citation_author" content="' . esc_attr( $author ) . '" />' . "\n";
