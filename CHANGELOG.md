@@ -6,6 +6,19 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+- WebSite schema no longer includes the sitelinks `SearchAction` (retired by
+  Google in 2024); re-enable with the `sso_schema_include_search_action` filter.
+- Breadcrumbs use the post's primary category (Yoast / Rank Math, or the
+  `sso_breadcrumb_primary_category` filter), else the deepest category.
+- Paged views get "Page N" appended to the custom title, meta description and
+  OG title, so they no longer duplicate page 1.
+- Open Graph on a static Posts page uses that page's own title/description/image.
+- `og:type` is `product` for products (filter `sso_og_type`); `twitter:creator`
+  is output from the author's `twitter` user meta.
+- Sitemap omits `post_format` archives by default (filter
+  `sso_sitemap_exclude_taxonomies`).
+
 ### Fixed
 - Product schema no longer emits `price: "0"` for products without a price;
   `offers` is omitted, and the Product node is skipped entirely when there is

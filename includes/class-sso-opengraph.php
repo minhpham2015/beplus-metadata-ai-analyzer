@@ -95,6 +95,7 @@ class SSO_OpenGraph {
 		$date_mod   = '';
 		$author     = '';
 		$author_url = '';
+		$author_id  = 0;
 
 		if ( is_singular() ) {
 			$post_id   = get_queried_object_id();
@@ -118,7 +119,15 @@ class SSO_OpenGraph {
 				$url = get_permalink( $post_id );
 			}
 
-			$type       = ( 'page' === $post_type ) ? 'website' : 'article';
+			if ( 'page' === $post_type ) {
+				$type = 'website';
+			} elseif ( 'product' === $post_type ) {
+				$type = 'product';
+			} else {
+				$type = 'article';
+			}
+			$type = (string) apply_filters( 'sso_og_type', $type, $post_id );
+
 			$image_id   = $this->get_image_id( $post_id );
 			$date_pub   = get_the_date( 'c', $post_id );
 			$date_mod   = get_the_modified_date( 'c', $post_id );
@@ -147,6 +156,35 @@ class SSO_OpenGraph {
 			if ( ! $url ) {
 				$url = home_url( '/' );
 			}
+
+			// Blog index served by a static "Posts page": use that page's own SEO fields.
+			$posts_page_id = SSO_Meta_Box::get_context_post_id();
+			if ( $posts_page_id ) {
+				$custom_title = get_post_meta( $posts_page_id, '_sso_og_title', true );
+				if ( ! $custom_title ) {
+					$custom_title = get_post_meta( $posts_page_id, '_sso_meta_title', true );
+				}
+				$title = $custom_title ? $custom_title : get_the_title( $posts_page_id );
+
+				$custom_desc = get_post_meta( $posts_page_id, '_sso_og_description', true );
+				if ( ! $custom_desc ) {
+					$custom_desc = get_post_meta( $posts_page_id, '_sso_meta_description', true );
+				}
+				if ( $custom_desc ) {
+					$description = $custom_desc;
+				}
+
+				$posts_img_id = $this->get_image_id( $posts_page_id );
+				if ( $posts_img_id ) {
+					$image_id = $posts_img_id;
+				}
+			}
+		}
+
+		// Paged archives/posts must not share an identical OG title with page 1.
+		$page_num = SSO_Meta_Box::get_current_page_number();
+		if ( $page_num >= 2 ) {
+			$title .= ' – ' . SSO_Meta_Box::page_label( $page_num );
 		}
 
 		$image = $image_id ? wp_get_attachment_image_url( $image_id, 'large' ) : '';
@@ -194,6 +232,12 @@ class SSO_OpenGraph {
 		echo '<meta name="twitter:card" content="' . esc_attr( $image ? 'summary_large_image' : 'summary' ) . '" />' . "\n";
 		if ( $twitter_username ) {
 			echo '<meta name="twitter:site" content="@' . esc_attr( ltrim( $twitter_username, '@' ) ) . '" />' . "\n";
+		}
+		if ( 'article' === $type && $author_id ) {
+			$creator = ltrim( (string) get_the_author_meta( 'twitter', $author_id ), '@' );
+			if ( $creator ) {
+				echo '<meta name="twitter:creator" content="@' . esc_attr( $creator ) . '" />' . "\n";
+			}
 		}
 		echo '<meta name="twitter:title" content="' . esc_attr( $title ) . '" />' . "\n";
 		echo '<meta name="twitter:description" content="' . esc_attr( $description ) . '" />' . "\n";

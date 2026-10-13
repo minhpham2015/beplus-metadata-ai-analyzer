@@ -95,17 +95,28 @@ class SSO_Schema {
 	 * @return array
 	 */
 	public function build_website_schema() {
-		return array(
-			'@type'           => 'WebSite',
-			'@id'             => home_url( '/#website' ),
-			'name'            => get_bloginfo( 'name' ),
-			'url'             => home_url( '/' ),
-			'potentialAction' => array(
+		$data = array(
+			'@type' => 'WebSite',
+			'@id'   => home_url( '/#website' ),
+			'name'  => get_bloginfo( 'name' ),
+			'url'   => home_url( '/' ),
+		);
+
+		/**
+		 * Filter whether to add the sitelinks SearchAction. Google retired the
+		 * sitelinks search box in 2024, so it is off by default.
+		 *
+		 * @param bool $include Default false.
+		 */
+		if ( apply_filters( 'sso_schema_include_search_action', false ) ) {
+			$data['potentialAction'] = array(
 				'@type'       => 'SearchAction',
 				'target'      => home_url( '/?s={search_term_string}' ),
 				'query-input' => 'required name=search_term_string',
-			),
-		);
+			);
+		}
+
+		return $data;
 	}
 
 	/**

@@ -627,7 +627,17 @@ XSL;
 
 		$noindex_archives = SSO_Settings::get( 'general', 'noindex_archives', array() );
 		$taxonomies       = get_taxonomies( array( 'public' => true ), 'names' );
+
+		/**
+		 * Filter taxonomies kept out of the sitemap. Post formats are thin archives by default.
+		 *
+		 * @param string[] $excluded Taxonomy names.
+		 */
+		$excluded_taxonomies = (array) apply_filters( 'sso_sitemap_exclude_taxonomies', array( 'post_format' ) );
 		foreach ( $taxonomies as $taxonomy ) {
+			if ( in_array( $taxonomy, $excluded_taxonomies, true ) ) {
+				continue;
+			}
 			// Mirror SSO_Robots: taxonomy archives set to noindex must not be advertised.
 			if ( ! empty( $noindex_archives[ $taxonomy ] ) ) {
 				continue;

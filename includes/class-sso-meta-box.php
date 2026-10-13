@@ -1118,6 +1118,13 @@ class SSO_Meta_Box {
 		if ( $post_id ) {
 			$custom = get_post_meta( $post_id, '_sso_meta_title', true );
 			if ( $custom ) {
+				// A custom title bypasses core's "Page N" part, so add it back for paged views.
+				$page = self::get_current_page_number();
+				if ( $page >= 2 ) {
+					/** This filter is documented in wp-includes/general-template.php */
+					$sep    = apply_filters( 'document_title_separator', '-' );
+					$custom = $custom . ' ' . $sep . ' ' . self::page_label( $page );
+				}
 				return $custom;
 			}
 		}
@@ -1140,8 +1147,34 @@ class SSO_Meta_Box {
 			$description = $this->get_archive_description();
 		}
 
+		// Keep paged views from sharing an identical description with page 1.
+		$page = self::get_current_page_number();
+		if ( $description && $page >= 2 ) {
+			$description .= ' – ' . self::page_label( $page );
+		}
+
 		if ( $description ) {
 			echo '<meta name="description" content="' . esc_attr( $description ) . '" />' . "\n";
 		}
+	}
+
+	/**
+	 * Current pagination number (archives use "paged", multi-page posts use "page").
+	 *
+	 * @return int 1 when not paginated.
+	 */
+	public static function get_current_page_number() {
+		return max( 1, (int) get_query_var( 'paged' ), (int) get_query_var( 'page' ) );
+	}
+
+	/**
+	 * Translated "Page N" label.
+	 *
+	 * @param int $page Page number.
+	 * @return string
+	 */
+	public static function page_label( $page ) {
+		/* translators: %s: page number. */
+		return sprintf( __( 'Page %s', 'beplus-metadata-ai-analyzer' ), number_format_i18n( $page ) );
 	}
 }
