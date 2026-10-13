@@ -37,6 +37,10 @@ class SSO_Canonical {
 	 * Constructor.
 	 */
 	private function __construct() {
+		if ( SSO_Compat::should_defer() ) {
+			return;
+		}
+
 		// Run before WordPress core's own rel_canonical() and replace it entirely.
 		remove_action( 'wp_head', 'rel_canonical' );
 		add_action( 'wp_head', array( $this, 'output' ), 2 );
@@ -47,25 +51,25 @@ class SSO_Canonical {
 	 *
 	 * @return string
 	 */
-	private function get_canonical_url() {
+	public function get_url() {
 		if ( is_singular() ) {
 			$post_id  = get_queried_object_id();
 			$override = get_post_meta( $post_id, '_sso_canonical_url', true );
-			if ( $override ) {
-				return $override;
+			// Only trust an absolute http(s) override; a relative/garbage value would emit an invalid tag.
+			if ( $override && preg_match( '#^https?://#i', $override ) ) {
+				return esc_url_raw( $override );
 			}
 			$canonical = wp_get_canonical_url( $post_id );
 			return $canonical ? $canonical : get_permalink( $post_id );
 		}
 
-		if ( is_front_page() ) {
-			return home_url( '/' );
+		if ( is_home() && ! is_front_page() ) {
+			$page_for_posts = (int) get_option( 'page_for_posts' );
+			return $this->add_pagination( $page_for_posts ? get_permalink( $page_for_posts ) : home_url( '/' ) );
 		}
 
-		if ( is_home() ) {
-			$page_for_posts = (int) get_option( 'page_for_posts' );
-			$link           = $page_for_posts ? get_permalink( $page_for_posts ) : home_url( '/' );
-			return $this->add_pagination( $link );
+		if ( is_front_page() ) {
+			return $this->add_pagination( home_url( '/' ) );
 		}
 
 		if ( is_category() || is_tag() || is_tax() ) {
@@ -88,6 +92,7 @@ class SSO_Canonical {
 			return home_url( trailingslashit( $wp->request ) );
 		}
 
+		// Search, 404 and anything else: no canonical.
 		return '';
 	}
 
@@ -120,7 +125,7 @@ class SSO_Canonical {
 			return;
 		}
 
-		$canonical = $this->get_canonical_url();
+		$canonical = $this->get_url();
 
 		if ( $canonical ) {
 			echo '<link rel="canonical" href="' . esc_url( $canonical ) . '" />' . "\n";

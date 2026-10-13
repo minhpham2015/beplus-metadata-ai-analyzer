@@ -1,7 +1,7 @@
 <?php
 /**
- * Virtual XML sitemap served at /sitemap.xml (no file is ever written to disk)
- * plus a lightweight Google ping on publish/update.
+ * Virtual XML sitemap served at /sitemap.xml (no file is ever written to disk),
+ * cached and invalidated on content changes.
  *
  * @package Beplus_Metadata_AI_Analyzer
  */
@@ -55,6 +55,12 @@ class SSO_Sitemap {
 	const MAX_CACHED_PAGES = 500;
 
 	/**
+	 * Option holding the highest chunk number cached so far, so cache
+	 * invalidation only deletes transients that can actually exist.
+	 */
+	const CACHED_PAGES_OPTION = 'sso_sitemap_max_cached_page';
+
+	/**
 	 * Transient key for the cached sitemap XML (12-hour TTL).
 	 */
 	const CACHE_KEY = 'sso_sitemap_xml';
@@ -65,11 +71,6 @@ class SSO_Sitemap {
 	 * once per cache window rather than once per requested sub-sitemap.
 	 */
 	const URLS_CACHE_KEY = 'sso_sitemap_urls';
-
-	/**
-	 * Transient key used to rate-limit Google pings (5-minute cooldown).
-	 */
-	const PING_COOLDOWN_KEY = 'sso_google_ping_last';
 
 	/**
 	 * Get the singleton instance.
@@ -93,17 +94,41 @@ class SSO_Sitemap {
 		add_action( 'template_redirect', array( $this, 'maybe_render_stylesheet' ) );
 
 		// Invalidate cached sitemap whenever content changes.
-		add_action( 'save_post', array( $this, 'clear_sitemap_cache' ), 10 );
+		add_action( 'save_post', array( $this, 'maybe_clear_cache_on_save' ), 10, 2 );
 		add_action( 'delete_post', array( $this, 'clear_sitemap_cache' ) );
-
-		// Ping search engines AFTER the cache is cleared (higher priority = later).
-		add_action( 'save_post', array( $this, 'ping_search_engines' ), 20, 3 );
 
 		// Invalidate cache when plugin settings change.
 		add_action( 'updated_option', array( $this, 'on_option_updated' ), 10, 1 );
 
+		// Taxonomy and reading-settings changes alter the URL list too.
+		add_action( 'created_term', array( $this, 'clear_sitemap_cache' ) );
+		add_action( 'edited_term', array( $this, 'clear_sitemap_cache' ) );
+		add_action( 'delete_term', array( $this, 'clear_sitemap_cache' ) );
+
+		// Core's /wp-sitemap.xml would be a second, competing sitemap.
+		add_filter( 'wp_sitemaps_enabled', array( $this, 'maybe_disable_core_sitemap' ) );
+
 		// Point robots.txt at our sitemap instead of WordPress core's wp-sitemap.xml.
 		add_filter( 'robots_txt', array( $this, 'filter_robots_txt' ), 10, 1 );
+	}
+
+	/**
+	 * Turn off WordPress core's sitemap while ours is enabled, so crawlers only find one.
+	 *
+	 * @param bool $enabled Whether core sitemaps are enabled.
+	 * @return bool
+	 */
+	public function maybe_disable_core_sitemap( $enabled ) {
+		if ( ! (bool) SSO_Settings::get( 'sitemap', 'enabled', 1 ) ) {
+			return $enabled;
+		}
+
+		/**
+		 * Filter whether the core wp-sitemap.xml is disabled while the plugin sitemap is on.
+		 *
+		 * @param bool $disable Default true.
+		 */
+		return apply_filters( 'sso_disable_core_sitemap', true ) ? false : $enabled;
 	}
 
 	/**
@@ -317,6 +342,7 @@ XSL;
 
 		$xml = $this->build_urlset_xml( $slice );
 		set_transient( $cache_key, $xml, 12 * HOUR_IN_SECONDS );
+		$this->remember_cached_page( $page );
 
 		return $xml;
 	}
@@ -330,7 +356,7 @@ XSL;
 	private function build_urlset_xml( $items ) {
 		$xml  = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
 		$xml .= $this->stylesheet_pi();
-		$xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
+		$xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1" xmlns:xhtml="http://www.w3.org/1999/xhtml">' . "\n";
 
 		foreach ( $items as $item ) {
 			$xml .= "	<url>\n";
@@ -338,8 +364,24 @@ XSL;
 			if ( ! empty( $item['lastmod'] ) ) {
 				$xml .= '		<lastmod>' . esc_html( $item['lastmod'] ) . "</lastmod>\n";
 			}
-			if ( ! empty( $item['priority'] ) ) {
+			/**
+			 * Filter whether <priority> is emitted. Google ignores it; disable to slim the file.
+			 *
+			 * @param bool $include Default true.
+			 */
+			if ( ! empty( $item['priority'] ) && apply_filters( 'sso_sitemap_include_priority', true ) ) {
 				$xml .= '		<priority>' . esc_html( $item['priority'] ) . "</priority>\n";
+			}
+			// Multilingual: ['hreflang' => 'url'], supplied by integrations via `sso_sitemap_urls`.
+			if ( ! empty( $item['alternates'] ) && is_array( $item['alternates'] ) ) {
+				foreach ( $item['alternates'] as $lang => $alt_url ) {
+					$xml .= '		<xhtml:link rel="alternate" hreflang="' . esc_attr( $lang ) . '" href="' . esc_url( $alt_url ) . '" />' . "\n";
+				}
+			}
+			if ( ! empty( $item['images'] ) && is_array( $item['images'] ) ) {
+				foreach ( $item['images'] as $image_url ) {
+					$xml .= '		<image:image><image:loc>' . esc_url( $image_url ) . "</image:loc></image:image>\n";
+				}
 			}
 			$xml .= "	</url>\n";
 		}
@@ -420,10 +462,42 @@ XSL;
 		delete_transient( self::URLS_CACHE_KEY );
 		delete_transient( self::CACHE_KEY . '_0' );
 
-		// Clear per-chunk caches. Range is bounded and cheap; covers shrinking
-		// URL counts (e.g. bulk-deleting posts) without leaving stale chunks.
-		for ( $i = 1; $i <= self::MAX_CACHED_PAGES; $i++ ) {
+		// Only chunks that were actually cached can exist, so delete up to the
+		// highest recorded chunk instead of the full MAX_CACHED_PAGES range.
+		$max = min( self::MAX_CACHED_PAGES, (int) get_option( self::CACHED_PAGES_OPTION, 0 ) );
+		for ( $i = 1; $i <= $max; $i++ ) {
 			delete_transient( self::CACHE_KEY . '_' . $i );
+		}
+		if ( $max > 0 ) {
+			update_option( self::CACHED_PAGES_OPTION, 0, false );
+		}
+	}
+
+	/**
+	 * Clear the cache on save_post, skipping revisions and autosaves, which can't change
+	 * the sitemap.
+	 *
+	 * @param int     $post_id Post ID.
+	 * @param WP_Post $post    Post object.
+	 */
+	public function maybe_clear_cache_on_save( $post_id, $post = null ) {
+		if ( wp_is_post_revision( $post_id ) || wp_is_post_autosave( $post_id ) ) {
+			return;
+		}
+		if ( $post instanceof WP_Post && 'auto-draft' === $post->post_status ) {
+			return;
+		}
+		$this->clear_sitemap_cache();
+	}
+
+	/**
+	 * Record the highest cached chunk number.
+	 *
+	 * @param int $page Chunk number just cached.
+	 */
+	private function remember_cached_page( $page ) {
+		if ( $page > (int) get_option( self::CACHED_PAGES_OPTION, 0 ) ) {
+			update_option( self::CACHED_PAGES_OPTION, min( $page, self::MAX_CACHED_PAGES ), false );
 		}
 	}
 
@@ -433,9 +507,39 @@ XSL;
 	 * @param string $option Updated option name.
 	 */
 	public function on_option_updated( $option ) {
-		if ( SSO_Settings::OPTION_KEY === $option ) {
+		if ( in_array( $option, array( SSO_Settings::OPTION_KEY, 'show_on_front', 'page_on_front', 'page_for_posts' ), true ) ) {
 			$this->clear_sitemap_cache();
 		}
+	}
+
+	/**
+	 * Whether a published post would appear in the sitemap. Mirrors get_urls() so
+	 * other outputs (llms.txt) never advertise content the sitemap hides.
+	 *
+	 * @param WP_Post $post Post object.
+	 * @return bool
+	 */
+	public static function is_post_listable( $post ) {
+		if ( ! $post instanceof WP_Post || 'publish' !== $post->post_status || ! empty( $post->post_password ) ) {
+			return false;
+		}
+
+		$exclude_post_types = SSO_Settings::get( 'sitemap', 'exclude_post_types', array() );
+		if ( ! empty( $exclude_post_types[ $post->post_type ] ) ) {
+			return false;
+		}
+
+		if ( metadata_exists( 'post', $post->ID, '_sso_sitemap_exclude' ) ) {
+			return false;
+		}
+
+		$meta_noindex = get_post_meta( $post->ID, '_sso_noindex', true );
+		if ( '' !== $meta_noindex ) {
+			return ! (bool) $meta_noindex;
+		}
+
+		$noindex_post_types = SSO_Settings::get( 'general', 'noindex_post_types', array() );
+		return empty( $noindex_post_types[ $post->post_type ] );
 	}
 
 	/**
@@ -489,6 +593,7 @@ XSL;
 					'post_status'            => 'publish',
 					'posts_per_page'         => -1,
 					'fields'                 => 'ids',
+					'has_password'           => false,   // Never advertise password-protected posts.
 					'no_found_rows'          => true,    // Skip SQL_CALC_FOUND_ROWS — pagination not needed.
 					'update_post_term_cache' => false,   // Term cache not needed for sitemap IDs.
 					'update_post_meta_cache' => false,   // Meta cache not needed; noindex filtered in SQL below.
@@ -505,17 +610,65 @@ XSL;
 				)
 			);
 
+			// One query for all thumbnail IDs instead of one per post.
+			update_meta_cache( 'post', $query->posts );
+
 			foreach ( $query->posts as $post_id ) {
-				$urls[] = array(
+				$item  = array(
 					'loc'      => get_permalink( $post_id ),
 					'lastmod'  => get_the_modified_date( 'c', $post_id ),
 					'priority' => $this->calc_priority( $post_id, $post_type ),
 				);
+				$thumb = get_post_thumbnail_id( $post_id );
+				$img   = $thumb ? wp_get_attachment_url( $thumb ) : '';
+				if ( $img ) {
+					$item['images'] = array( $img );
+				}
+				$urls[] = $item;
 			}
 		}
 
-		$taxonomies = get_taxonomies( array( 'public' => true ), 'names' );
+		// Home URL, when the front page is the blog index (no static page entry exists then).
+		if ( 'page' !== get_option( 'show_on_front' ) ) {
+			$urls[] = array(
+				'loc'      => home_url( '/' ),
+				'lastmod'  => '',
+				'priority' => '1.0',
+			);
+		}
+
+		// Post type archives (e.g. a CPT with has_archive), unless excluded or noindexed.
+		foreach ( $post_types as $post_type ) {
+			if ( 'post' === $post_type || ! empty( $exclude_post_types[ $post_type ] ) || ! empty( $noindex_post_types[ $post_type ] ) ) {
+				continue;
+			}
+			$archive = get_post_type_archive_link( $post_type );
+			if ( $archive ) {
+				$urls[] = array(
+					'loc'      => $archive,
+					'lastmod'  => '',
+					'priority' => '0.6',
+				);
+			}
+		}
+
+		$noindex_archives = SSO_Settings::get( 'general', 'noindex_archives', array() );
+		$taxonomies       = get_taxonomies( array( 'public' => true ), 'names' );
+
+		/**
+		 * Filter taxonomies kept out of the sitemap. Post formats are thin archives by default.
+		 *
+		 * @param string[] $excluded Taxonomy names.
+		 */
+		$excluded_taxonomies = (array) apply_filters( 'sso_sitemap_exclude_taxonomies', array( 'post_format' ) );
 		foreach ( $taxonomies as $taxonomy ) {
+			if ( in_array( $taxonomy, $excluded_taxonomies, true ) ) {
+				continue;
+			}
+			// Mirror SSO_Robots: taxonomy archives set to noindex must not be advertised.
+			if ( ! empty( $noindex_archives[ $taxonomy ] ) ) {
+				continue;
+			}
 			$terms = get_terms(
 				array(
 					'taxonomy'   => $taxonomy,
@@ -575,46 +728,5 @@ XSL;
 		$priority = max( 0.0, min( 1.0, $priority ) );
 
 		return number_format( $priority, 1 );
-	}
-
-	/**
-	 * Ping Google with the sitemap URL whenever a post is published or updated.
-	 *
-	 * Rate-limited to at most one ping per 5 minutes so a bulk import cannot
-	 * flood Google's ping endpoint.
-	 *
-	 * @param int     $post_id Post ID.
-	 * @param WP_Post $post    Post object.
-	 * @param bool    $update  Whether this is an existing post being updated.
-	 */
-	public function ping_search_engines( $post_id, $post, $update ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- required by the save_post hook signature.
-		if ( wp_is_post_autosave( $post_id ) || wp_is_post_revision( $post_id ) ) {
-			return;
-		}
-
-		if ( 'publish' !== $post->post_status ) {
-			return;
-		}
-
-		if ( ! (bool) SSO_Settings::get( 'sitemap', 'enabled', 1 ) ) {
-			return;
-		}
-
-		// Rate limit: skip if a ping was sent within the last 5 minutes.
-		if ( false !== get_transient( self::PING_COOLDOWN_KEY ) ) {
-			return;
-		}
-
-		$sitemap_url = home_url( '/sitemap.xml' );
-
-		wp_remote_get(
-			'https://www.google.com/ping?sitemap=' . rawurlencode( $sitemap_url ),
-			array(
-				'timeout'  => 3,
-				'blocking' => false,
-			)
-		);
-
-		set_transient( self::PING_COOLDOWN_KEY, time(), 5 * MINUTE_IN_SECONDS );
 	}
 }

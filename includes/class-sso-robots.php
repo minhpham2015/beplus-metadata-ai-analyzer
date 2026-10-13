@@ -37,7 +37,7 @@ class SSO_Robots {
 	 * Constructor.
 	 */
 	private function __construct() {
-		add_action( 'wp_head', array( $this, 'output' ), 1 );
+		add_filter( 'wp_robots', array( $this, 'filter_robots' ) );
 	}
 
 	/**
@@ -63,6 +63,12 @@ class SSO_Robots {
 			}
 
 			$nofollow = (bool) $meta_nofollow;
+		} elseif ( is_home() && ! is_front_page() && (int) get_option( 'page_for_posts' ) ) {
+			$posts_page    = (int) get_option( 'page_for_posts' );
+			$meta_noindex  = get_post_meta( $posts_page, '_sso_noindex', true );
+			$meta_nofollow = get_post_meta( $posts_page, '_sso_nofollow', true );
+			$noindex       = ( '' !== $meta_noindex ) ? (bool) $meta_noindex : false;
+			$nofollow      = (bool) $meta_nofollow;
 		} elseif ( is_search() ) {
 			$noindex = (bool) SSO_Settings::get( 'general', 'noindex_search', 1 );
 		} elseif ( is_category() || is_tag() || is_tax() ) {
@@ -85,20 +91,37 @@ class SSO_Robots {
 	}
 
 	/**
-	 * Output the <meta name="robots"> tag.
+	 * Merge our noindex/nofollow directives into the single robots meta tag
+	 * WordPress core prints (wp_robots_render), instead of printing a second,
+	 * possibly conflicting tag. Core's own directives (e.g. noindex when
+	 * "Discourage search engines" is on, max-image-preview) are preserved.
+	 *
+	 * @param array $robots Directives => value/bool.
+	 * @return array
 	 */
-	public function output() {
+	public function filter_robots( $robots ) {
 		if ( is_admin() ) {
-			return;
+			return $robots;
 		}
 
 		$flags = $this->resolve_flags();
 		$flags = apply_filters( 'sso_robots_flags', $flags );
 
-		$parts   = array();
-		$parts[] = ! empty( $flags['noindex'] ) ? 'noindex' : 'index';
-		$parts[] = ! empty( $flags['nofollow'] ) ? 'nofollow' : 'follow';
+		if ( ! empty( $flags['noindex'] ) ) {
+			$robots['noindex'] = true;
+			unset( $robots['index'] );
+		} else {
+			// Rich-snippet hints; merged here so only one robots tag is ever printed.
+			// Must be strings: core's wp_robots_render() prints "name:value" only for string values
+			// and a bare "name" (invalid) for anything else, e.g. the integer -1.
+			$robots['max-snippet']       = '-1';
+			$robots['max-video-preview'] = '-1';
+		}
+		if ( ! empty( $flags['nofollow'] ) ) {
+			$robots['nofollow'] = true;
+			unset( $robots['follow'] );
+		}
 
-		echo '<meta name="robots" content="' . esc_attr( implode( ',', $parts ) ) . '" />' . "\n";
+		return $robots;
 	}
 }

@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Beplus Metadata AI Analyzer
  * Description:       Complete SEO toolkit for WordPress: meta tags, XML sitemap, Open Graph & Twitter Cards, focus keyword analysis, breadcrumbs, canonical URLs, robots control, and Schema.org structured data (JSON-LD).
- * Version:           1.1.4
+ * Version:           1.1.5
  * Author:                  Minh BePlus
  * Author URI:              https://beplusthemes.com/
  * Support URI:      https://beplusthemes.com/contact/
@@ -10,7 +10,7 @@
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       beplus-metadata-ai-analyzer
  * Domain Path:       /languages
- * Requires at least: 5.0
+ * Requires at least: 5.7
  * Requires PHP:      8.2
  *
  * @package Beplus_Metadata_AI_Analyzer
@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants.
-define( 'SSO_VERSION', '1.1.4' );
+define( 'SSO_VERSION', '1.1.5' );
 define( 'SSO_PLUGIN_FILE', __FILE__ );
 define( 'SSO_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'SSO_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -70,6 +70,7 @@ final class SSO_Plugin {
 	 */
 	private function includes() {
 		require_once SSO_PLUGIN_DIR . 'includes/class-sso-settings.php';
+		require_once SSO_PLUGIN_DIR . 'includes/class-sso-compat.php';
 		require_once SSO_PLUGIN_DIR . 'includes/class-sso-analyzer.php';
 		require_once SSO_PLUGIN_DIR . 'includes/class-sso-meta-box.php';
 		require_once SSO_PLUGIN_DIR . 'includes/class-sso-post-columns.php';
@@ -90,6 +91,7 @@ final class SSO_Plugin {
 		$this->register_head_comment_hooks();
 
 		SSO_Settings::instance();
+		SSO_Compat::instance();
 		SSO_Analyzer::instance();
 		SSO_Meta_Box::instance();
 		new SSO_Post_Columns();
