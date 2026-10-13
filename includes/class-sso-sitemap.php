@@ -557,7 +557,7 @@ XSL;
 			update_meta_cache( 'post', $query->posts );
 
 			foreach ( $query->posts as $post_id ) {
-				$item = array(
+				$item  = array(
 					'loc'      => get_permalink( $post_id ),
 					'lastmod'  => get_the_modified_date( 'c', $post_id ),
 					'priority' => $this->calc_priority( $post_id, $post_type ),
