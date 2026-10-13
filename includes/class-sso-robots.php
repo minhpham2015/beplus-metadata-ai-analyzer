@@ -112,8 +112,10 @@ class SSO_Robots {
 			unset( $robots['index'] );
 		} else {
 			// Rich-snippet hints; merged here so only one robots tag is ever printed.
-			$robots['max-snippet']       = -1;
-			$robots['max-video-preview'] = -1;
+			// Must be strings: core's wp_robots_render() prints "name:value" only for string values
+			// and a bare "name" (invalid) for anything else, e.g. the integer -1.
+			$robots['max-snippet']       = '-1';
+			$robots['max-video-preview'] = '-1';
 		}
 		if ( ! empty( $flags['nofollow'] ) ) {
 			$robots['nofollow'] = true;

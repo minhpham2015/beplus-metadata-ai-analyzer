@@ -7,6 +7,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Fixed
+- `max-snippet` / `max-video-preview` were passed to `wp_robots` as integers, so core
+  printed them as bare directives without `:-1`; now strings.
 - Excerpt trimming no longer calls `mb_strrpos()` (fatal on hosts without mbstring).
 - Custom SEO titles now work on themes without `title-tag` support via a
   `wp_title` fallback; a notice on the settings page explains the limitation.
