@@ -8,6 +8,8 @@ $GLOBALS['sso_test'] = array(
 	'cache'         => array(),
 	'now'           => 1000,
 	'posts_result'  => null, // Override for get_posts() (null = default single "Alpha" post).
+	'posts_args'    => array(),
+	'editable_ids'  => null,
 	'meta'          => array(), // [ post_id => [ meta_key => value ] ] for get_post_meta().
 );
 
@@ -27,7 +29,12 @@ function add_action() {}
 function add_filter() {}
 function __( $text ) { return $text; }
 function check_ajax_referer() { $GLOBALS['sso_test']['nonce_checked'] = true; }
-function current_user_can() { return $GLOBALS['sso_test']['can_edit']; }
+function current_user_can( $capability = '', $object_id = null ) {
+	if ( 'edit_post' === $capability && null !== $GLOBALS['sso_test']['editable_ids'] ) {
+		return in_array( (int) $object_id, $GLOBALS['sso_test']['editable_ids'], true );
+	}
+	return $GLOBALS['sso_test']['can_edit'];
+}
 function get_current_user_id() { return $GLOBALS['sso_test']['user_id']; }
 function sanitize_text_field( $value ) { return trim( strip_tags( $value ) ); }
 function wp_unslash( $value ) { return $value; }
@@ -39,10 +46,14 @@ function get_post_types() {
 		'page' => (object) array( 'name' => 'page' ),
 	);
 }
-function get_posts() {
+function get_posts( $args = array() ) {
 	++$GLOBALS['sso_test']['posts_calls'];
+	$GLOBALS['sso_test']['posts_args'][] = $args;
 	if ( null !== $GLOBALS['sso_test']['posts_result'] ) {
-		return $GLOBALS['sso_test']['posts_result'];
+		$posts    = $GLOBALS['sso_test']['posts_result'];
+		$per_page = isset( $args['posts_per_page'] ) ? (int) $args['posts_per_page'] : count( $posts );
+		$page     = isset( $args['paged'] ) ? (int) $args['paged'] : 1;
+		return array_slice( $posts, ( $page - 1 ) * $per_page, $per_page );
 	}
 	return array( (object) array( 'ID' => 42, 'post_title' => 'Alpha', 'post_type' => 'post' ) );
 }
