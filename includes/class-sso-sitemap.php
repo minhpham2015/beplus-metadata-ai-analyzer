@@ -546,8 +546,37 @@ XSL;
 			}
 		}
 
-		$taxonomies = get_taxonomies( array( 'public' => true ), 'names' );
+		// Home URL, when the front page is the blog index (no static page entry exists then).
+		if ( 'page' !== get_option( 'show_on_front' ) ) {
+			$urls[] = array(
+				'loc'      => home_url( '/' ),
+				'lastmod'  => '',
+				'priority' => '1.0',
+			);
+		}
+
+		// Post type archives (e.g. a CPT with has_archive), unless excluded or noindexed.
+		foreach ( $post_types as $post_type ) {
+			if ( 'post' === $post_type || ! empty( $exclude_post_types[ $post_type ] ) || ! empty( $noindex_post_types[ $post_type ] ) ) {
+				continue;
+			}
+			$archive = get_post_type_archive_link( $post_type );
+			if ( $archive ) {
+				$urls[] = array(
+					'loc'      => $archive,
+					'lastmod'  => '',
+					'priority' => '0.6',
+				);
+			}
+		}
+
+		$noindex_archives = SSO_Settings::get( 'general', 'noindex_archives', array() );
+		$taxonomies       = get_taxonomies( array( 'public' => true ), 'names' );
 		foreach ( $taxonomies as $taxonomy ) {
+			// Mirror SSO_Robots: taxonomy archives set to noindex must not be advertised.
+			if ( ! empty( $noindex_archives[ $taxonomy ] ) ) {
+				continue;
+			}
 			$terms = get_terms(
 				array(
 					'taxonomy'   => $taxonomy,

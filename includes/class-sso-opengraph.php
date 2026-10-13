@@ -41,53 +41,42 @@ class SSO_OpenGraph {
 	}
 
 	/**
-	 * Resolve the image to use: OG override -> featured image -> site default -> site logo.
+	 * Resolve the image attachment ID: OG override -> featured image -> site default -> site logo.
 	 *
 	 * @param int $post_id Post ID.
-	 * @return string
+	 * @return int 0 when none.
 	 */
-	private function get_image_url( $post_id ) {
-		$og_image_id = get_post_meta( $post_id, '_sso_og_image', true );
-		if ( $og_image_id ) {
-			$src = wp_get_attachment_image_url( (int) $og_image_id, 'large' );
-			if ( $src ) {
-				return $src;
-			}
+	private function get_image_id( $post_id ) {
+		$og_image_id = (int) get_post_meta( $post_id, '_sso_og_image', true );
+		if ( $og_image_id && wp_get_attachment_image_url( $og_image_id, 'large' ) ) {
+			return $og_image_id;
 		}
 
-		if ( has_post_thumbnail( $post_id ) ) {
-			$src = get_the_post_thumbnail_url( $post_id, 'large' );
-			if ( $src ) {
-				return $src;
-			}
+		$thumb_id = (int) get_post_thumbnail_id( $post_id );
+		if ( $thumb_id && wp_get_attachment_image_url( $thumb_id, 'large' ) ) {
+			return $thumb_id;
 		}
 
-		return $this->get_default_image_url();
+		return $this->get_default_image_id();
 	}
 
 	/**
-	 * Site-wide fallback image: settings default OG image, then the custom logo.
+	 * Site-wide fallback image attachment ID: settings default OG image, then the custom logo.
 	 *
-	 * @return string
+	 * @return int 0 when none.
 	 */
-	private function get_default_image_url() {
-		$default_id = SSO_Settings::get( 'social', 'default_og_image', 0 );
-		if ( $default_id ) {
-			$src = wp_get_attachment_image_url( (int) $default_id, 'large' );
-			if ( $src ) {
-				return $src;
-			}
+	private function get_default_image_id() {
+		$default_id = (int) SSO_Settings::get( 'social', 'default_og_image', 0 );
+		if ( $default_id && wp_get_attachment_image_url( $default_id, 'large' ) ) {
+			return $default_id;
 		}
 
-		$logo_id = get_theme_mod( 'custom_logo' );
-		if ( $logo_id ) {
-			$src = wp_get_attachment_image_url( (int) $logo_id, 'large' );
-			if ( $src ) {
-				return $src;
-			}
+		$logo_id = (int) get_theme_mod( 'custom_logo' );
+		if ( $logo_id && wp_get_attachment_image_url( $logo_id, 'large' ) ) {
+			return $logo_id;
 		}
 
-		return '';
+		return 0;
 	}
 
 	/**
@@ -99,6 +88,7 @@ class SSO_OpenGraph {
 		}
 
 		$social    = SSO_Settings::get( 'social' );
+		$image_id  = 0;
 		$post_id   = 0;
 		$post_type = '';
 		$date_pub  = '';
@@ -119,28 +109,38 @@ class SSO_OpenGraph {
 
 			$description = get_post_meta( $post_id, '_sso_og_description', true );
 			if ( ! $description ) {
-				$description = get_post_meta( $post_id, '_sso_meta_description', true );
-			}
-			if ( ! $description ) {
-				$description = wp_trim_words( wp_strip_all_tags( get_the_excerpt( $post_id ) ), 30, '' );
+				$description = SSO_Meta_Box::get_description( $post_id );
 			}
 
-			$url      = get_permalink( $post_id );
+			$url      = SSO_Canonical::instance()->get_url();
+			if ( ! $url ) {
+				$url = get_permalink( $post_id );
+			}
 			$type     = ( 'page' === $post_type ) ? 'website' : 'article';
-			$image    = $this->get_image_url( $post_id );
+			$image_id = $this->get_image_id( $post_id );
 			$date_pub = get_the_date( 'c', $post_id );
 			$date_mod = get_the_modified_date( 'c', $post_id );
 			$author   = get_the_author_meta( 'display_name', (int) get_post_field( 'post_author', $post_id ) );
 		} else {
 			$title       = get_bloginfo( 'name' );
 			$description = get_bloginfo( 'description' );
-			$url         = home_url( '/' );
+			$url         = SSO_Canonical::instance()->get_url();
 			$type        = 'website';
-			$image       = $this->get_default_image_url();
+			$image_id    = $this->get_default_image_id();
+			$term        = ( is_category() || is_tag() || is_tax() ) ? get_queried_object() : null;
+			if ( $term && ! empty( $term->name ) ) {
+				$title = $term->name . ' – ' . $title;
+				$desc  = trim( wp_strip_all_tags( term_description() ) );
+				if ( $desc ) {
+					$description = $desc;
+				}
+			}
+			if ( ! $url ) {
+				$url = home_url( '/' );
+			}
 		}
 
-		// -- Robots hint for AI / rich-snippet crawlers --
-		echo '<meta name="robots" content="max-snippet:-1, max-image-preview:large, max-video-preview:-1" />' . "\n";
+		$image = $image_id ? wp_get_attachment_image_url( $image_id, 'large' ) : '';
 
 		// -- Open Graph --
 		echo '<meta property="og:title" content="' . esc_attr( $title ) . '" />' . "\n";
@@ -152,6 +152,18 @@ class SSO_OpenGraph {
 
 		if ( $image ) {
 			echo '<meta property="og:image" content="' . esc_url( $image ) . '" />' . "\n";
+			if ( $image_id ) {
+				$meta = wp_get_attachment_metadata( $image_id );
+				$size = isset( $meta['sizes']['large'] ) ? $meta['sizes']['large'] : $meta;
+				if ( ! empty( $size['width'] ) && ! empty( $size['height'] ) ) {
+					echo '<meta property="og:image:width" content="' . esc_attr( (int) $size['width'] ) . '" />' . "\n";
+					echo '<meta property="og:image:height" content="' . esc_attr( (int) $size['height'] ) . '" />' . "\n";
+				}
+				$alt = get_post_meta( $image_id, '_wp_attachment_image_alt', true );
+				if ( $alt ) {
+					echo '<meta property="og:image:alt" content="' . esc_attr( $alt ) . '" />' . "\n";
+				}
+			}
 		}
 
 		// Article-specific OG properties.
@@ -208,7 +220,7 @@ class SSO_OpenGraph {
 		// -- AI / LLM-specific meta --
 		if ( ! empty( $social['enable_ai_meta'] ) ) {
 			// llm:summary — use meta description if AI has generated it.
-			$llm_summary = $post_id ? get_post_meta( $post_id, '_sso_meta_description', true ) : $description;
+			$llm_summary = $description;
 			if ( $llm_summary ) {
 				echo '<meta name="llm:summary" content="' . esc_attr( $llm_summary ) . '" />' . "\n";
 			}

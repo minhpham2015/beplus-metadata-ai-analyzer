@@ -6,6 +6,21 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+- Removed the second `<meta name="robots">` printed by Open Graph; `max-snippet`
+  and `max-video-preview` are now merged into core's `wp_robots` tag.
+- Canonical: paginated front page, posts page; invalid (non-absolute) manual
+  overrides are ignored. `og:url` now matches the canonical URL.
+- Sitemap: taxonomy archives set to noindex are excluded; home URL and
+  post-type archives are included.
+
+### Added
+- Meta description on the home page, taxonomy, author and post-type archives.
+- Custom title/description/robots of the assigned "Posts page" apply on the blog index.
+- Excerpt-based descriptions are limited to 160 chars at a word boundary and
+  shared by meta description, Open Graph and `llm:summary`.
+- `og:image:width/height/alt`; taxonomy archives get their own OG title/description.
+
 ## [1.1.5] - 2026-10-12
 
 ### Fixed
