@@ -402,9 +402,10 @@ class SSO_Schema {
 			$headline = get_the_title( $post_id );
 		}
 
+		$author_id   = (int) get_post_field( 'post_author', $post_id );
 		$author_name = get_post_meta( $post_id, '_sso_schema_author', true );
 		if ( ! $author_name ) {
-			$author_name = get_the_author_meta( 'display_name', get_post_field( 'post_author', $post_id ) );
+			$author_name = get_the_author_meta( 'display_name', $author_id );
 		}
 
 		$data = array(
@@ -415,6 +416,7 @@ class SSO_Schema {
 			'author'           => array(
 				'@type' => 'Person',
 				'name'  => $author_name,
+				'url'   => get_author_posts_url( $author_id ),
 			),
 			'publisher'        => $this->build_organization_schema(),
 			'mainEntityOfPage' => array(
@@ -423,27 +425,71 @@ class SSO_Schema {
 			),
 		);
 
-		if ( has_post_thumbnail( $post_id ) ) {
-			$data['image'] = get_the_post_thumbnail_url( $post_id, 'large' );
+		$image = $this->get_post_image_url( $post_id );
+		if ( $image ) {
+			$data['image'] = $image;
 		}
 
 		return $data;
 	}
 
 	/**
-	 * Build a Product schema node. Pulls live data from WooCommerce when active.
+	 * Featured image URL, falling back to the default OG image and then the schema logo,
+	 * so Article-type output always carries an image (Google recommends one).
 	 *
 	 * @param int $post_id Post ID.
-	 * @return array
+	 * @return string Empty string when nothing is available.
+	 */
+	private function get_post_image_url( $post_id ) {
+		if ( has_post_thumbnail( $post_id ) ) {
+			$url = get_the_post_thumbnail_url( $post_id, 'large' );
+			if ( $url ) {
+				return $url;
+			}
+		}
+
+		$fallback_ids = array(
+			(int) SSO_Settings::get( 'social', 'default_og_image', 0 ),
+			(int) SSO_Settings::get( 'schema', 'logo', 0 ),
+		);
+		foreach ( $fallback_ids as $attachment_id ) {
+			if ( $attachment_id ) {
+				$url = wp_get_attachment_image_url( $attachment_id, 'large' );
+				if ( $url ) {
+					return $url;
+				}
+			}
+		}
+
+		return '';
+	}
+
+	/**
+	 * Build a Product schema node from live WooCommerce data.
+	 *
+	 * @param int $post_id Post ID.
+	 * @return array|null Null when WooCommerce is inactive or the product has no price or rating.
 	 */
 	public function build_product_schema( $post_id ) {
+		// Google requires offers, review or aggregateRating for Product rich results;
+		// without WooCommerce there is no reliable source for any of them.
+		if ( ! function_exists( 'wc_get_product' ) ) {
+			return null;
+		}
+
+		$product = wc_get_product( $post_id );
+		if ( ! $product ) {
+			return null;
+		}
+
 		$data = array(
 			'@type' => 'Product',
 			'name'  => get_the_title( $post_id ),
 		);
 
-		if ( has_post_thumbnail( $post_id ) ) {
-			$data['image'] = get_the_post_thumbnail_url( $post_id, 'large' );
+		$image = $this->get_post_image_url( $post_id );
+		if ( $image ) {
+			$data['image'] = $image;
 		}
 
 		$description = get_post_meta( $post_id, '_sso_meta_description', true );
@@ -454,29 +500,31 @@ class SSO_Schema {
 			$data['description'] = $description;
 		}
 
-		if ( function_exists( 'wc_get_product' ) ) {
-			$product = wc_get_product( $post_id );
+		$data['sku'] = $product->get_sku() ? $product->get_sku() : (string) $post_id;
 
-			if ( $product ) {
-				$data['sku'] = $product->get_sku() ? $product->get_sku() : (string) $post_id;
+		// Never advertise a made-up price: omit offers when the product has none.
+		$price = $product->get_price();
+		if ( '' !== (string) $price ) {
+			$data['offers'] = array(
+				'@type'         => 'Offer',
+				'price'         => (string) $price,
+				'priceCurrency' => get_woocommerce_currency(),
+				'availability'  => $product->is_in_stock() ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+				'url'           => get_permalink( $post_id ),
+			);
+		}
 
-				$data['offers'] = array(
-					'@type'         => 'Offer',
-					'price'         => $product->get_price() ? (string) $product->get_price() : '0',
-					'priceCurrency' => get_woocommerce_currency(),
-					'availability'  => $product->is_in_stock() ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
-					'url'           => get_permalink( $post_id ),
-				);
+		$rating_count = $product->get_rating_count();
+		if ( $rating_count > 0 ) {
+			$data['aggregateRating'] = array(
+				'@type'       => 'AggregateRating',
+				'ratingValue' => $product->get_average_rating(),
+				'reviewCount' => $rating_count,
+			);
+		}
 
-				$rating_count = $product->get_rating_count();
-				if ( $rating_count > 0 ) {
-					$data['aggregateRating'] = array(
-						'@type'       => 'AggregateRating',
-						'ratingValue' => $product->get_average_rating(),
-						'reviewCount' => $rating_count,
-					);
-				}
-			}
+		if ( empty( $data['offers'] ) && empty( $data['aggregateRating'] ) ) {
+			return null;
 		}
 
 		return $data;

@@ -6,6 +6,19 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+- Product schema no longer emits `price: "0"` for products without a price;
+  `offers` is omitted, and the Product node is skipped entirely when there is
+  neither an offer nor a rating (including when WooCommerce is inactive).
+- llms.txt no longer lists noindexed, sitemap-excluded or password-protected
+  content (shares `SSO_Sitemap::is_post_listable()` with the sitemap).
+
+### Changed
+- llms.txt now includes every public custom post type, caches its output for
+  12h (cleared on post/settings changes) and escapes link text.
+- Article/BlogPosting/Product schema fall back to the default OG image, then
+  the schema logo, when a post has no featured image; Article author has a `url`.
+
 ### Changed
 - `article:author` now outputs the author's profile URL (Facebook's expected format).
 - `citation_*` tags only on opted-in post types (filter `sso_citation_post_types`, default `post`) and never on archives.

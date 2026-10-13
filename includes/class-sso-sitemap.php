@@ -486,6 +486,36 @@ XSL;
 	}
 
 	/**
+	 * Whether a published post would appear in the sitemap. Mirrors get_urls() so
+	 * other outputs (llms.txt) never advertise content the sitemap hides.
+	 *
+	 * @param WP_Post $post Post object.
+	 * @return bool
+	 */
+	public static function is_post_listable( $post ) {
+		if ( ! $post instanceof WP_Post || 'publish' !== $post->post_status || ! empty( $post->post_password ) ) {
+			return false;
+		}
+
+		$exclude_post_types = SSO_Settings::get( 'sitemap', 'exclude_post_types', array() );
+		if ( ! empty( $exclude_post_types[ $post->post_type ] ) ) {
+			return false;
+		}
+
+		if ( metadata_exists( 'post', $post->ID, '_sso_sitemap_exclude' ) ) {
+			return false;
+		}
+
+		$meta_noindex = get_post_meta( $post->ID, '_sso_noindex', true );
+		if ( '' !== $meta_noindex ) {
+			return ! (bool) $meta_noindex;
+		}
+
+		$noindex_post_types = SSO_Settings::get( 'general', 'noindex_post_types', array() );
+		return empty( $noindex_post_types[ $post->post_type ] );
+	}
+
+	/**
 	 * Build the list of URLs to include: public post types + public taxonomy terms.
 	 *
 	 * Posts are filtered entirely in SQL (no per-row get_post_meta calls) by combining
