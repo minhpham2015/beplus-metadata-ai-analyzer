@@ -69,6 +69,7 @@ final class SSO_Plugin {
 	 */
 	private function includes() {
 		require_once SSO_PLUGIN_DIR . 'includes/class-sso-settings.php';
+		require_once SSO_PLUGIN_DIR . 'includes/class-sso-compat.php';
 		require_once SSO_PLUGIN_DIR . 'includes/class-sso-analyzer.php';
 		require_once SSO_PLUGIN_DIR . 'includes/class-sso-meta-box.php';
 		require_once SSO_PLUGIN_DIR . 'includes/class-sso-post-columns.php';
@@ -89,6 +90,7 @@ final class SSO_Plugin {
 		$this->register_head_comment_hooks();
 
 		SSO_Settings::instance();
+		SSO_Compat::instance();
 		SSO_Analyzer::instance();
 		SSO_Meta_Box::instance();
 		new SSO_Post_Columns();

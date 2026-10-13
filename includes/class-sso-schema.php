@@ -123,7 +123,7 @@ class SSO_Schema {
 	 * Output the site-wide Organization/Person + WebSite graph once per page, via wp_footer.
 	 */
 	public function output_global_schema() {
-		if ( is_admin() ) {
+		if ( is_admin() || SSO_Compat::should_defer() ) {
 			return;
 		}
 
@@ -270,7 +270,7 @@ class SSO_Schema {
 	 * site name instead of the entry's internal post title.
 	 */
 	public function output_post_schema() {
-		if ( is_admin() ) {
+		if ( is_admin() || SSO_Compat::should_defer() ) {
 			return;
 		}
 
@@ -734,7 +734,7 @@ class SSO_Schema {
 	 * sub-category archive, custom taxonomy archive, CPT archive, author archive.
 	 */
 	public function output_breadcrumb_schema() {
-		if ( is_admin() || is_front_page() || is_404() || is_search() ) {
+		if ( is_admin() || SSO_Compat::should_defer() || is_front_page() || is_404() || is_search() ) {
 			return;
 		}
 

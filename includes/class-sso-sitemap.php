@@ -100,8 +100,35 @@ class SSO_Sitemap {
 		// Invalidate cache when plugin settings change.
 		add_action( 'updated_option', array( $this, 'on_option_updated' ), 10, 1 );
 
+		// Taxonomy and reading-settings changes alter the URL list too.
+		add_action( 'created_term', array( $this, 'clear_sitemap_cache' ) );
+		add_action( 'edited_term', array( $this, 'clear_sitemap_cache' ) );
+		add_action( 'delete_term', array( $this, 'clear_sitemap_cache' ) );
+
+		// Core's /wp-sitemap.xml would be a second, competing sitemap.
+		add_filter( 'wp_sitemaps_enabled', array( $this, 'maybe_disable_core_sitemap' ) );
+
 		// Point robots.txt at our sitemap instead of WordPress core's wp-sitemap.xml.
 		add_filter( 'robots_txt', array( $this, 'filter_robots_txt' ), 10, 1 );
+	}
+
+	/**
+	 * Turn off WordPress core's sitemap while ours is enabled, so crawlers only find one.
+	 *
+	 * @param bool $enabled Whether core sitemaps are enabled.
+	 * @return bool
+	 */
+	public function maybe_disable_core_sitemap( $enabled ) {
+		if ( ! (bool) SSO_Settings::get( 'sitemap', 'enabled', 1 ) ) {
+			return $enabled;
+		}
+
+		/**
+		 * Filter whether the core wp-sitemap.xml is disabled while the plugin sitemap is on.
+		 *
+		 * @param bool $disable Default true.
+		 */
+		return apply_filters( 'sso_disable_core_sitemap', true ) ? false : $enabled;
 	}
 
 	/**
@@ -480,7 +507,7 @@ XSL;
 	 * @param string $option Updated option name.
 	 */
 	public function on_option_updated( $option ) {
-		if ( SSO_Settings::OPTION_KEY === $option ) {
+		if ( in_array( $option, array( SSO_Settings::OPTION_KEY, 'show_on_front', 'page_on_front', 'page_for_posts' ), true ) ) {
 			$this->clear_sitemap_cache();
 		}
 	}

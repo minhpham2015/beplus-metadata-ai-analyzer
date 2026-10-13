@@ -54,6 +54,9 @@ class SSO_Llms_Txt {
 		add_action( 'delete_post', array( $this, 'clear_cache' ) );
 		add_action( 'updated_option', array( $this, 'on_option_updated' ), 10, 1 );
 		add_action( 'added_option', array( $this, 'on_option_updated' ), 10, 1 );
+		add_action( 'created_term', array( $this, 'clear_cache' ) );
+		add_action( 'edited_term', array( $this, 'clear_cache' ) );
+		add_action( 'delete_term', array( $this, 'clear_cache' ) );
 	}
 
 	/**
@@ -85,7 +88,7 @@ class SSO_Llms_Txt {
 	 * @param string $option Option name.
 	 */
 	public function on_option_updated( $option ) {
-		if ( SSO_Settings::OPTION_KEY === $option || 'sso_llms_custom_content' === $option ) {
+		if ( in_array( $option, array( SSO_Settings::OPTION_KEY, 'sso_llms_custom_content', 'show_on_front', 'page_on_front', 'page_for_posts' ), true ) ) {
 			$this->clear_cache();
 		}
 	}

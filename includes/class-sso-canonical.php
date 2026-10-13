@@ -37,6 +37,10 @@ class SSO_Canonical {
 	 * Constructor.
 	 */
 	private function __construct() {
+		if ( SSO_Compat::should_defer() ) {
+			return;
+		}
+
 		// Run before WordPress core's own rel_canonical() and replace it entirely.
 		remove_action( 'wp_head', 'rel_canonical' );
 		add_action( 'wp_head', array( $this, 'output' ), 2 );

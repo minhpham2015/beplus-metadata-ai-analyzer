@@ -6,6 +6,21 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+- Excerpt trimming no longer calls `mb_strrpos()` (fatal on hosts without mbstring).
+- Custom SEO titles now work on themes without `title-tag` support via a
+  `wp_title` fallback; a notice on the settings page explains the limitation.
+- Sitemap and llms.txt caches are cleared on term create/edit/delete and when
+  `show_on_front`, `page_on_front` or `page_for_posts` change.
+- Core `/wp-sitemap.xml` is disabled while the plugin sitemap is on
+  (filter `sso_disable_core_sitemap`).
+
+### Added
+- Detects Yoast SEO, Rank Math, All in One SEO and SEOPress. When one is active
+  the plugin stops printing canonical, meta description, Open Graph and schema
+  tags to avoid duplicates (filter `sso_defer_to_other_seo_plugin`), and shows
+  a notice on its settings page.
+
 ### Changed
 - WebSite schema no longer includes the sitelinks `SearchAction` (retired by
   Google in 2024); re-enable with the `sso_schema_include_search_action` filter.

@@ -83,7 +83,7 @@ class SSO_OpenGraph {
 	 * Output the Open Graph and Twitter Card meta tags.
 	 */
 	public function output() {
-		if ( is_admin() ) {
+		if ( is_admin() || SSO_Compat::should_defer() ) {
 			return;
 		}
 
