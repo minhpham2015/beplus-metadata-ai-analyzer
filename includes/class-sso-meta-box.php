@@ -1116,6 +1116,10 @@ class SSO_Meta_Box {
 	 * @return string
 	 */
 	public function filter_document_title( $title ) {
+		if ( SSO_Compat::should_defer() ) {
+			return $title;
+		}
+
 		$custom = $this->get_custom_title();
 		return $custom ? $custom : $title;
 	}
@@ -1128,7 +1132,7 @@ class SSO_Meta_Box {
 	 * @return string
 	 */
 	public function filter_wp_title( $title ) {
-		if ( is_admin() || current_theme_supports( 'title-tag' ) ) {
+		if ( is_admin() || current_theme_supports( 'title-tag' ) || SSO_Compat::should_defer() ) {
 			return $title;
 		}
 		$custom = $this->get_custom_title();

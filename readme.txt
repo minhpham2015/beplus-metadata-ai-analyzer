@@ -3,7 +3,7 @@ Contributors: bearsthemes, minhphamit
 Tags: seo, xml sitemap, open graph, schema, structured data
 Requires at least: 5.7
 Tested up to: 7.1
-Stable tag: 1.1.5
+Stable tag: 1.2.0
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -97,6 +97,14 @@ This plugin is developed and maintained by BePlus, a WordPress and Shopify devel
 2. Schema settings tab with a live JSON-LD preview.
 
 == Changelog ==
+
+= 1.2.0 =
+* New: SEO titles, descriptions, Open Graph and schema for archive and paginated views, with improved posts-page handling.
+* New: compatibility with Yoast SEO, Rank Math, All in One SEO and SEOPress to prevent duplicate SEO output.
+* Improved: breadcrumbs can use a post's primary category; sitemap supports images, alternate-language URLs and better exclusions.
+* Improved: Article, BlogPosting and Product schema image fallbacks and product offer validation.
+* Fixed: cache invalidation, robots directives, title handling and excerpts on sites without mbstring.
+* Removed: retired Google sitemap ping requests.
 
 = 1.1.5 =
 * Fix: saving a post no longer runs hundreds of transient deletes; revisions and autosaves are skipped.
@@ -213,6 +221,9 @@ This plugin is developed and maintained by BePlus, a WordPress and Shopify devel
 * Initial release.
 
 == Upgrade Notice ==
+
+= 1.2.0 =
+Adds archive SEO metadata and compatibility with popular SEO plugins. No migration is required.
 
 = 1.1.5 =
 Faster post saves, a single non-conflicting robots meta tag, and password-protected posts no longer appear in the sitemap or llms.txt. Requires WordPress 5.7+.

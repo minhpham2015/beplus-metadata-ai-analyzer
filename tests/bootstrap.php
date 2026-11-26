@@ -11,6 +11,12 @@ $GLOBALS['sso_test'] = array(
 	'posts_args'    => array(),
 	'editable_ids'  => null,
 	'meta'          => array(), // [ post_id => [ meta_key => value ] ] for get_post_meta().
+	'options'       => array(),
+	'filters'       => array(),
+	'is_singular'   => false,
+	'queried_id'    => 0,
+	'actions'       => array(),
+	'removed_actions' => array(),
 );
 
 class SSO_Test_Json_Response extends RuntimeException {
@@ -25,7 +31,8 @@ class SSO_Test_Json_Response extends RuntimeException {
 	}
 }
 
-function add_action() {}
+function add_action( $hook, $callback = null ) { $GLOBALS['sso_test']['actions'][] = array( $hook, $callback ); }
+function remove_action( $hook, $callback = null ) { $GLOBALS['sso_test']['removed_actions'][] = array( $hook, $callback ); }
 function add_filter() {}
 function __( $text ) { return $text; }
 function check_ajax_referer() { $GLOBALS['sso_test']['nonce_checked'] = true; }
@@ -70,6 +77,28 @@ function get_post_meta( $post_id, $key ) { return $GLOBALS['sso_test']['meta'][ 
 function get_post_type() { return 'post'; }
 function esc_url_raw( $value ) { return trim( $value ); }
 function sanitize_textarea_field( $value ) { return trim( strip_tags( $value ) ); }
+function get_option( $key, $default = false ) { return $GLOBALS['sso_test']['options'][ $key ] ?? $default; }
+function get_bloginfo( $show = '' ) { return 'Test Site'; }
+function home_url( $path = '/' ) { return 'https://example.test' . $path; }
+function esc_url( $value ) { return htmlspecialchars( $value, ENT_QUOTES, 'UTF-8' ); }
+function esc_html( $value ) { return htmlspecialchars( $value, ENT_QUOTES, 'UTF-8' ); }
+function esc_attr( $value ) { return htmlspecialchars( $value, ENT_QUOTES, 'UTF-8' ); }
+function apply_filters( $hook, $value ) { return $GLOBALS['sso_test']['filters'][ $hook ] ?? $value; }
+function is_admin() { return false; }
+function is_singular() { return $GLOBALS['sso_test']['is_singular']; }
+function get_queried_object_id() { return $GLOBALS['sso_test']['queried_id']; }
+function get_query_var( $key, $default = '' ) { return $default; }
+function current_theme_supports( $feature ) { return false; }
+function get_the_title( $post_id ) { return 'Test Article'; }
+function get_post_field( $field, $post_id ) { return 3; }
+function get_the_author_meta( $field, $author_id ) { return 'Test Author'; }
+function get_the_date( $format, $post_id ) { return '2026-01-01T00:00:00+00:00'; }
+function get_the_modified_date( $format, $post_id ) { return '2026-01-02T00:00:00+00:00'; }
+function get_author_posts_url( $author_id ) { return 'https://example.test/author/test'; }
+function get_permalink( $post_id ) { return 'https://example.test/test-article/'; }
+function wp_json_encode( $value ) { return json_encode( $value ); }
+function wp_strip_all_tags( $value ) { return strip_tags( $value ); }
+function has_post_thumbnail( $post_id ) { return false; }
 
 if ( ! defined( 'ABSPATH' ) ) {
 	define( 'ABSPATH', __DIR__ . '/' );
@@ -78,5 +107,10 @@ if ( ! defined( 'MINUTE_IN_SECONDS' ) ) {
 	define( 'MINUTE_IN_SECONDS', 60 );
 }
 require_once dirname( __DIR__ ) . '/includes/class-sso-schema-cpt.php';
+require_once dirname( __DIR__ ) . '/includes/class-sso-settings.php';
+require_once dirname( __DIR__ ) . '/includes/class-sso-compat.php';
+require_once dirname( __DIR__ ) . '/includes/class-sso-sitemap.php';
 require_once dirname( __DIR__ ) . '/includes/class-sso-schema.php';
 require_once dirname( __DIR__ ) . '/includes/class-sso-meta-box.php';
+require_once dirname( __DIR__ ) . '/includes/class-sso-canonical.php';
+require_once dirname( __DIR__ ) . '/includes/class-sso-opengraph.php';

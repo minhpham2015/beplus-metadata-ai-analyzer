@@ -17,6 +17,7 @@
         }
     },
     "scripts": {
+        "test": "phpunit -c phpunit.xml.dist",
         "lint": "phpcs --standard=phpcs.xml.dist .",
         "lint:fix": "phpcbf --standard=phpcs.xml.dist .",
         "stan": "phpstan analyse -c phpstan.neon.dist --no-progress"
