@@ -42,6 +42,9 @@ update_post_meta( $post_id, '_sso_schema_headline', 'Beplus integration schema m
 // Provide each SEO plugin with a description so the integration check can
 // verify its output independently of that plugin's site-wide templates.
 $integration_description = 'Third-party description used by the SEO compatibility integration test.';
+update_post_meta( $post_id, '_yoast_wpseo_metadesc', $integration_description );
+update_post_meta( $post_id, 'rank_math_description', $integration_description );
+update_post_meta( $post_id, '_seopress_titles_desc', $integration_description );
 switch ( $expected_plugin ) {
 	case 'Yoast SEO':
 		add_filter( 'wpseo_metadesc', static function () use ( $integration_description ) {
