@@ -23,6 +23,7 @@ $post_id = wp_insert_post(
 		'post_title'   => 'P1 SEO compatibility integration test',
 		'post_name'    => 'p1-seo-compatibility-integration-test',
 		'post_content' => 'Published content used to verify third-party SEO metadata output.',
+		'post_excerpt' => 'This published integration test verifies that an active SEO plugin supplies the canonical URL, description, Open Graph title, and structured data.',
 		'post_status'  => 'publish',
 		'post_type'    => 'post',
 	)
