@@ -99,6 +99,7 @@ This plugin is developed and maintained by BePlus, a WordPress and Shopify devel
 == Changelog ==
 
 = 1.2.0 =
+* Fix: focus keyword analysis and snippet previews now refresh from live Classic Editor content.
 * New: SEO titles, descriptions, Open Graph and schema for archive and paginated views, with improved posts-page handling.
 * New: compatibility with Yoast SEO, Rank Math, All in One SEO and SEOPress to prevent duplicate SEO output.
 * Improved: breadcrumbs can use a post's primary category; sitemap supports images, alternate-language URLs and better exclusions.

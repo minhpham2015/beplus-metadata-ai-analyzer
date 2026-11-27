@@ -6,6 +6,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+- Classic Editor keyword analysis and snippet previews now read live TinyMCE
+  content and refresh on Visual Editor changes, including undo, redo and paste.
+
 ## [1.2.0] - 2026-11-26
 
 ### Changed

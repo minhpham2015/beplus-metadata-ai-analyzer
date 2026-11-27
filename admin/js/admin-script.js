@@ -63,6 +63,7 @@
 			initAnalyzer();
 			initAutoSuggest();
 			initGutenbergSubscribe();
+			initClassicEditorSubscribe();
 		}
 	} );
 
@@ -119,6 +120,14 @@
 			try {
 				return wp.data.select( 'core/editor' ).getEditedPostContent() || '';
 			} catch ( e ) { /* fall through to Classic Editor */ }
+		}
+		// TinyMCE keeps live Visual Editor content in its iframe; WordPress only
+		// synchronizes the underlying textarea on save or editor blur.
+		if ( window.tinymce && window.tinymce.get ) {
+			var editor = window.tinymce.get( 'content' );
+			if ( editor && ! editor.isHidden() ) {
+				return editor.getContent() || '';
+			}
 		}
 		var $f = $( '#content' );
 		return $f.length ? $f.val() : '';
@@ -709,6 +718,48 @@
 					}
 				}
 			} );
+		} );
+	}
+
+	/**
+	 * Refresh the analyzer and snippet as Classic Editor content changes.
+	 * TinyMCE iframe events are needed because #content is stale in Visual
+	 * mode until WordPress synchronizes the editor back to its textarea.
+	 */
+	function initClassicEditorSubscribe() {
+		var rafPending = false;
+
+		function refresh() {
+			if ( rafPending ) {
+				return;
+			}
+			rafPending = true;
+			window.requestAnimationFrame( function () {
+				rafPending = false;
+				if ( typeof doSnippetUpdate === 'function' ) {
+					doSnippetUpdate();
+				}
+				if ( typeof doAnalyze === 'function' ) {
+					doAnalyze();
+				}
+			} );
+		}
+
+		function bindEditor( editor ) {
+			if ( editor && 'content' === editor.id ) {
+				editor.on( 'input change undo redo SetContent keyup paste', refresh );
+			}
+		}
+
+		// Text mode and title/slug fields update their native form controls.
+		$( '#content, #title, #post_name' ).on( 'input change', refresh );
+
+		// Support editors initialized before and after this script.
+		if ( window.tinymce && window.tinymce.get ) {
+			bindEditor( window.tinymce.get( 'content' ) );
+		}
+		$( document ).on( 'tinymce-editor-init', function ( event, editor ) {
+			bindEditor( editor );
 		} );
 	}
 
