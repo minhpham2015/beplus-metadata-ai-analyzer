@@ -50,8 +50,9 @@ if ( ! $query->have_posts() ) {
 	exit( 1 );
 }
 
-$GLOBALS['wp_query'] = $query;
-setup_postdata( $query->post );
+$GLOBALS['wp_query']     = $query;
+$GLOBALS['wp_the_query'] = $query;
+$query->the_post();
 
 $meta_box = SSO_Meta_Box::instance();
 if ( 'Third-party SEO title should remain' !== $meta_box->filter_document_title( 'Third-party SEO title should remain' ) ) {
@@ -84,7 +85,7 @@ $expected_tags = array(
 foreach ( $expected_tags as $label => $pattern ) {
 	$tag_count = preg_match_all( $pattern, $head );
 	if ( 1 !== $tag_count ) {
-		fwrite( STDERR, sprintf( "Expected exactly one %s tag from %s in wp_head output; found %d. Output: %s\n", $label, $expected_plugin, $tag_count, trim( preg_replace( '/\s+/', ' ', $head ) ) ) );
+		fwrite( STDERR, sprintf( "Expected exactly one %s tag from %s in wp_head output; found %d.\n", $label, $expected_plugin, $tag_count ) );
 		exit( 1 );
 	}
 }
