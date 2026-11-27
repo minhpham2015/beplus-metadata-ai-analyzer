@@ -8,6 +8,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [1.2.0] - 2026-11-26
 
+### Changed
+- Replaces the focus-keyword analyzer's unweighted 0–100 score with per-check
+  guidance and practical next steps. Keyword phrase occurrences and character
+  ranges are presented as guidance, not ranking guarantees.
+
 ### Fixed
 - `max-snippet` / `max-video-preview` were passed to `wp_robots` as integers, so core
   printed them as bare directives without `:-1`; now strings.

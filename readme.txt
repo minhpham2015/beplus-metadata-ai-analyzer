@@ -31,8 +31,8 @@ bloat:
 * **llms.txt Generator** – serves a machine-readable Markdown summary of your
   site at `/llms.txt` following the llmstxt.org standard, so LLMs can
   understand your site structure and content.
-* **Focus Keyword Analysis** – instant, client-side scoring of your focus
-  keyword against the title, description, slug, headings and content.
+* **Focus Keyword Analysis** – instant, client-side checks with practical
+  editing suggestions for the title, description, URL, headings and content.
 * **Breadcrumbs** – a `sso_breadcrumbs()` template tag and a
   `[sso_breadcrumb]` shortcode, with full sub-category, CPT archive and child
   page hierarchy support. BreadcrumbList JSON-LD is output automatically.

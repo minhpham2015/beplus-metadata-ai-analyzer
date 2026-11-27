@@ -219,8 +219,7 @@
 	// =========================================================================
 
 	/**
-	 * Run all SEO checks for the focus keyword and render the score badge +
-	 * checklist. All data is available in the DOM or Block Editor store.
+	 * Run all SEO checks for the focus keyword and render prioritized guidance.
 	 *
 	 * Checks performed:
 	 *   1. Keyword in SEO title
@@ -244,7 +243,6 @@
 		var $title   = $( '#sso_meta_title' );
 		var $desc    = $( '#sso_meta_description' );
 		var $list    = $( '#sso-analyzer-list' );
-		var $badge   = $( '#sso-score-badge' );
 
 		/**
 		 * Escape a string for use inside a RegExp literal.
@@ -271,19 +269,31 @@
 		}
 
 		/**
+		 * Normalize a phrase and a WordPress slug to comparable separators.
+		 *
+		 * @param {string} value
+		 * @return {string}
+		 */
+		function normalizeSlugText( value ) {
+			return value.toLowerCase()
+				.normalize( 'NFD' )
+				.replace( /[\u0300-\u036f]/g, '' )
+				.replace( /['’]/g, '' )
+				.replace( /[^a-z0-9\u0080-\uFFFF]+/g, '-' )
+				.replace( /^-+|-+$/g, '' );
+		}
+
+		/**
 		 * Run all checks and refresh the UI.
 		 */
 		function analyze() {
 			var keyword = ( $keyword.val() || '' ).trim();
 
-			// No keyword yet — show a placeholder message, clear the badge.
+			// No keyword yet — show a placeholder message.
 			if ( ! keyword ) {
 				$list.empty().append(
 					$( '<li>' ).text( config.labels.keywordMissing )
 				);
-				$badge
-					.text( '' )
-					.removeClass( 'sso-score-red sso-score-yellow sso-score-green' );
 				return;
 			}
 
@@ -301,94 +311,80 @@
 			var paraMatch     = rawContent.match( /<p[^>]*>([\s\S]*?)<\/p>/i );
 			var firstParaText = paraMatch ? stripHtml( paraMatch[ 0 ] ) : '';
 
-			// Keyword density.
-			var words       = textContent.trim().length ? textContent.trim().split( /\s+/ ) : [];
 			var keywordRe   = new RegExp( escapeRegExp( keyword ), 'gi' );
 			var occurrences = ( textContent.match( keywordRe ) || [] ).length;
-			var density     = words.length > 0 ? ( occurrences / words.length ) * 100 : 0;
+			var normalizedKeyword = normalizeSlugText( keyword );
 
-			// Define all checks as { pass, good, bad } objects.
+			// Prioritize editable search presentation first. Density and character
+			// ranges are rough editorial guidance, not ranking factors or guarantees.
 			var checks = [
 				{
 					pass: containsKeyword( title, keyword ),
 					good: config.labels.keywordInTitle,
 					bad:  config.labels.keywordNotInTitle,
+					action: config.labels.actionTitle,
 				},
 				{
 					pass: containsKeyword( desc, keyword ),
 					good: config.labels.keywordInDesc,
 					bad:  config.labels.keywordNotInDesc,
+					action: config.labels.actionDescription,
 				},
 				{
-					pass: containsKeyword( slug, keyword ),
+					pass: normalizedKeyword && containsKeyword( normalizeSlugText( slug ), normalizedKeyword ),
 					good: config.labels.keywordInSlug,
 					bad:  config.labels.keywordNotInSlug,
+					action: config.labels.actionSlug,
 				},
 				{
 					pass: containsKeyword( headingText, keyword ),
 					good: config.labels.keywordInHeading,
 					bad:  config.labels.keywordNotInHeading,
+					action: config.labels.actionHeading,
 				},
 				{
 					pass: containsKeyword( firstParaText, keyword ),
 					good: config.labels.keywordInFirstPara,
 					bad:  config.labels.keywordNotInFirstPara,
+					action: config.labels.actionFirstParagraph,
 				},
 				{
-					pass: density >= config.densityMin && density <= config.densityMax,
-					good: config.labels.densityGood + ' (' + density.toFixed( 2 ) + '%)',
-					bad:  config.labels.densityBad  + ' (' + density.toFixed( 2 ) + '%)',
+					pass: true,
+					good: config.labels.keywordOccurrences + ': ' + occurrences,
+					bad:  config.labels.keywordOccurrences + ': ' + occurrences,
+					action: config.labels.actionDensity,
+					advisory: true,
 				},
 				{
 					pass: title.length >= config.titleMin && title.length <= config.titleMax,
 					good: config.labels.titleLengthGood,
 					bad:  config.labels.titleLengthBad,
+					action: config.labels.actionTitleLength,
 				},
 				{
 					pass: desc.length >= config.descMin && desc.length <= config.descMax,
 					good: config.labels.descLengthGood,
 					bad:  config.labels.descLengthBad,
+					action: config.labels.actionDescriptionLength,
 				},
 			];
 
 			// Build the result list using DOM methods (not innerHTML string
 			// concatenation) so translated label strings can never inject markup.
-			var passCount = 0;
 			$list.empty();
 
 			checks.forEach( function ( check ) {
-				if ( check.pass ) {
-					passCount++;
-				}
-
 				var $li = $( '<li>' ).addClass(
-					check.pass ? 'sso-check-good' : 'sso-check-warning'
+					check.pass ? ( check.advisory ? 'sso-check-info' : 'sso-check-good' ) : 'sso-check-warning'
 				);
 				$li.append( $( '<span>' ).addClass( 'sso-icon' ) );
 				// createTextNode ensures label text is never interpreted as HTML.
 				$li.append( document.createTextNode( check.pass ? check.good : check.bad ) );
+				if ( ! check.pass || check.advisory ) {
+					$li.append( $( '<span>' ).addClass( 'sso-check-action' ).text( check.action ) );
+				}
 				$list.append( $li );
 			} );
-
-			// Compute and render the score badge.
-			var score      = Math.round( ( passCount / checks.length ) * 100 );
-			var scoreClass, scoreLabel;
-
-			if ( score >= 80 ) {
-				scoreClass = 'sso-score-green';
-				scoreLabel = ssoAdmin.i18n.scoreGood;
-			} else if ( score >= 50 ) {
-				scoreClass = 'sso-score-yellow';
-				scoreLabel = ssoAdmin.i18n.scoreOk;
-			} else {
-				scoreClass = 'sso-score-red';
-				scoreLabel = ssoAdmin.i18n.scorePoor;
-			}
-
-			$badge
-				.text( scoreLabel + ' (' + score + '/100)' )
-				.removeClass( 'sso-score-red sso-score-yellow sso-score-green' )
-				.addClass( scoreClass );
 		}
 
 		// Expose for Gutenberg subscriber.

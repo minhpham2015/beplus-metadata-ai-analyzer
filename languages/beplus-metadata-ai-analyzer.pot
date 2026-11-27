@@ -480,14 +480,6 @@ msgstr ""
 msgid "Focus keyword is missing from the first paragraph"
 msgstr ""
 
-#: includes/class-sso-analyzer.php:71
-msgid "Keyword density is within a healthy range"
-msgstr ""
-
-#: includes/class-sso-analyzer.php:72
-msgid "Keyword density is too low or too high"
-msgstr ""
-
 #: includes/class-sso-analyzer.php:73
 msgid "SEO title length is good"
 msgstr ""
@@ -502,4 +494,44 @@ msgstr ""
 
 #: includes/class-sso-analyzer.php:76
 msgid "Meta description length should be between 120 and 160 characters"
+msgstr ""
+
+#: includes/class-sso-analyzer.php
+msgid "Focus phrase occurrences in content"
+msgstr ""
+
+#: includes/class-sso-analyzer.php
+msgid "Add the phrase naturally to the SEO title when it accurately describes this page."
+msgstr ""
+
+#: includes/class-sso-analyzer.php
+msgid "Summarize the page accurately and include the phrase only when it reads naturally."
+msgstr ""
+
+#: includes/class-sso-analyzer.php
+msgid "Consider a short, readable URL that reflects the page topic; avoid changing established URLs without a redirect."
+msgstr ""
+
+#: includes/class-sso-analyzer.php
+msgid "Add the phrase to a relevant heading only if it fits the section."
+msgstr ""
+
+#: includes/class-sso-analyzer.php
+msgid "Introduce the page topic early when it helps readers understand the content."
+msgstr ""
+
+#: includes/class-sso-analyzer.php
+msgid "Review repetition in context; there is no recommended keyword frequency target."
+msgstr ""
+
+#: includes/class-sso-analyzer.php
+msgid "The suggested character range is approximate; preview width varies by device and query."
+msgstr ""
+
+#: includes/class-sso-analyzer.php
+msgid "The suggested character range is approximate; search engines may display a different snippet."
+msgstr ""
+
+#: includes/class-sso-meta-box.php
+msgid "Review the checks below as practical guidance, not a search ranking score."
 msgstr ""
