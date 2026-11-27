@@ -39,6 +39,32 @@ update_post_meta( $post_id, '_sso_meta_description', 'Beplus integration descrip
 update_post_meta( $post_id, '_sso_schema_type', 'Article' );
 update_post_meta( $post_id, '_sso_schema_headline', 'Beplus integration schema must not be used' );
 
+// Provide each SEO plugin with a description so the integration check can
+// verify its output independently of that plugin's site-wide templates.
+$integration_description = 'Third-party description used by the SEO compatibility integration test.';
+switch ( $expected_plugin ) {
+	case 'Yoast SEO':
+		add_filter( 'wpseo_metadesc', static function () use ( $integration_description ) {
+			return $integration_description;
+		} );
+		break;
+	case 'Rank Math SEO':
+		add_filter( 'rank_math/frontend/description', static function () use ( $integration_description ) {
+			return $integration_description;
+		} );
+		break;
+	case 'All in One SEO':
+		add_filter( 'aioseo_description', static function () use ( $integration_description ) {
+			return $integration_description;
+		} );
+		break;
+	case 'SEOPress':
+		add_filter( 'seopress_titles_desc', static function () use ( $integration_description ) {
+			return $integration_description;
+		} );
+		break;
+}
+
 $query = new WP_Query(
 	array(
 		'p'         => $post_id,
