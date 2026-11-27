@@ -115,7 +115,8 @@ $expected_tags = array(
 foreach ( $expected_tags as $label => $pattern ) {
 	$tag_count = preg_match_all( $pattern, $head );
 	if ( 1 !== $tag_count ) {
-		fwrite( STDERR, sprintf( "Expected exactly one %s tag from %s in wp_head output; found %d.\n", $label, $expected_plugin, $tag_count ) );
+		preg_match_all( '/<(?:meta|link)\b[^>]*(?:canonical|description|og:title)[^>]*>/i', $head, $metadata_tags );
+		fwrite( STDERR, sprintf( "Expected exactly one %s tag from %s in wp_head output; found %d. Metadata tags: %s\n", $label, $expected_plugin, $tag_count, implode( ' | ', $metadata_tags[0] ) ) );
 		exit( 1 );
 	}
 }
