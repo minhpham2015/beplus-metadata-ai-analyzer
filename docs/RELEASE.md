@@ -34,11 +34,12 @@ svn co --depth immediates https://plugins.svn.wordpress.org/beplus-metadata-ai-a
 cd /tmp/release-svn && svn up --set-depth infinity trunk
 
 # Mirror git -> svn trunk (this deletes anything in trunk not in the git repo).
-# Dev-only files (CI config, AI/contributor docs, linter config) must NEVER
+# Dev-only files (CI config, tests, AI/contributor docs, linter config) must NEVER
 # ship in the WordPress.org package — exclude them explicitly.
 rsync -av \
   --exclude='.git' --exclude='.svn' \
   --exclude='.github' \
+  --exclude='tests' \
   --exclude='CLAUDE.md' \
   --exclude='CHANGELOG.md' \
   --exclude='docs' \

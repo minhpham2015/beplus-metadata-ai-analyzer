@@ -89,27 +89,10 @@
 	margin-bottom: 16px;
 }
 
-.sso-score-badge {
-	display: inline-block;
-	padding: 4px 12px;
-	border-radius: 12px;
-	font-weight: 600;
+.sso-analyzer-note {
+	margin: 0 0 10px;
+	color: #50575e;
 	font-size: 12px;
-	color: #fff;
-	background: #999;
-	margin-bottom: 8px;
-}
-
-.sso-score-badge.sso-score-red {
-	background: #d63638;
-}
-
-.sso-score-badge.sso-score-yellow {
-	background: #dba617;
-}
-
-.sso-score-badge.sso-score-green {
-	background: #00a32a;
 }
 
 #sso-analyzer-list {
@@ -140,6 +123,17 @@
 
 #sso-analyzer-list li.sso-check-bad .sso-icon::before {
 	content: "\274C";
+}
+
+#sso-analyzer-list li.sso-check-info .sso-icon::before {
+	content: "\2139\FE0F";
+}
+
+#sso-analyzer-list .sso-check-action {
+	display: block;
+	margin: 2px 0 0;
+	color: #50575e;
+	font-size: 12px;
 }
 
 .sso-media-field .sso-media-preview {

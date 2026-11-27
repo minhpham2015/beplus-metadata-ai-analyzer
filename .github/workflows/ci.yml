@@ -78,6 +78,22 @@ jobs:
       - name: Run PHPStan
         run: composer run stan
 
+  phpunit:
+    name: PHPUnit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          coverage: none
+          tools: composer
+      - name: Install dependencies
+        run: composer install --no-progress --prefer-dist
+      - name: Run tests
+        run: composer run test
+
   plugin-check:
     name: Version Consistency Check
     runs-on: ubuntu-latest
@@ -116,6 +132,11 @@ jobs:
           --health-retries=10
     steps:
       - uses: actions/checkout@v4
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          coverage: none
       - name: Install WP-CLI
         run: |
           curl -fsSLo wp-cli.phar https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
@@ -128,3 +149,10 @@ jobs:
           php wp-cli.phar core install --path=/tmp/wp-compat --url=http://localhost --title=Test --admin_user=admin --admin_password=password --admin_email=admin@example.com --skip-email
           ln -s "$GITHUB_WORKSPACE" /tmp/wp-compat/wp-content/plugins/beplus-metadata-ai-analyzer
           php wp-cli.phar plugin activate beplus-metadata-ai-analyzer --path=/tmp/wp-compat
+          for seo_plugin in 'wordpress-seo|Yoast SEO' 'seo-by-rank-math|Rank Math SEO' 'all-in-one-seo-pack|All in One SEO' 'wp-seopress|SEOPress'; do
+            plugin_slug="${seo_plugin%%|*}"
+            expected_name="${seo_plugin#*|}"
+            php wp-cli.phar plugin install "$plugin_slug" --activate --path=/tmp/wp-compat
+            SSO_EXPECTED_SEO_PLUGIN="$expected_name" php wp-cli.phar eval-file "$GITHUB_WORKSPACE/tests/seo-plugin-integration.php" --path=/tmp/wp-compat
+            php wp-cli.phar plugin deactivate "$plugin_slug" --path=/tmp/wp-compat
+          done

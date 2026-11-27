@@ -114,9 +114,6 @@ class SSO_Meta_Box {
 					'question'        => __( 'Question', 'beplus-metadata-ai-analyzer' ),
 					'answer'          => __( 'Answer', 'beplus-metadata-ai-analyzer' ),
 					'remove'          => __( 'Remove', 'beplus-metadata-ai-analyzer' ),
-					'scoreGood'       => __( 'Good', 'beplus-metadata-ai-analyzer' ),
-					'scoreOk'         => __( 'OK', 'beplus-metadata-ai-analyzer' ),
-					'scorePoor'       => __( 'Poor', 'beplus-metadata-ai-analyzer' ),
 					'suggestion'      => __( 'Suggestion', 'beplus-metadata-ai-analyzer' ),
 					'apply'           => __( 'Apply', 'beplus-metadata-ai-analyzer' ),
 					'contentAnalyzed' => __( 'Content analyzed!', 'beplus-metadata-ai-analyzer' ),
@@ -231,7 +228,7 @@ class SSO_Meta_Box {
 				</p>
 
 				<div class="sso-analyzer-results">
-					<span class="sso-score-badge" id="sso-score-badge">&nbsp;</span>
+					<p class="sso-analyzer-note"><?php esc_html_e( 'Review the checks below as practical guidance, not a search ranking score.', 'beplus-metadata-ai-analyzer' ); ?></p>
 					<ul id="sso-analyzer-list"></ul>
 				</div>
 
@@ -1116,6 +1113,10 @@ class SSO_Meta_Box {
 	 * @return string
 	 */
 	public function filter_document_title( $title ) {
+		if ( SSO_Compat::should_defer() ) {
+			return $title;
+		}
+
 		$custom = $this->get_custom_title();
 		return $custom ? $custom : $title;
 	}
@@ -1128,7 +1129,7 @@ class SSO_Meta_Box {
 	 * @return string
 	 */
 	public function filter_wp_title( $title ) {
-		if ( is_admin() || current_theme_supports( 'title-tag' ) ) {
+		if ( is_admin() || current_theme_supports( 'title-tag' ) || SSO_Compat::should_defer() ) {
 			return $title;
 		}
 		$custom = $this->get_custom_title();

@@ -6,6 +6,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-26
+
+### Changed
+- Replaces the focus-keyword analyzer's unweighted 0–100 score with per-check
+  guidance and practical next steps. Keyword phrase occurrences and character
+  ranges are presented as guidance, not ranking guarantees.
+
 ### Fixed
 - `max-snippet` / `max-video-preview` were passed to `wp_robots` as integers, so core
   printed them as bare directives without `:-1`; now strings.
@@ -22,6 +29,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   the plugin stops printing canonical, meta description, Open Graph and schema
   tags to avoid duplicates (filter `sso_defer_to_other_seo_plugin`), and shows
   a notice on its settings page.
+- SEO title filters also defer to the detected SEO plugin, preventing custom
+  Beplus titles from overriding its document title.
+- Adds PHPUnit output-contract checks and WordPress integration checks against
+  Yoast SEO, Rank Math, All in One SEO and SEOPress in CI.
+- Keeps development tests and tooling out of the WordPress.org SVN release package.
 
 ### Changed
 - WebSite schema no longer includes the sitelinks `SearchAction` (retired by
